@@ -10,8 +10,8 @@
 
 #include <deque>
 
-#define	WA_READ			1
-#define	WA_WRITE		2
+#define		WA_READ			1
+#define		WA_WRITE		2
 
 template<class ADDRESS, class FLAGS>
 struct watchpoint_t {
@@ -40,10 +40,9 @@ public:
 
 	void	watch_print();
 //private:
-/*
+
 	void	add_watchpoint	(ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags);
-	void	rm_watchpoint	(ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags);
-*/
+//	void	rm_watchpoint	(ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags);
 	bool	general_fault	(ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags);
 
 	/*
