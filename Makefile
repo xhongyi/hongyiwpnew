@@ -1,7 +1,7 @@
 CXX=g++
 CFLAGS = -g -Wall -Werror
 EXECS=test
-MAIN=test_print
+MAIN=test_add
 MAIN_INC=auto_wp.h
 OBJS=$(MAIN).o
 
