@@ -46,8 +46,19 @@ public:
 */
 	bool	general_fault	(ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags);
 
+	/*
+	 * wp		is the container to hold all the ranges for watchpoint structure.
+	 * wp_iter	is the iterator used in both add_watchpoint and rm_watchpoint.
+	 * pre_iter	is used for getting the node right before wp_iter.
+	 * aft_iter	is used for getting the node right after wp_iter.
+	 *
+	 * All these data are declared here is to save time by avoiding creating
+	 * and destroying them every time add_watchpoint and rm_watchpoint is called.
+	 */
 	std::deque< watchpoint_t<ADDRESS, FLAGS> > wp;
 	typename std::deque< watchpoint_t<ADDRESS, FLAGS> >::iterator wp_iter;
+	typename std::deque< watchpoint_t<ADDRESS, FLAGS> >::iterator pre_iter;
+	typename std::deque< watchpoint_t<ADDRESS, FLAGS> >::iterator aft_iter;
 };
 
 #include "auto_wp.cpp"
@@ -55,4 +66,7 @@ public:
 template<class ADDRESS, class FLAGS>
 typename deque<watchpoint_t<ADDRESS, FLAGS> >::iterator
 	search_address (ADDRESS start_addr, deque<watchpoint_t<ADDRESS, FLAGS> > &wp);
+
+template<class FLAGS>
+bool flag_include(FLAGS container_flags, FLAGS target_flags);
 #endif /* AUTO_WP_H_ */
