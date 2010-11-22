@@ -41,6 +41,8 @@ public:
 	void	watch_print();
 //private:
 
+	void	wp_operation	(ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags,
+			FLAGS (*flag_op)(FLAGS &x, FLAGS &y) );
 	void	add_watchpoint	(ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags);
 //	void	rm_watchpoint	(ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags);
 	bool	general_fault	(ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags);
@@ -60,12 +62,15 @@ public:
 	typename std::deque< watchpoint_t<ADDRESS, FLAGS> >::iterator aft_iter;
 };
 
-#include "auto_wp.cpp"
-
 template<class ADDRESS, class FLAGS>
-typename deque<watchpoint_t<ADDRESS, FLAGS> >::iterator
-	search_address (ADDRESS start_addr, deque<watchpoint_t<ADDRESS, FLAGS> > &wp);
+typename std::deque<watchpoint_t<ADDRESS, FLAGS> >::iterator
+	search_address (ADDRESS start_addr, std::deque<watchpoint_t<ADDRESS, FLAGS> > &wp);
 
 template<class FLAGS>
 bool flag_include(FLAGS container_flags, FLAGS target_flags);
+
+template<class FLAGS>
+FLAGS flag_union (FLAGS &x, FLAGS &y);
+
+#include "auto_wp.cpp"
 #endif /* AUTO_WP_H_ */

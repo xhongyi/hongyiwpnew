@@ -87,6 +87,18 @@ void WatchPoint<ADDRESS, FLAGS>::watch_print() {
 	}
 	return;
 }
+
+template<class ADDRESS, class FLAGS>
+void WatchPoint<ADDRESS, FLAGS>::add_watchpoint(ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags) {
+	wp_operation(start_addr, end_addr, target_flags, &flag_union);
+}
+
+/*
+template<class ADDRESS, class FLAGS>
+void atchPoint::rm_watchpoint(ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags) {
+
+}
+*/
 /*
  * The idea of adding wp is by splitting the procedure into 3 parts:
  * The Begin Part as it would search if we need to split or merge.
@@ -96,7 +108,8 @@ void WatchPoint<ADDRESS, FLAGS>::watch_print() {
  * and merging if necessary.
  */
 template<class ADDRESS, class FLAGS>
-void WatchPoint<ADDRESS, FLAGS>::add_watchpoint(ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags) {
+void WatchPoint<ADDRESS, FLAGS>::wp_operation(ADDRESS start_addr, ADDRESS end_addr,
+		FLAGS target_flags, FLAGS (*flag_op)(FLAGS &x, FLAGS &y) ) {
 	/*
 	 * insert_t is used for keeping temp data before being inserted into wp.
 	 */
@@ -131,7 +144,7 @@ void WatchPoint<ADDRESS, FLAGS>::add_watchpoint(ADDRESS start_addr, ADDRESS end_
 					/*
 					 * Merge
 					 */
-					if (pre_iter->flags == (wp_iter->flags | target_flags) ) {
+					if (pre_iter->flags == flag_op(wp_iter->flags, target_flags) ) {
 						wp_iter->start_addr = pre_iter->start_addr;
 						wp_iter = wp.erase(pre_iter); //Erase pre_iter and restore wp_iter.
 					}
@@ -165,13 +178,13 @@ void WatchPoint<ADDRESS, FLAGS>::add_watchpoint(ADDRESS start_addr, ADDRESS end_
 					/*
 					 * Merge
 					 */
-					if (aft_iter->flags == (wp_iter->flags | target_flags) ) {
+					if (aft_iter->flags == flag_op(wp_iter->flags, target_flags) ) {
 						wp_iter->end_addr = aft_iter->end_addr;
 						wp.erase(aft_iter); //No need to restore wp_iter as we gonna return.
 					}
 				}
 				// Whether merge or not, change the flags.
-				wp_iter->flags = wp_iter->flags | target_flags;
+				wp_iter->flags = flag_op (wp_iter->flags, target_flags);
 			}
 			/*
 			 * Split
@@ -179,7 +192,7 @@ void WatchPoint<ADDRESS, FLAGS>::add_watchpoint(ADDRESS start_addr, ADDRESS end_
 			else {
 				insert_t.start_addr = wp_iter->start_addr;
 				insert_t.end_addr = end_addr;
-				insert_t.flags = wp_iter->flags | target_flags;
+				insert_t.flags = flag_op(wp_iter->flags, target_flags);
 				wp_iter->start_addr = end_addr + 1;
 				wp.insert(wp_iter, insert_t); //No need to restore as we are done.
 			}
@@ -207,16 +220,16 @@ void WatchPoint<ADDRESS, FLAGS>::add_watchpoint(ADDRESS start_addr, ADDRESS end_
 				/*
 				 * Merge
 				 */
-				if (pre_iter->flags == (wp_iter->flags | target_flags) ) {
+				if (pre_iter->flags == flag_op(wp_iter->flags, target_flags) ) {
 					wp_iter->start_addr = pre_iter->start_addr;
-					wp_iter->flags = wp_iter->flags | target_flags;
+					wp_iter->flags = flag_op(wp_iter->flags, target_flags);
 					wp_iter = wp.erase(pre_iter); //erase and restore wp_iter.
 				}
 			}
 			/*
 			 * merge or not, we still need to change flags and increment wp_iter.
 			 */
-			wp_iter->flags = wp_iter->flags | target_flags;
+			wp_iter->flags = flag_op(wp_iter->flags, target_flags);
 			wp_iter++; //Increment wp_iter.
 		}
 		/*
@@ -227,7 +240,7 @@ void WatchPoint<ADDRESS, FLAGS>::add_watchpoint(ADDRESS start_addr, ADDRESS end_
 			insert_t.end_addr = start_addr - 1;
 			insert_t.flags = wp_iter->flags;
 			wp_iter->start_addr = start_addr;
-			wp_iter->flags = wp_iter->flags | target_flags;
+			wp_iter->flags = flag_op(wp_iter->flags, target_flags);
 			wp_iter = wp.insert(wp_iter, insert_t) + 2; //Insert and increment wp_iter.
 		}
 	}
@@ -247,7 +260,7 @@ void WatchPoint<ADDRESS, FLAGS>::add_watchpoint(ADDRESS start_addr, ADDRESS end_
 		/*
 		 * Union the flags.
 		 */
-		wp_iter->flags = wp_iter->flags | target_flags;
+		wp_iter->flags = flag_op(wp_iter->flags, target_flags);
 		/*
 		 * Check merge. Merge by enlarge the pre_iter and erase wp_iter.
 		 */
@@ -275,7 +288,7 @@ void WatchPoint<ADDRESS, FLAGS>::add_watchpoint(ADDRESS start_addr, ADDRESS end_
 			/*
 			 * First check if it should merge with the wp before it.
 			 */
-			wp_iter->flags = wp_iter->flags | target_flags;
+			wp_iter->flags = flag_op(wp_iter->flags, target_flags);
 			if (wp_iter->flags == pre_iter->flags) {
 				pre_iter->end_addr = wp_iter->end_addr;
 				wp.erase(wp_iter);
@@ -289,7 +302,7 @@ void WatchPoint<ADDRESS, FLAGS>::add_watchpoint(ADDRESS start_addr, ADDRESS end_
 				/*
 				 * Merge
 				 */
-				if (aft_iter->flags == (wp_iter->flags | target_flags) ) {
+				if (aft_iter->flags == flag_op(wp_iter->flags, target_flags) ) {
 					wp_iter->end_addr = aft_iter->end_addr;
 					wp.erase(aft_iter); //erase and increment wp_iter.
 				}
@@ -302,7 +315,7 @@ void WatchPoint<ADDRESS, FLAGS>::add_watchpoint(ADDRESS start_addr, ADDRESS end_
 			/*
 			 * Check if wp_iter will merge with the pre_iter.
 			 */
-			if ( (wp_iter->flags | target_flags) == pre_iter->flags) {
+			if ( flag_op(wp_iter->flags, target_flags) == pre_iter->flags) {
 				wp_iter->start_addr = end_addr + 1;
 				pre_iter->end_addr = end_addr;
 			}
@@ -312,7 +325,7 @@ void WatchPoint<ADDRESS, FLAGS>::add_watchpoint(ADDRESS start_addr, ADDRESS end_
 			else {
 				insert_t.start_addr = wp_iter->start_addr;
 				insert_t.end_addr = end_addr;
-				insert_t.flags = wp_iter->flags | target_flags;
+				insert_t.flags = flag_op(wp_iter->flags, target_flags);
 				wp_iter->start_addr = end_addr + 1;
 				wp.insert(wp_iter, insert_t); //Insert, no need to restore wp_iter
 			}
@@ -334,12 +347,7 @@ void WatchPoint<ADDRESS, FLAGS>::add_watchpoint(ADDRESS start_addr, ADDRESS end_
 
 	return;
 }
-/*
-template<class ADDRESS, class FLAGS>
-void atchPoint::rm_watchpoint(ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags) {
 
-}
-*/
 template<class ADDRESS, class FLAGS>
 bool WatchPoint<ADDRESS, FLAGS>::general_fault(ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags) {
 	wp_iter = search_address (start_addr, wp);
@@ -386,4 +394,9 @@ typename deque<watchpoint_t<ADDRESS, FLAGS> >::iterator
 template<class FLAGS>
 bool flag_include(FLAGS container_flags, FLAGS target_flags) {
 	return ( (target_flags & container_flags) == target_flags);
+}
+
+template<class FLAGS>
+FLAGS flag_union (FLAGS &x, FLAGS &y) {
+	return (x | y);
 }
