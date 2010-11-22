@@ -42,9 +42,9 @@ public:
 //private:
 
 	void	wp_operation	(ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags,
-			FLAGS (*flag_op)(FLAGS &x, FLAGS &y) );
+			 bool (*flag_test)(FLAGS &x, FLAGS &y), FLAGS (*flag_op)(FLAGS &x, FLAGS &y) );
 	void	add_watchpoint	(ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags);
-//	void	rm_watchpoint	(ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags);
+	void	rm_watchpoint	(ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags);
 	bool	general_fault	(ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags);
 
 	/*
@@ -70,7 +70,13 @@ template<class FLAGS>
 bool flag_include(FLAGS container_flags, FLAGS target_flags);
 
 template<class FLAGS>
+bool flag_exclude(FLAGS container_flags, FLAGS target_flags);
+
+template<class FLAGS>
 FLAGS flag_union (FLAGS &x, FLAGS &y);
+
+template<class FLAGS>
+FLAGS flag_diff (FLAGS &x, FLAGS &y);
 
 #include "auto_wp.cpp"
 #endif /* AUTO_WP_H_ */
