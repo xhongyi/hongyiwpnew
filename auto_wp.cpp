@@ -90,15 +90,15 @@ void WatchPoint<ADDRESS, FLAGS>::watch_print() {
 
 template<class ADDRESS, class FLAGS>
 void WatchPoint<ADDRESS, FLAGS>::add_watchpoint(ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags) {
-	wp_operation(start_addr, end_addr, target_flags, &flag_union);
+	wp_operation(start_addr, end_addr, target_flags, &flag_include, &flag_union);
 }
 
-/*
+
 template<class ADDRESS, class FLAGS>
-void atchPoint::rm_watchpoint(ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags) {
-
+void WatchPoint<ADDRESS, FLAGS>::rm_watchpoint(ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags) {
+	wp_operation(start_addr, end_addr, target_flags, &flag_exclude, &flag_diff);
 }
-*/
+
 /*
  * The idea of adding wp is by splitting the procedure into 3 parts:
  * The Begin Part as it would search if we need to split or merge.
@@ -109,7 +109,8 @@ void atchPoint::rm_watchpoint(ADDRESS start_addr, ADDRESS end_addr, FLAGS target
  */
 template<class ADDRESS, class FLAGS>
 void WatchPoint<ADDRESS, FLAGS>::wp_operation(ADDRESS start_addr, ADDRESS end_addr,
-		FLAGS target_flags, FLAGS (*flag_op)(FLAGS &x, FLAGS &y) ) {
+		FLAGS target_flags, bool (*flag_test)(FLAGS &x, FLAGS &y),
+		FLAGS (*flag_op)(FLAGS &x, FLAGS &y) ) {
 	/*
 	 * insert_t is used for keeping temp data before being inserted into wp.
 	 */
@@ -118,7 +119,6 @@ void WatchPoint<ADDRESS, FLAGS>::wp_operation(ADDRESS start_addr, ADDRESS end_ad
 	 * The first search must fall into a range either tagged or not.
 	 */
 	wp_iter = search_address (start_addr, wp);
-	cout << "After search, wp_iter->start_addr = " << wp_iter->start_addr << endl;
 	/*
 	 * Special case: If the target range is so small that it falls
 	 * into 1 single range, then we do not need to go through the 3
@@ -129,7 +129,7 @@ void WatchPoint<ADDRESS, FLAGS>::wp_operation(ADDRESS start_addr, ADDRESS end_ad
 		/*
 		 * We only modify wp system if there is some change. Otherwise, we return
 		 */
-		if (!flag_include(wp_iter->flags, target_flags) ) {
+		if (!flag_test(wp_iter->flags, target_flags) ) {
 			/*
 			 * This case we need to check merge.
 			 * Note we check if start_addr == 0. If it's 0 then there is no "previous wp"
@@ -210,7 +210,7 @@ void WatchPoint<ADDRESS, FLAGS>::wp_operation(ADDRESS start_addr, ADDRESS end_ad
 	/*
 	 * We only change wp if the target_flags is excluded.
 	 */
-	if (!flag_include(wp_iter->flags, target_flags) ) {
+	if (!flag_test(wp_iter->flags, target_flags) ) {
 		if (wp_iter->start_addr == start_addr) {
 			/*
 			 * If start_addr == 0 then won't merge
@@ -247,11 +247,6 @@ void WatchPoint<ADDRESS, FLAGS>::wp_operation(ADDRESS start_addr, ADDRESS end_ad
 	else
 		wp_iter++; //Increment wp_iter.
 
-	cout << "**beg part ends" << endl;
-	if (wp_iter == wp.end() )
-		cout << "wp_iter == wp.end(), which is wrong" << endl;
-	cout << "wp_iter->end_addr = " << wp_iter->end_addr << endl;
-
 	/*
 	 * Iterating part
 	 */
@@ -271,9 +266,6 @@ void WatchPoint<ADDRESS, FLAGS>::wp_operation(ADDRESS start_addr, ADDRESS end_ad
 		else
 			wp_iter++; //Increment wp_iter.
 	}
-
-	cout << "**iter part ends" << endl;
-
 	/*
 	 * Ending part. Also we need to check merge or split. Besides, we also need
 	 * to check if we also will merge with the range before it.
@@ -281,7 +273,7 @@ void WatchPoint<ADDRESS, FLAGS>::wp_operation(ADDRESS start_addr, ADDRESS end_ad
 	/*
 	 * We only change wp if the target_flags is excluded.
 	 */
-	if (!flag_include(wp_iter->flags, target_flags) ) {
+	if (!flag_test(wp_iter->flags, target_flags) ) {
 		pre_iter = wp_iter - 1;
 		aft_iter = wp_iter + 1;
 		if (wp_iter->end_addr == end_addr) {
@@ -343,8 +335,6 @@ void WatchPoint<ADDRESS, FLAGS>::wp_operation(ADDRESS start_addr, ADDRESS end_ad
 		}
 	}
 
-	cout << "**end part ends" << endl;
-
 	return;
 }
 
@@ -397,6 +387,19 @@ bool flag_include(FLAGS container_flags, FLAGS target_flags) {
 }
 
 template<class FLAGS>
+bool flag_exclude(FLAGS container_flags, FLAGS target_flags) {
+	return ( (target_flags & ~container_flags) == target_flags);
+}
+
+template<class FLAGS>
 FLAGS flag_union (FLAGS &x, FLAGS &y) {
 	return (x | y);
+}
+
+/*
+ * Returns the flags of FLAGS (x - y)
+ */
+template<class FLAGS>
+FLAGS flag_diff (FLAGS &x, FLAGS &y) {
+	return (x & ~y);
 }
