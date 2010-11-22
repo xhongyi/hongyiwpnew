@@ -1,0 +1,6 @@
+//This test is used with test_add.cpp as inputs.
+//add 1 wp with end_addr = 4294967295.
+1
+100
+4294967295
+r

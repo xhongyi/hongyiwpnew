@@ -105,6 +105,7 @@ void WatchPoint<ADDRESS, FLAGS>::add_watchpoint(ADDRESS start_addr, ADDRESS end_
 	 * The first search must fall into a range either tagged or not.
 	 */
 	wp_iter = search_address (start_addr, wp);
+	cout << "After search, wp_iter->start_addr = " << wp_iter->start_addr << endl;
 	/*
 	 * Special case: If the target range is so small that it falls
 	 * into 1 single range, then we do not need to go through the 3
@@ -166,10 +167,11 @@ void WatchPoint<ADDRESS, FLAGS>::add_watchpoint(ADDRESS start_addr, ADDRESS end_
 					 */
 					if (aft_iter->flags == (wp_iter->flags | target_flags) ) {
 						wp_iter->end_addr = aft_iter->end_addr;
-						wp_iter->flags = wp_iter->flags | target_flags; //Now safe to change flags.
 						wp.erase(aft_iter); //No need to restore wp_iter as we gonna return.
 					}
 				}
+				// Whether merge or not, change the flags.
+				wp_iter->flags = wp_iter->flags | target_flags;
 			}
 			/*
 			 * Split
@@ -189,7 +191,8 @@ void WatchPoint<ADDRESS, FLAGS>::add_watchpoint(ADDRESS start_addr, ADDRESS end_
 	 * Begin part. We need to decide whether merge or split again.
 	 * The difference between the above code is we now need to change wp_iter's
 	 * flags immediately as we at most split 1 range into 2, while in above code
-	 * we may split 1 into 3(beg, mid and end).
+	 * we may split 1 into 3(beg, mid and end). And we need to increment wp_iter
+	 * as well.
 	 */
 	/*
 	 * We only change wp if the target_flags is excluded.
@@ -207,9 +210,14 @@ void WatchPoint<ADDRESS, FLAGS>::add_watchpoint(ADDRESS start_addr, ADDRESS end_
 				if (pre_iter->flags == (wp_iter->flags | target_flags) ) {
 					wp_iter->start_addr = pre_iter->start_addr;
 					wp_iter->flags = wp_iter->flags | target_flags;
-					wp_iter = wp.erase(pre_iter) + 1; //erase and increment wp_iter.
+					wp_iter = wp.erase(pre_iter); //erase and restore wp_iter.
 				}
 			}
+			/*
+			 * merge or not, we still need to change flags and increment wp_iter.
+			 */
+			wp_iter->flags = wp_iter->flags | target_flags;
+			wp_iter++; //Increment wp_iter.
 		}
 		/*
 		 * Split
@@ -220,9 +228,16 @@ void WatchPoint<ADDRESS, FLAGS>::add_watchpoint(ADDRESS start_addr, ADDRESS end_
 			insert_t.flags = wp_iter->flags;
 			wp_iter->start_addr = start_addr;
 			wp_iter->flags = wp_iter->flags | target_flags;
-			wp_iter = wp.insert(wp_iter, insert_t) + 1; //Insert and increment wp_iter.
+			wp_iter = wp.insert(wp_iter, insert_t) + 2; //Insert and increment wp_iter.
 		}
 	}
+	else
+		wp_iter++; //Increment wp_iter.
+
+	cout << "**beg part ends" << endl;
+	if (wp_iter == wp.end() )
+		cout << "wp_iter == wp.end(), which is wrong" << endl;
+	cout << "wp_iter->end_addr = " << wp_iter->end_addr << endl;
 
 	/*
 	 * Iterating part
@@ -237,10 +252,14 @@ void WatchPoint<ADDRESS, FLAGS>::add_watchpoint(ADDRESS start_addr, ADDRESS end_
 		 * Check merge. Merge by enlarge the pre_iter and erase wp_iter.
 		 */
 		if (pre_iter->flags == wp_iter->flags) {
-			pre_iter->end_addr = wp_iter->start_addr;
+			pre_iter->end_addr = wp_iter->end_addr;
 			wp_iter = wp.erase(wp_iter); //Erase wp_iter and increment wp_iter.
 		}
+		else
+			wp_iter++; //Increment wp_iter.
 	}
+
+	cout << "**iter part ends" << endl;
 
 	/*
 	 * Ending part. Also we need to check merge or split. Besides, we also need
@@ -252,7 +271,7 @@ void WatchPoint<ADDRESS, FLAGS>::add_watchpoint(ADDRESS start_addr, ADDRESS end_
 	if (!flag_include(wp_iter->flags, target_flags) ) {
 		pre_iter = wp_iter - 1;
 		aft_iter = wp_iter + 1;
-		if (wp_iter->end_addr == end_addr && end_addr != (ADDRESS)-1) {
+		if (wp_iter->end_addr == end_addr) {
 			/*
 			 * First check if it should merge with the wp before it.
 			 */
@@ -260,15 +279,20 @@ void WatchPoint<ADDRESS, FLAGS>::add_watchpoint(ADDRESS start_addr, ADDRESS end_
 			if (wp_iter->flags == pre_iter->flags) {
 				pre_iter->end_addr = wp_iter->end_addr;
 				wp.erase(wp_iter);
-				wp_iter = pre_iter;
-				aft_iter = wp_iter + 1;
+				wp_iter = pre_iter; //restore wp_iter
+				aft_iter = wp_iter + 1; //restore aft_iter
 			}
 			/*
-			 * Merge
+			 * If end_addr = -1 then we won't merge.
 			 */
-			if (aft_iter->flags == (wp_iter->flags | target_flags) ) {
-				wp_iter->end_addr = aft_iter->end_addr;
-				wp.erase(aft_iter); //erase and increment wp_iter.
+			if (end_addr != (ADDRESS)-1) {
+				/*
+				 * Merge
+				 */
+				if (aft_iter->flags == (wp_iter->flags | target_flags) ) {
+					wp_iter->end_addr = aft_iter->end_addr;
+					wp.erase(aft_iter); //erase and increment wp_iter.
+				}
 			}
 		}
 		/*
@@ -294,6 +318,20 @@ void WatchPoint<ADDRESS, FLAGS>::add_watchpoint(ADDRESS start_addr, ADDRESS end_
 			}
 		}
 	}
+	/*
+	 * Although the flags are already included. We still need to check if we need
+	 * to merge with the wp before it.
+	 */
+	else {
+		pre_iter = wp_iter - 1;
+		if (wp_iter->flags == pre_iter->flags) {
+			pre_iter->end_addr = wp_iter->end_addr;
+			wp.erase(wp_iter);
+		}
+	}
+
+	cout << "**end part ends" << endl;
+
 	return;
 }
 /*
