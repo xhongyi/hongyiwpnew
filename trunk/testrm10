@@ -1,0 +1,17 @@
+//This test is used with test_rm.cpp as inputs.
+//remove watch across multiple exsiting wp ranges.
+//remove 1 wp covers both wps.
+3
+100
+199
+r
+200
+299
+rw
+300
+399
+w
+
+150
+250
+r
