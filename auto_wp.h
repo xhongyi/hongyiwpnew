@@ -12,12 +12,15 @@
 
 #define		WA_READ			1
 #define		WA_WRITE		2
+#define		WA_TRIE			4
 
 template<class ADDRESS, class FLAGS>
 struct watchpoint_t {
 	ADDRESS		start_addr;
 	ADDRESS		end_addr;
 	FLAGS		flags;
+	ADDRESS		trie_start_addr;
+	ADDRESS		trie_end_addr;
 };
 
 template<class ADDRESS, class FLAGS>
@@ -42,7 +45,8 @@ public:
 //private:
 
 	void	wp_operation	(ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags,
-			 bool (*flag_test)(FLAGS &x, FLAGS &y), FLAGS (*flag_op)(FLAGS &x, FLAGS &y) );
+			 bool (*flag_test)(FLAGS &x, FLAGS &y), FLAGS (*flag_op)(FLAGS &x, FLAGS &y),
+			 bool add_trie);
 	void	add_watchpoint	(ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags);
 	void	rm_watchpoint	(ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags);
 	bool	general_fault	(ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags);

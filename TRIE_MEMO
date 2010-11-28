@@ -1,0 +1,48 @@
+How should we manage trie?
+There are 2 options:
+1 Store trie as a single range and duplicate the read/write ranges under the 
+single "trie tag"
+2 Just add the "Trie flags" to serveral read/write ranges and during flags_op
+and general_fault, fake these multiple ranges as a single one.
+
+There are 3 different wp functions:
+1 test fault.
+2 add/remove w/r watch
+3 add/remove tire
+
+For the first 2 functions, Store trie as a single range could save effort but 
+for the third function it would do a lot of copies as it needs internal storage
+to keep track of all r/w watchpoints.
+Add "Trie flag" on the other hand, do not require duplication, only need to add
+some trie-special range_cache loading functions(hits or misses).
+
+As we only migrate range to tire or trie to range at the third function. We then
+can specialize the flag adding procedure for function 3. For other 2 I decide
+to introduce a trie_start_addr, trie_end_addr for each wp. Thus we won't need to prob back
+and forth to get the correnct position for each trie range.
+
+During function 1 or 2, while we are probing the wp list, we check if the
+tire_flag is set. If it is, then we hit in a trie range. In a trie range we:
+1 check if trie_end_addr is the same with range_cache_data.end_addr. If it is not
+then this is a new trie range and we update range_cache_data. If it is then we
+are in the same tire range so we do nothing.
+2 check if end_addr is the same with trie_end_addr. If it is then we are at the
+end of a trie so we shall load the trie range to range cache.
+
+For Function 3 it's then going to be different as it needs to change the length
+of trie so it will needs to probe and modify all ranges that is coverd by a trie.
+To emulate the range_cache of adding a trie, we need to:
+1 probe all wps within target_range and kick all those wps out of range_cache.
+2 check if start_addr and end_addr is covered by other trie range. If it is then
+this will be a merge and we will modify the insert_trie.start_addr and insert_trie.end_addr;
+else we would check split at the start and end point of the target_range.
+3 Modify the flag with no data collection function turned on.
+4 Add the range into range_cache.
+
+To emulate the remove of trie in range_cache, we need to:
+1 probe the target_range with kicking out of range_cache.
+2 remove trie flag for target_range.
+3 check if the range on start_addr - 1(start_addr must not be 0) and end_addr + 1
+(end_addr must not be -1) is still a trie range(this means there might be splits)
+then we modify those ranges' trie_start_addr and trie_end_addr.
+4 probe the target_range again with adding to range_cache.

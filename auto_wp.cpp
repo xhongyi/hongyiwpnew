@@ -16,6 +16,8 @@ WatchPoint<ADDRESS, FLAGS>::WatchPoint() {
 	temp.start_addr = 0;
 	temp.end_addr = -1;
 	temp.flags = 0;
+	temp.trie_start_addr = 0;
+	temp.trie_end_addr = 0;
 	wp.push_back(temp);
 }
 
@@ -79,6 +81,8 @@ void WatchPoint<ADDRESS, FLAGS>::watch_print() {
 		cout << "This is the " << i << "th watchpoint" << endl;
 		cout << "start_addr = " << wp[i].start_addr << endl;
 		cout << "end_addr = " << wp[i].end_addr << endl;
+		cout << "trie_start_addr = " << wp[i].trie_start_addr << endl;
+		cout << "trie_end_addr = " << wp[i].trie_end_addr << endl;
 		if (wp[i].flags & WA_READ)
 			cout << "R";
 		if (wp[i].flags & WA_WRITE)
@@ -90,13 +94,13 @@ void WatchPoint<ADDRESS, FLAGS>::watch_print() {
 
 template<class ADDRESS, class FLAGS>
 void WatchPoint<ADDRESS, FLAGS>::add_watchpoint(ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags) {
-	wp_operation(start_addr, end_addr, target_flags, &flag_include, &flag_union);
+	wp_operation(start_addr, end_addr, target_flags, &flag_include, &flag_union, false);
 }
 
 
 template<class ADDRESS, class FLAGS>
 void WatchPoint<ADDRESS, FLAGS>::rm_watchpoint(ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags) {
-	wp_operation(start_addr, end_addr, target_flags, &flag_exclude, &flag_diff);
+	wp_operation(start_addr, end_addr, target_flags, &flag_exclude, &flag_diff, false);
 }
 
 /*
@@ -106,19 +110,32 @@ void WatchPoint<ADDRESS, FLAGS>::rm_watchpoint(ADDRESS start_addr, ADDRESS end_a
  * necessary.
  * The End Part which is also similar to the Begin Part, splitting
  * and merging if necessary.
+ * In trie_flag update, all start and end merge is prevented.
  */
 template<class ADDRESS, class FLAGS>
 void WatchPoint<ADDRESS, FLAGS>::wp_operation(ADDRESS start_addr, ADDRESS end_addr,
 		FLAGS target_flags, bool (*flag_test)(FLAGS &x, FLAGS &y),
-		FLAGS (*flag_op)(FLAGS &x, FLAGS &y) ) {
+		FLAGS (*flag_op)(FLAGS &x, FLAGS &y), bool add_trie) {
 	/*
 	 * insert_t is used for keeping temp data before being inserted into wp.
+	 */
+	/*
+	 * trie_start_addr and trie_end_addr is used to indicate where does the trie
+	 * range starts and ends. We only need to modify these 2 member data when we
+	 * set trie flag.
 	 */
 	watchpoint_t<ADDRESS, FLAGS> insert_t;
 	/*
 	 * The first search must fall into a range either tagged or not.
 	 */
 	wp_iter = search_address (start_addr, wp);
+	/*
+	 * If adding trie flag then update trie_data.
+	 */
+	if (add_trie) {
+		wp_iter->trie_start_addr = start_addr;
+		wp_iter->trie_end_addr = end_addr;
+	}
 	/*
 	 * Special case: If the target range is so small that it falls
 	 * into 1 single range, then we do not need to go through the 3
@@ -142,7 +159,12 @@ void WatchPoint<ADDRESS, FLAGS>::wp_operation(ADDRESS start_addr, ADDRESS end_ad
 				if (start_addr != 0) {
 					pre_iter = wp_iter - 1;
 					/*
-					 * Merge
+					 * Merge. In merge, we don't update or restore trie_data because
+					 * if 2 ranges can merge and one of them is in trie then the other
+					 * must also in trie. Note that this is for normal flag change,
+					 * not for trie_flag update. For trie_adding case, there should be
+					 * no merging case as the incomming start_addr has prevented such
+					 * case out side this function.
 					 */
 					if (pre_iter->flags == flag_op(wp_iter->flags, target_flags) ) {
 						wp_iter->start_addr = pre_iter->start_addr;
@@ -161,6 +183,12 @@ void WatchPoint<ADDRESS, FLAGS>::wp_operation(ADDRESS start_addr, ADDRESS end_ad
 				insert_t.start_addr = wp_iter->start_addr;
 				insert_t.end_addr = start_addr - 1;
 				insert_t.flags = wp_iter->flags;
+				/*
+				 *	Either split or merge, the trie_data must keep the same
+				 *	as in range_cache its still 1 trie_range.
+				 */
+				insert_t.trie_start_addr = wp_iter->trie_start_addr;
+				insert_t.trie_end_addr = wp_iter->trie_end_addr;
 				wp_iter->start_addr = start_addr;
 				wp_iter = wp.insert(wp_iter, insert_t) + 1; //Insert and Restore wp_iter position.
 			}
@@ -192,6 +220,11 @@ void WatchPoint<ADDRESS, FLAGS>::wp_operation(ADDRESS start_addr, ADDRESS end_ad
 			else {
 				insert_t.start_addr = wp_iter->start_addr;
 				insert_t.end_addr = end_addr;
+				/*
+				 * Restore the trie data if not trie_add
+				 */
+				insert_t.trie_start_addr = wp_iter->trie_start_addr;
+				insert_t.trie_end_addr = wp_iter->trie_end_addr;
 				insert_t.flags = flag_op(wp_iter->flags, target_flags);
 				wp_iter->start_addr = end_addr + 1;
 				wp.insert(wp_iter, insert_t); //No need to restore as we are done.
@@ -239,6 +272,11 @@ void WatchPoint<ADDRESS, FLAGS>::wp_operation(ADDRESS start_addr, ADDRESS end_ad
 			insert_t.start_addr = wp_iter->start_addr;
 			insert_t.end_addr = start_addr - 1;
 			insert_t.flags = wp_iter->flags;
+			/*
+			 * Restore the trie data for split part.
+			 */
+			insert_t.trie_start_addr = wp_iter->trie_start_addr;
+			insert_t.trie_end_addr = wp_iter->trie_end_addr;
 			wp_iter->start_addr = start_addr;
 			wp_iter->flags = flag_op(wp_iter->flags, target_flags);
 			wp_iter = wp.insert(wp_iter, insert_t) + 2; //Insert and increment wp_iter.
@@ -251,6 +289,13 @@ void WatchPoint<ADDRESS, FLAGS>::wp_operation(ADDRESS start_addr, ADDRESS end_ad
 	 * Iterating part
 	 */
 	while (wp_iter->end_addr < end_addr) {
+		/*
+		 * If adding trie flag then update trie_data.
+		 */
+		if (add_trie) {
+			wp_iter->trie_start_addr = start_addr;
+			wp_iter->trie_end_addr = end_addr;
+		}
 		pre_iter = wp_iter - 1;
 		/*
 		 * Union the flags.
@@ -273,6 +318,13 @@ void WatchPoint<ADDRESS, FLAGS>::wp_operation(ADDRESS start_addr, ADDRESS end_ad
 	/*
 	 * We only change wp if the target_flags is excluded.
 	 */
+	/*
+	 * If adding trie flag then update trie_data.
+	 */
+	if (add_trie) {
+		wp_iter->trie_start_addr = start_addr;
+		wp_iter->trie_end_addr = end_addr;
+	}
 	if (!flag_test(wp_iter->flags, target_flags) ) {
 		pre_iter = wp_iter - 1;
 		aft_iter = wp_iter + 1;
@@ -317,6 +369,8 @@ void WatchPoint<ADDRESS, FLAGS>::wp_operation(ADDRESS start_addr, ADDRESS end_ad
 			else {
 				insert_t.start_addr = wp_iter->start_addr;
 				insert_t.end_addr = end_addr;
+				insert_t.trie_start_addr = wp_iter->start_addr;
+				insert_t.trie_end_addr = wp_iter->end_addr;
 				insert_t.flags = flag_op(wp_iter->flags, target_flags);
 				wp_iter->start_addr = end_addr + 1;
 				wp.insert(wp_iter, insert_t); //Insert, no need to restore wp_iter
