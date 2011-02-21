@@ -1,0 +1,6 @@
+//This test is used with test_add.cpp as inputs.
+//add 1 wp with start_addr = 0.
+1
+0
+50
+r

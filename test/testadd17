@@ -1,0 +1,16 @@
+//This test is used with test_add.cpp as inputs.
+//add watch across multiple exsiting wp ranges.
+//add 1 wp that has same flags and is back adjecent with another wp.(merge)
+4
+100
+199
+r
+300
+399
+rw
+500
+599
+w
+150
+499
+w
