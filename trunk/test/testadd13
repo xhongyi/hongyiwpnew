@@ -1,0 +1,16 @@
+//This test is used with test_add.cpp as inputs.
+//add watch across multiple exsiting wp ranges.
+//add 1 wp with end_addr = 4294967295
+4
+100
+199
+r
+300
+399
+rw
+500
+599
+w
+150
+4294967295
+w

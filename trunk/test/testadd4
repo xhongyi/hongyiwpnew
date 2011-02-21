@@ -1,0 +1,9 @@
+//This test is used with test_add.cpp as inputs.
+//add wp that have diff flags and is not adjacent with other.
+2
+100
+200
+w
+400
+500
+r

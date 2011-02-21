@@ -1,0 +1,9 @@
+//This test is used with test_add.cpp as inputs.
+//add wp that have same flags and is front adjacent with other.(merge)
+2
+100
+200
+w
+201
+500
+w

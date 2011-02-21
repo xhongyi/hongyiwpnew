@@ -1,0 +1,19 @@
+//This test is used with test_add.cpp as inputs.
+//add watch across multiple exsiting wp ranges.
+//add 1 wp that has changes flags and causes merges in the middle.
+5
+100
+199
+rw
+200
+299
+w
+300
+399
+rw
+400
+499
+w
+150
+450
+r

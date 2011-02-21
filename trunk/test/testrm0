@@ -1,0 +1,10 @@
+//This test is used with test_rm.cpp as inputs.
+//rm 1 wp.
+1
+0
+4294967295
+rw
+
+50
+100
+r

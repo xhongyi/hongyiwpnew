@@ -1,0 +1,13 @@
+//This test is used with test_add.cpp as inputs.
+//add watch across multiple exsiting wp ranges.
+//adding flags that are already exist.
+3
+100
+200
+rw
+300
+400
+rw
+150
+350
+r
