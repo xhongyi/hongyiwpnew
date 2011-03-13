@@ -6,7 +6,7 @@ MAIN_INC=cache_algo.h
 OBJS=$(MAIN).o
 
 all:
-	g++ -Wall -Werror test_add.cpp -o a.out
+	g++ -Wall -Werror test_rm.cpp -o a.out
 #$(EXECS)
 
 #$(EXECS): $(OBJS)
