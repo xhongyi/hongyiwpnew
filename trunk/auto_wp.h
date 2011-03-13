@@ -9,18 +9,7 @@
 #define AUTO_WP_H_
 
 #include <deque>
-
-#define		WA_READ			1
-#define		WA_WRITE		2
-#define		WA_TRIE			4
-#define		WA_LINEMAP		8
-
-template<class ADDRESS, class FLAGS>
-struct watchpoint_t {
-	ADDRESS		start_addr;
-	ADDRESS		end_addr;
-	FLAGS		flags;
-};
+#include "wp_data_struct.h"
 
 template<class ADDRESS, class FLAGS>
 class WatchPoint {
