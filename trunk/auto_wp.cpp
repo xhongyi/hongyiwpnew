@@ -90,244 +90,27 @@ void WatchPoint<ADDRESS, FLAGS>::watch_print() {
 
 template<class ADDRESS, class FLAGS>
 void WatchPoint<ADDRESS, FLAGS>::add_watchpoint(ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags) {
-	//comment out cuz func pointer is too slow
-	//wp_operation(start_addr, end_addr, target_flags, &flag_include, &flag_union);
-	
-	
-	/*
-	 * insert_t is used for keeping temp data before being inserted into wp.
-	 */
-	watchpoint_t<ADDRESS, FLAGS> insert_t;
-	/*
-	 * The first search must fall into a range either tagged or not.
-	 */
-	wp_iter = search_address (start_addr, wp);
-	/*
-	 * Special case: If the target range is so small that it falls
-	 * into 1 single range, then we do not need to go through the 3
-	 * Parts as there is no wp to iterating.
-	 * Also we need to check both begin and end splitting and merge
-	 */
-	if (wp_iter->end_addr >= end_addr) {
-		/*
-		 * We only modify wp system if there is some change. Otherwise, we return
-		 */
-		if (!flag_include(wp_iter->flags, target_flags) ) {
-			/*
-			 * This case we need to check merge.
-			 * Note we check if start_addr == 0. If it's 0 then there is no "previous wp"
-			 * First we check the front condition.
-			 */
-			if (wp_iter->start_addr == start_addr) {
-				/*
-				 * If start_addr == 0 then won't merge
-				 */
-				if (start_addr != 0) {
-					pre_iter = wp_iter - 1;
-					/*
-					 * Merge
-					 */
-					if (pre_iter->flags == flag_union(wp_iter->flags, target_flags) ) {
-						wp_iter->start_addr = pre_iter->start_addr;
-						wp_iter = wp.erase(pre_iter); //Erase pre_iter and restore wp_iter.
-					}
-					//We can't update the flags for now. We must wait until we have
-					//determined wether merge or split at the end_addr.
-				}
-			}
-			/*
-			 * If "start_addr"s are not equal then me are facing a split.
-			 * We split by change wp_iter's start_addr and add the "split" part
-			 * before wp_iter.
-			 */
-			else {
-				insert_t.start_addr = wp_iter->start_addr;
-				insert_t.end_addr = start_addr - 1;
-				insert_t.flags = wp_iter->flags;
-				wp_iter->start_addr = start_addr;
-				wp_iter = wp.insert(wp_iter, insert_t) + 1; //Insert and Restore wp_iter position.
-			}
-
-			/*
-			 * Then we check for the end.
-			 * Also merge or split as we did for front.
-			 */
-			aft_iter = wp_iter + 1;
-			if (wp_iter->end_addr == end_addr) {
-				/*
-				 * If end_addr == -1 then won't merge
-				 */
-				if (end_addr != (ADDRESS)-1) {
-					/*
-					 * Merge
-					 */
-					if (aft_iter->flags == flag_union(wp_iter->flags, target_flags) ) {
-						wp_iter->end_addr = aft_iter->end_addr;
-						wp.erase(aft_iter); //No need to restore wp_iter as we gonna return.
-					}
-				}
-				// Whether merge or not, change the flags.
-				wp_iter->flags = flag_union (wp_iter->flags, target_flags);
-			}
-			/*
-			 * Split
-			 */
-			else {
-				insert_t.start_addr = wp_iter->start_addr;
-				insert_t.end_addr = end_addr;
-				insert_t.flags = flag_union(wp_iter->flags, target_flags);
-				wp_iter->start_addr = end_addr + 1;
-				wp.insert(wp_iter, insert_t); //No need to restore as we are done.
-			}
-		}
-		return;
-	}
-
-	/*
-	 * Begin part. We need to decide whether merge or split again.
-	 * The difference between the above code is we now need to change wp_iter's
-	 * flags immediately as we at most split 1 range into 2, while in above code
-	 * we may split 1 into 3(beg, mid and end). And we need to increment wp_iter
-	 * as well.
-	 */
-	/*
-	 * We only change wp if the target_flags is excluded.
-	 */
-	if (!flag_include(wp_iter->flags, target_flags) ) {
-		if (wp_iter->start_addr == start_addr) {
-			/*
-			 * If start_addr == 0 then won't merge
-			 */
-			if (start_addr != 0) {
-				pre_iter = wp_iter - 1;
-				/*
-				 * Merge
-				 */
-				if (pre_iter->flags == flag_union(wp_iter->flags, target_flags) ) {
-					wp_iter->start_addr = pre_iter->start_addr;
-					wp_iter->flags = flag_union(wp_iter->flags, target_flags);
-					wp_iter = wp.erase(pre_iter); //erase and restore wp_iter.
-				}
-			}
-			/*
-			 * merge or not, we still need to change flags and increment wp_iter.
-			 */
-			wp_iter->flags = flag_union(wp_iter->flags, target_flags);
-			wp_iter++; //Increment wp_iter.
-		}
-		/*
-		 * Split
-		 */
-		else {
-			insert_t.start_addr = wp_iter->start_addr;
-			insert_t.end_addr = start_addr - 1;
-			insert_t.flags = wp_iter->flags;
-			wp_iter->start_addr = start_addr;
-			wp_iter->flags = flag_union(wp_iter->flags, target_flags);
-			wp_iter = wp.insert(wp_iter, insert_t) + 2; //Insert and increment wp_iter.
-		}
-	}
-	else
-		wp_iter++; //Increment wp_iter.
-
-	/*
-	 * Iterating part
-	 */
-	while (wp_iter->end_addr < end_addr) {
-		pre_iter = wp_iter - 1;
-		/*
-		 * Union the flags.
-		 */
-		wp_iter->flags = flag_union(wp_iter->flags, target_flags);
-		/*
-		 * Check merge. Merge by enlarge the pre_iter and erase wp_iter.
-		 */
-		if (pre_iter->flags == wp_iter->flags) {
-			pre_iter->end_addr = wp_iter->end_addr;
-			wp_iter = wp.erase(wp_iter); //Erase wp_iter and increment wp_iter.
-		}
-		else
-			wp_iter++; //Increment wp_iter.
-	}
-	/*
-	 * Ending part. Also we need to check merge or split. Besides, we also need
-	 * to check if we also will merge with the range before it.
-	 */
-	/*
-	 * We only change wp if the target_flags is excluded.
-	 */
-	if (!flag_include(wp_iter->flags, target_flags) ) {
-		pre_iter = wp_iter - 1;
-		aft_iter = wp_iter + 1;
-		if (wp_iter->end_addr == end_addr) {
-			/*
-			 * First check if it should merge with the wp before it.
-			 */
-			wp_iter->flags = flag_union(wp_iter->flags, target_flags);
-			if (wp_iter->flags == pre_iter->flags) {
-				pre_iter->end_addr = wp_iter->end_addr;
-				wp.erase(wp_iter);
-				wp_iter = pre_iter; //restore wp_iter
-				aft_iter = wp_iter + 1; //restore aft_iter
-			}
-			/*
-			 * If end_addr = -1 then we won't merge.
-			 */
-			if (end_addr != (ADDRESS)-1) {
-				/*
-				 * Merge
-				 */
-				if (aft_iter->flags == flag_union(wp_iter->flags, target_flags) ) {
-					wp_iter->end_addr = aft_iter->end_addr;
-					wp.erase(aft_iter); //erase and increment wp_iter.
-				}
-			}
-		}
-		/*
-		 * Split
-		 */
-		else {
-			/*
-			 * Check if wp_iter will merge with the pre_iter.
-			 */
-			if ( flag_union(wp_iter->flags, target_flags) == pre_iter->flags) {
-				wp_iter->start_addr = end_addr + 1;
-				pre_iter->end_addr = end_addr;
-			}
-			/*
-			 * If not, then we need to split by insertion.
-			 */
-			else {
-				insert_t.start_addr = wp_iter->start_addr;
-				insert_t.end_addr = end_addr;
-				insert_t.flags = flag_union(wp_iter->flags, target_flags);
-				wp_iter->start_addr = end_addr + 1;
-				wp.insert(wp_iter, insert_t); //Insert, no need to restore wp_iter
-			}
-		}
-	}
-	/*
-	 * Although the flags are already included. We still need to check if we need
-	 * to merge with the wp before it.
-	 */
-	else {
-		pre_iter = wp_iter - 1;
-		if (wp_iter->flags == pre_iter->flags) {
-			pre_iter->end_addr = wp_iter->end_addr;
-			wp.erase(wp_iter);
-		}
-	}
-
-	return;
+	wp_operation(start_addr, end_addr, target_flags, &flag_include, &flag_union);
 }
 
 
 template<class ADDRESS, class FLAGS>
 void WatchPoint<ADDRESS, FLAGS>::rm_watchpoint(ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags) {
-	//comment out cuz func pointer is too slow
-	//wp_operation(start_addr, end_addr, target_flags, &flag_exclude, &flag_diff);
-	
-	
+	wp_operation(start_addr, end_addr, target_flags, &flag_exclude, &flag_diff);
+}
+
+/*
+ * The idea of adding wp is by splitting the procedure into 3 parts:
+ * The Begin Part as it would search if we need to split or merge.
+ * The Iterating Part as it would iterate through and do merge if
+ * necessary.
+ * The End Part which is also similar to the Begin Part, splitting
+ * and merging if necessary.
+ */
+template<class ADDRESS, class FLAGS>
+void WatchPoint<ADDRESS, FLAGS>::wp_operation(ADDRESS start_addr, ADDRESS end_addr,
+		FLAGS target_flags, bool (*flag_test)(FLAGS &x, FLAGS &y),
+		FLAGS (*flag_op)(FLAGS &x, FLAGS &y) ) {
 	/*
 	 * insert_t is used for keeping temp data before being inserted into wp.
 	 */
@@ -346,7 +129,7 @@ void WatchPoint<ADDRESS, FLAGS>::rm_watchpoint(ADDRESS start_addr, ADDRESS end_a
 		/*
 		 * We only modify wp system if there is some change. Otherwise, we return
 		 */
-		if (!flag_exclude(wp_iter->flags, target_flags) ) {
+		if (!flag_test(wp_iter->flags, target_flags) ) {
 			/*
 			 * This case we need to check merge.
 			 * Note we check if start_addr == 0. If it's 0 then there is no "previous wp"
@@ -361,7 +144,7 @@ void WatchPoint<ADDRESS, FLAGS>::rm_watchpoint(ADDRESS start_addr, ADDRESS end_a
 					/*
 					 * Merge
 					 */
-					if (pre_iter->flags == flag_diff(wp_iter->flags, target_flags) ) {
+					if (pre_iter->flags == flag_op(wp_iter->flags, target_flags) ) {
 						wp_iter->start_addr = pre_iter->start_addr;
 						wp_iter = wp.erase(pre_iter); //Erase pre_iter and restore wp_iter.
 					}
@@ -395,13 +178,13 @@ void WatchPoint<ADDRESS, FLAGS>::rm_watchpoint(ADDRESS start_addr, ADDRESS end_a
 					/*
 					 * Merge
 					 */
-					if (aft_iter->flags == flag_diff(wp_iter->flags, target_flags) ) {
+					if (aft_iter->flags == flag_op(wp_iter->flags, target_flags) ) {
 						wp_iter->end_addr = aft_iter->end_addr;
 						wp.erase(aft_iter); //No need to restore wp_iter as we gonna return.
 					}
 				}
 				// Whether merge or not, change the flags.
-				wp_iter->flags = flag_diff (wp_iter->flags, target_flags);
+				wp_iter->flags = flag_op (wp_iter->flags, target_flags);
 			}
 			/*
 			 * Split
@@ -409,7 +192,7 @@ void WatchPoint<ADDRESS, FLAGS>::rm_watchpoint(ADDRESS start_addr, ADDRESS end_a
 			else {
 				insert_t.start_addr = wp_iter->start_addr;
 				insert_t.end_addr = end_addr;
-				insert_t.flags = flag_diff(wp_iter->flags, target_flags);
+				insert_t.flags = flag_op(wp_iter->flags, target_flags);
 				wp_iter->start_addr = end_addr + 1;
 				wp.insert(wp_iter, insert_t); //No need to restore as we are done.
 			}
@@ -427,7 +210,7 @@ void WatchPoint<ADDRESS, FLAGS>::rm_watchpoint(ADDRESS start_addr, ADDRESS end_a
 	/*
 	 * We only change wp if the target_flags is excluded.
 	 */
-	if (!flag_exclude(wp_iter->flags, target_flags) ) {
+	if (!flag_test(wp_iter->flags, target_flags) ) {
 		if (wp_iter->start_addr == start_addr) {
 			/*
 			 * If start_addr == 0 then won't merge
@@ -437,16 +220,16 @@ void WatchPoint<ADDRESS, FLAGS>::rm_watchpoint(ADDRESS start_addr, ADDRESS end_a
 				/*
 				 * Merge
 				 */
-				if (pre_iter->flags == flag_diff(wp_iter->flags, target_flags) ) {
+				if (pre_iter->flags == flag_op(wp_iter->flags, target_flags) ) {
 					wp_iter->start_addr = pre_iter->start_addr;
-					wp_iter->flags = flag_diff(wp_iter->flags, target_flags);
+					wp_iter->flags = flag_op(wp_iter->flags, target_flags);
 					wp_iter = wp.erase(pre_iter); //erase and restore wp_iter.
 				}
 			}
 			/*
 			 * merge or not, we still need to change flags and increment wp_iter.
 			 */
-			wp_iter->flags = flag_diff(wp_iter->flags, target_flags);
+			wp_iter->flags = flag_op(wp_iter->flags, target_flags);
 			wp_iter++; //Increment wp_iter.
 		}
 		/*
@@ -457,7 +240,7 @@ void WatchPoint<ADDRESS, FLAGS>::rm_watchpoint(ADDRESS start_addr, ADDRESS end_a
 			insert_t.end_addr = start_addr - 1;
 			insert_t.flags = wp_iter->flags;
 			wp_iter->start_addr = start_addr;
-			wp_iter->flags = flag_diff(wp_iter->flags, target_flags);
+			wp_iter->flags = flag_op(wp_iter->flags, target_flags);
 			wp_iter = wp.insert(wp_iter, insert_t) + 2; //Insert and increment wp_iter.
 		}
 	}
@@ -472,7 +255,7 @@ void WatchPoint<ADDRESS, FLAGS>::rm_watchpoint(ADDRESS start_addr, ADDRESS end_a
 		/*
 		 * Union the flags.
 		 */
-		wp_iter->flags = flag_diff(wp_iter->flags, target_flags);
+		wp_iter->flags = flag_op(wp_iter->flags, target_flags);
 		/*
 		 * Check merge. Merge by enlarge the pre_iter and erase wp_iter.
 		 */
@@ -490,14 +273,14 @@ void WatchPoint<ADDRESS, FLAGS>::rm_watchpoint(ADDRESS start_addr, ADDRESS end_a
 	/*
 	 * We only change wp if the target_flags is excluded.
 	 */
-	if (!flag_exclude(wp_iter->flags, target_flags) ) {
+	if (!flag_test(wp_iter->flags, target_flags) ) {
 		pre_iter = wp_iter - 1;
 		aft_iter = wp_iter + 1;
 		if (wp_iter->end_addr == end_addr) {
 			/*
 			 * First check if it should merge with the wp before it.
 			 */
-			wp_iter->flags = flag_diff(wp_iter->flags, target_flags);
+			wp_iter->flags = flag_op(wp_iter->flags, target_flags);
 			if (wp_iter->flags == pre_iter->flags) {
 				pre_iter->end_addr = wp_iter->end_addr;
 				wp.erase(wp_iter);
@@ -511,7 +294,7 @@ void WatchPoint<ADDRESS, FLAGS>::rm_watchpoint(ADDRESS start_addr, ADDRESS end_a
 				/*
 				 * Merge
 				 */
-				if (aft_iter->flags == flag_diff(wp_iter->flags, target_flags) ) {
+				if (aft_iter->flags == flag_op(wp_iter->flags, target_flags) ) {
 					wp_iter->end_addr = aft_iter->end_addr;
 					wp.erase(aft_iter); //erase and increment wp_iter.
 				}
@@ -524,7 +307,7 @@ void WatchPoint<ADDRESS, FLAGS>::rm_watchpoint(ADDRESS start_addr, ADDRESS end_a
 			/*
 			 * Check if wp_iter will merge with the pre_iter.
 			 */
-			if ( flag_diff(wp_iter->flags, target_flags) == pre_iter->flags) {
+			if ( flag_op(wp_iter->flags, target_flags) == pre_iter->flags) {
 				wp_iter->start_addr = end_addr + 1;
 				pre_iter->end_addr = end_addr;
 			}
@@ -534,7 +317,7 @@ void WatchPoint<ADDRESS, FLAGS>::rm_watchpoint(ADDRESS start_addr, ADDRESS end_a
 			else {
 				insert_t.start_addr = wp_iter->start_addr;
 				insert_t.end_addr = end_addr;
-				insert_t.flags = flag_diff(wp_iter->flags, target_flags);
+				insert_t.flags = flag_op(wp_iter->flags, target_flags);
 				wp_iter->start_addr = end_addr + 1;
 				wp.insert(wp_iter, insert_t); //Insert, no need to restore wp_iter
 			}
@@ -554,245 +337,6 @@ void WatchPoint<ADDRESS, FLAGS>::rm_watchpoint(ADDRESS start_addr, ADDRESS end_a
 
 	return;
 }
-
-///*
-// * The idea of adding wp is by splitting the procedure into 3 parts:
-// * The Begin Part as it would search if we need to split or merge.
-// * The Iterating Part as it would iterate through and do merge if
-// * necessary.
-// * The End Part which is also similar to the Begin Part, splitting
-// * and merging if necessary.
-// */
-//template<class ADDRESS, class FLAGS>
-//void WatchPoint<ADDRESS, FLAGS>::wp_operation(ADDRESS start_addr, ADDRESS end_addr,
-//		FLAGS target_flags, bool (*flag_test)(FLAGS &x, FLAGS &y),
-//		FLAGS (*flag_op)(FLAGS &x, FLAGS &y) ) {
-//	/*
-//	 * insert_t is used for keeping temp data before being inserted into wp.
-//	 */
-//	watchpoint_t<ADDRESS, FLAGS> insert_t;
-//	/*
-//	 * The first search must fall into a range either tagged or not.
-//	 */
-//	wp_iter = search_address (start_addr, wp);
-//	/*
-//	 * Special case: If the target range is so small that it falls
-//	 * into 1 single range, then we do not need to go through the 3
-//	 * Parts as there is no wp to iterating.
-//	 * Also we need to check both begin and end splitting and merge
-//	 */
-//	if (wp_iter->end_addr >= end_addr) {
-//		/*
-//		 * We only modify wp system if there is some change. Otherwise, we return
-//		 */
-//		if (!flag_test(wp_iter->flags, target_flags) ) {
-//			/*
-//			 * This case we need to check merge.
-//			 * Note we check if start_addr == 0. If it's 0 then there is no "previous wp"
-//			 * First we check the front condition.
-//			 */
-//			if (wp_iter->start_addr == start_addr) {
-//				/*
-//				 * If start_addr == 0 then won't merge
-//				 */
-//				if (start_addr != 0) {
-//					pre_iter = wp_iter - 1;
-//					/*
-//					 * Merge
-//					 */
-//					if (pre_iter->flags == flag_op(wp_iter->flags, target_flags) ) {
-//						wp_iter->start_addr = pre_iter->start_addr;
-//						wp_iter = wp.erase(pre_iter); //Erase pre_iter and restore wp_iter.
-//					}
-//					//We can't update the flags for now. We must wait until we have
-//					//determined wether merge or split at the end_addr.
-//				}
-//			}
-//			/*
-//			 * If "start_addr"s are not equal then me are facing a split.
-//			 * We split by change wp_iter's start_addr and add the "split" part
-//			 * before wp_iter.
-//			 */
-//			else {
-//				insert_t.start_addr = wp_iter->start_addr;
-//				insert_t.end_addr = start_addr - 1;
-//				insert_t.flags = wp_iter->flags;
-//				wp_iter->start_addr = start_addr;
-//				wp_iter = wp.insert(wp_iter, insert_t) + 1; //Insert and Restore wp_iter position.
-//			}
-//
-//			/*
-//			 * Then we check for the end.
-//			 * Also merge or split as we did for front.
-//			 */
-//			aft_iter = wp_iter + 1;
-//			if (wp_iter->end_addr == end_addr) {
-//				/*
-//				 * If end_addr == -1 then won't merge
-//				 */
-//				if (end_addr != (ADDRESS)-1) {
-//					/*
-//					 * Merge
-//					 */
-//					if (aft_iter->flags == flag_op(wp_iter->flags, target_flags) ) {
-//						wp_iter->end_addr = aft_iter->end_addr;
-//						wp.erase(aft_iter); //No need to restore wp_iter as we gonna return.
-//					}
-//				}
-//				// Whether merge or not, change the flags.
-//				wp_iter->flags = flag_op (wp_iter->flags, target_flags);
-//			}
-//			/*
-//			 * Split
-//			 */
-//			else {
-//				insert_t.start_addr = wp_iter->start_addr;
-//				insert_t.end_addr = end_addr;
-//				insert_t.flags = flag_op(wp_iter->flags, target_flags);
-//				wp_iter->start_addr = end_addr + 1;
-//				wp.insert(wp_iter, insert_t); //No need to restore as we are done.
-//			}
-//		}
-//		return;
-//	}
-//
-//	/*
-//	 * Begin part. We need to decide whether merge or split again.
-//	 * The difference between the above code is we now need to change wp_iter's
-//	 * flags immediately as we at most split 1 range into 2, while in above code
-//	 * we may split 1 into 3(beg, mid and end). And we need to increment wp_iter
-//	 * as well.
-//	 */
-//	/*
-//	 * We only change wp if the target_flags is excluded.
-//	 */
-//	if (!flag_test(wp_iter->flags, target_flags) ) {
-//		if (wp_iter->start_addr == start_addr) {
-//			/*
-//			 * If start_addr == 0 then won't merge
-//			 */
-//			if (start_addr != 0) {
-//				pre_iter = wp_iter - 1;
-//				/*
-//				 * Merge
-//				 */
-//				if (pre_iter->flags == flag_op(wp_iter->flags, target_flags) ) {
-//					wp_iter->start_addr = pre_iter->start_addr;
-//					wp_iter->flags = flag_op(wp_iter->flags, target_flags);
-//					wp_iter = wp.erase(pre_iter); //erase and restore wp_iter.
-//				}
-//			}
-//			/*
-//			 * merge or not, we still need to change flags and increment wp_iter.
-//			 */
-//			wp_iter->flags = flag_op(wp_iter->flags, target_flags);
-//			wp_iter++; //Increment wp_iter.
-//		}
-//		/*
-//		 * Split
-//		 */
-//		else {
-//			insert_t.start_addr = wp_iter->start_addr;
-//			insert_t.end_addr = start_addr - 1;
-//			insert_t.flags = wp_iter->flags;
-//			wp_iter->start_addr = start_addr;
-//			wp_iter->flags = flag_op(wp_iter->flags, target_flags);
-//			wp_iter = wp.insert(wp_iter, insert_t) + 2; //Insert and increment wp_iter.
-//		}
-//	}
-//	else
-//		wp_iter++; //Increment wp_iter.
-//
-//	/*
-//	 * Iterating part
-//	 */
-//	while (wp_iter->end_addr < end_addr) {
-//		pre_iter = wp_iter - 1;
-//		/*
-//		 * Union the flags.
-//		 */
-//		wp_iter->flags = flag_op(wp_iter->flags, target_flags);
-//		/*
-//		 * Check merge. Merge by enlarge the pre_iter and erase wp_iter.
-//		 */
-//		if (pre_iter->flags == wp_iter->flags) {
-//			pre_iter->end_addr = wp_iter->end_addr;
-//			wp_iter = wp.erase(wp_iter); //Erase wp_iter and increment wp_iter.
-//		}
-//		else
-//			wp_iter++; //Increment wp_iter.
-//	}
-//	/*
-//	 * Ending part. Also we need to check merge or split. Besides, we also need
-//	 * to check if we also will merge with the range before it.
-//	 */
-//	/*
-//	 * We only change wp if the target_flags is excluded.
-//	 */
-//	if (!flag_test(wp_iter->flags, target_flags) ) {
-//		pre_iter = wp_iter - 1;
-//		aft_iter = wp_iter + 1;
-//		if (wp_iter->end_addr == end_addr) {
-//			/*
-//			 * First check if it should merge with the wp before it.
-//			 */
-//			wp_iter->flags = flag_op(wp_iter->flags, target_flags);
-//			if (wp_iter->flags == pre_iter->flags) {
-//				pre_iter->end_addr = wp_iter->end_addr;
-//				wp.erase(wp_iter);
-//				wp_iter = pre_iter; //restore wp_iter
-//				aft_iter = wp_iter + 1; //restore aft_iter
-//			}
-//			/*
-//			 * If end_addr = -1 then we won't merge.
-//			 */
-//			if (end_addr != (ADDRESS)-1) {
-//				/*
-//				 * Merge
-//				 */
-//				if (aft_iter->flags == flag_op(wp_iter->flags, target_flags) ) {
-//					wp_iter->end_addr = aft_iter->end_addr;
-//					wp.erase(aft_iter); //erase and increment wp_iter.
-//				}
-//			}
-//		}
-//		/*
-//		 * Split
-//		 */
-//		else {
-//			/*
-//			 * Check if wp_iter will merge with the pre_iter.
-//			 */
-//			if ( flag_op(wp_iter->flags, target_flags) == pre_iter->flags) {
-//				wp_iter->start_addr = end_addr + 1;
-//				pre_iter->end_addr = end_addr;
-//			}
-//			/*
-//			 * If not, then we need to split by insertion.
-//			 */
-//			else {
-//				insert_t.start_addr = wp_iter->start_addr;
-//				insert_t.end_addr = end_addr;
-//				insert_t.flags = flag_op(wp_iter->flags, target_flags);
-//				wp_iter->start_addr = end_addr + 1;
-//				wp.insert(wp_iter, insert_t); //Insert, no need to restore wp_iter
-//			}
-//		}
-//	}
-//	/*
-//	 * Although the flags are already included. We still need to check if we need
-//	 * to merge with the wp before it.
-//	 */
-//	else {
-//		pre_iter = wp_iter - 1;
-//		if (wp_iter->flags == pre_iter->flags) {
-//			pre_iter->end_addr = wp_iter->end_addr;
-//			wp.erase(wp_iter);
-//		}
-//	}
-//
-//	return;
-//}
 
 template<class ADDRESS, class FLAGS>
 bool WatchPoint<ADDRESS, FLAGS>::general_fault(ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags) {

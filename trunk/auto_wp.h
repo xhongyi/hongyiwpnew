@@ -46,8 +46,8 @@ public:
 	void	watch_print();
 //private:
 
-//	void	wp_operation	(ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags,
-//			 bool (*flag_test)(FLAGS &x, FLAGS &y), FLAGS (*flag_op)(FLAGS &x, FLAGS &y) );
+	void	wp_operation	(ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags,
+			 bool (*flag_test)(FLAGS &x, FLAGS &y), FLAGS (*flag_op)(FLAGS &x, FLAGS &y) );
 	void	add_watchpoint	(ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags);
 	void	rm_watchpoint	(ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags);
 	bool	general_fault	(ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags);
