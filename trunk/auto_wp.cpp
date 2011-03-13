@@ -355,7 +355,7 @@ bool WatchPoint<ADDRESS, FLAGS>::general_fault(ADDRESS start_addr, ADDRESS end_a
  */
 template<class ADDRESS, class FLAGS>
 typename deque<watchpoint_t<ADDRESS, FLAGS> >::iterator
-	search_address (ADDRESS start_addr, deque<watchpoint_t<ADDRESS, FLAGS> > &wp) {
+	WatchPoint<ADDRESS, FLAGS>::search_address (ADDRESS start_addr, deque<watchpoint_t<ADDRESS, FLAGS> > &wp) {
 	typename deque<watchpoint_t<ADDRESS, FLAGS> >::iterator beg_iter;
 	typename deque<watchpoint_t<ADDRESS, FLAGS> >::iterator mid_iter;
 	typename deque<watchpoint_t<ADDRESS, FLAGS> >::iterator end_iter;
