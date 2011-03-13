@@ -2,12 +2,7 @@
 #define CACHE_ALGO_
 
 #include <deque>
-
-template<class ADDRESS>
-struct Range {
-	ADDRESS		start_addr;
-	ADDRESS		end_addr;
-};
+#include "wp_data_struct.h"
 
 #define		CACHE_SIZE		64
 
