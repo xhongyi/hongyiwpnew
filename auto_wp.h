@@ -12,6 +12,8 @@
 
 #define		WA_READ			1
 #define		WA_WRITE		2
+#define		WA_TRIE			4
+#define		WA_LINEMAP		8
 
 template<class ADDRESS, class FLAGS>
 struct watchpoint_t {
@@ -37,6 +39,9 @@ public:
 	bool	watch_fault	(ADDRESS start_addr, ADDRESS end_addr);
 	bool	read_fault		(ADDRESS start_addr, ADDRESS end_addr);
 	bool	write_fault	(ADDRESS start_addr, ADDRESS end_addr);
+	
+	typename std::deque<watchpoint_t<ADDRESS, FLAGS> >::iterator
+		search_address (ADDRESS start_addr, std::deque<watchpoint_t<ADDRESS, FLAGS> > &wp);
 
 	void	watch_print();
 //private:
@@ -61,10 +66,11 @@ public:
 	typename std::deque< watchpoint_t<ADDRESS, FLAGS> >::iterator pre_iter;
 	typename std::deque< watchpoint_t<ADDRESS, FLAGS> >::iterator aft_iter;
 };
-
+/*
 template<class ADDRESS, class FLAGS>
 typename std::deque<watchpoint_t<ADDRESS, FLAGS> >::iterator
 	search_address (ADDRESS start_addr, std::deque<watchpoint_t<ADDRESS, FLAGS> > &wp);
+*/
 
 template<class FLAGS>
 bool flag_include(FLAGS container_flags, FLAGS target_flags);
