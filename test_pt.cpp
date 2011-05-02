@@ -7,7 +7,7 @@ int main() {
 	watchpoint_t<unsigned int, unsigned int> input;
 	string input_flags;
 	WatchPoint<unsigned int, unsigned int> wp_test;
-	WatchPoint_PT<unsigned int, unsigned int> pt_test;
+	WatchPoint_PT<unsigned int, unsigned int> pt_test(wp_test);
 	deque<watchpoint_t<unsigned int, unsigned int> >::iterator test_iter;
 	unsigned int count = 0;
 //	unsigned int test_addr;
@@ -58,7 +58,7 @@ int main() {
 			input.flags = 0;
 		if (input.flags) {
 			wp_test.rm_watchpoint(input.start_addr, input.end_addr, input.flags);
-			count += pt_test.rm_watchpoint(input.start_addr, input.end_addr, wp_test);
+			count += pt_test.rm_watchpoint(input.start_addr, input.end_addr);
 		}
 	}
 	pt_test.watch_print();
