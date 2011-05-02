@@ -4,22 +4,24 @@
 using namespace std;
 
 /*
- * Constructor
- * Initialize the wp system as the whole memory with clean tag
- * As the watchpoint is construct to record memory, the ADDRESS
- * should be unsigned type(which it is in pin.) So we cover the
- * whole memory by setting the end_addr to be max = -1(b1111....1111)
+ *	Constructor
+ *	Initialize the wp pointer 
+ *	(wp should always be constructed and modified before the page table version)
+ *	And also initialize all pages to unwatched.
  */
 template<class ADDRESS, class FLAGS>
-WatchPoint_PT<ADDRESS, FLAGS>::WatchPoint_PT() {
+WatchPoint_PT<ADDRESS, FLAGS>::WatchPoint_PT(WatchPoint<ADDRESS, FLAGS> &wp_ref) {
+	wp = &wp_ref;
 	for (int i=0;i<BIT_MAP_NUMBER;i++)
 		bit_map[i] = 0;
 }
 
+//	Desctructor
 template<class ADDRESS, class FLAGS>
 WatchPoint_PT<ADDRESS, FLAGS>::~WatchPoint_PT() {
 }
 
+//	print only pages being watched, used for debugging
 template<class ADDRESS, class FLAGS>
 void WatchPoint_PT<ADDRESS, FLAGS>::watch_print() {
 	cout <<"Start printing watchpoints..."<<endl;
@@ -30,52 +32,50 @@ void WatchPoint_PT<ADDRESS, FLAGS>::watch_print() {
 	return;
 }
 
+//	watch_fault
 template<class ADDRESS, class FLAGS>
 bool WatchPoint_PT<ADDRESS, FLAGS>::watch_fault(ADDRESS start_addr, ADDRESS end_addr) {
+	//	calculating the starting V.P.N. and the ending V.P.N.
 	ADDRESS page_number_start = (start_addr>>PAGE_OFFSET_LENGTH);
 	ADDRESS page_number_end = (end_addr>>PAGE_OFFSET_LENGTH);
-	for (ADDRESS i=page_number_start;i<=page_number_end;i++) {
-		if (bit_map[i>>BIT_MAP_OFFSET_LENGTH] & (1<<(i&0x7)) )
-			return true;
+	for (ADDRESS i=page_number_start;i<=page_number_end;i++) {	//	for each page, 
+		if (bit_map[i>>BIT_MAP_OFFSET_LENGTH] & (1<<(i&0x7)) )	//	if it is watched, 
+			return true;										//	then return true.
 	}
-	return false;
+	return false;												//	else return false.
 }
 
+//	add_watchpoint
 template<class ADDRESS, class FLAGS>
 unsigned int WatchPoint_PT<ADDRESS, FLAGS>::add_watchpoint(ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags) {
-	unsigned int num_changes = 0;
-	if (target_flags) {
+	unsigned int num_changes = 0;										//	initializing the count
+	if (target_flags) {													//	if the flag is not none, continue
+		//	calculating the starting V.P.N. and the ending V.P.N.
 		ADDRESS page_number_start = (start_addr>>PAGE_OFFSET_LENGTH);
 		ADDRESS page_number_end = (end_addr>>PAGE_OFFSET_LENGTH);
-		for (ADDRESS i=page_number_start;i<=page_number_end;i++) {
-			if (!(bit_map[i>>BIT_MAP_OFFSET_LENGTH] & (1<<(i&0x7)) ))
-				num_changes++;
-			bit_map[i>>BIT_MAP_OFFSET_LENGTH] |= (1<<(i&0x7));
+		for (ADDRESS i=page_number_start;i<=page_number_end;i++) {		//	for each page, 
+			if (!(bit_map[i>>BIT_MAP_OFFSET_LENGTH] & (1<<(i&0x7)) ))	//	if it is not watched, 
+				num_changes++;											//	count++
+			bit_map[i>>BIT_MAP_OFFSET_LENGTH] |= (1<<(i&0x7));			//	set the page watched.
 		}
 	}
-	return num_changes;
+	return num_changes;													//	return the count.
 }
 
+//	rm_watchpoint
 template<class ADDRESS, class FLAGS>
-unsigned int WatchPoint_PT<ADDRESS, FLAGS>::rm_watchpoint(ADDRESS start_addr, ADDRESS end_addr, WatchPoint<ADDRESS, FLAGS> &wp) {
-	unsigned int num_changes = 0;
+unsigned int WatchPoint_PT<ADDRESS, FLAGS>::rm_watchpoint(ADDRESS start_addr, ADDRESS end_addr) {
+	unsigned int num_changes = 0;															//	initializing the count
+	//	calculating the starting V.P.N. and the ending V.P.N.
 	ADDRESS page_number_start = (start_addr>>PAGE_OFFSET_LENGTH);
 	ADDRESS page_number_end = (end_addr>>PAGE_OFFSET_LENGTH);
-	for (ADDRESS i=page_number_start;i<=page_number_end;i++) {
-		if (!check_page_fault(i, wp)) {
-			if (bit_map[i>>BIT_MAP_OFFSET_LENGTH] & (1<<(i&0x7)) )
-				num_changes++;
-			bit_map[i>>BIT_MAP_OFFSET_LENGTH] &= ~(1<<(i&0x7));
+	for (ADDRESS i=page_number_start;i<=page_number_end;i++) {								//	for each page, 
+		if (!wp->watch_fault(i<<PAGE_OFFSET_LENGTH, ((i+1)<<PAGE_OFFSET_LENGTH)-1 ) ) {		//	if it should not throw a fault
+			if (bit_map[i>>BIT_MAP_OFFSET_LENGTH] & (1<<(i&0x7)) )							//	if it is watched
+				num_changes++;																//	count++
+			bit_map[i>>BIT_MAP_OFFSET_LENGTH] &= ~(1<<(i&0x7));								//	set the page unwatched
 		}
 	}
-	return num_changes;
+	return num_changes;																		//	return the count.
 }
-
-template<class ADDRESS, class FLAGS>
-bool WatchPoint_PT<ADDRESS, FLAGS>::check_page_fault(ADDRESS page_number, WatchPoint<ADDRESS, FLAGS> &wp) {
-	ADDRESS start_addr = (page_number<<PAGE_OFFSET_LENGTH);
-	ADDRESS end_addr = ((page_number+1)<<PAGE_OFFSET_LENGTH)-1;
-	return wp.watch_fault(start_addr, end_addr);
-}
-
 
