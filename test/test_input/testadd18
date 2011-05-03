@@ -1,6 +1,4 @@
-//This test is used with test_add.cpp as inputs.
-//add watch across multiple exsiting wp ranges.
-//add 1 wp that has changes flags and causes merges in the middle.
+oracle.txt
 5
 100
 199
@@ -17,3 +15,6 @@ w
 150
 450
 r
+//This test is used with test_add.cpp as inputs.
+//add watch across multiple exsiting wp ranges.
+//add 1 wp that has changes flags and causes merges in the middle.

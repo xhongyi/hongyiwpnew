@@ -6,6 +6,7 @@
  */
 
 #include "../watchpoint_system/oracle_wp.h"
+#include <iostream>
 
 using namespace std;
 
@@ -15,6 +16,11 @@ int main() {
 	string input_flags;
 	Oracle<unsigned int, unsigned int> wp_test;
 	deque<watchpoint_t<unsigned int, unsigned int> >::iterator test_iter;
+	
+	string filename="Oracle.txt";
+	cout <<"Please input the output filename for Oracle: "<<endl;
+	cin >>filename;
+	ofstream output(filename.c_str());
 
 	cout << "Please input how many watchpoint you want in the system?" << endl;
 	cin >> watchpoint_num;
@@ -36,7 +42,7 @@ int main() {
 		if (input.flags)
 			wp_test.add_watchpoint(input.start_addr, input.end_addr, input.flags);
 	}
-	wp_test.watch_print();
+	wp_test.watch_print(output);
 	cout << "Please input the start_addr you want to remove: " << endl;
 	cin >> input.start_addr;
 	cout << "Please input the end_addr you want to remove: " << endl;
@@ -53,7 +59,8 @@ int main() {
 		input.flags = 0;
 	if (input.flags)
 		wp_test.rm_watchpoint(input.start_addr, input.end_addr, input.flags);
-	wp_test.watch_print();
+	wp_test.watch_print(output);
+	output.close();
 	cout << "program ends" << endl;
 	return 0;
 }

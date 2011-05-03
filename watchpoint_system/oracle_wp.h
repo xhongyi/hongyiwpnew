@@ -9,7 +9,10 @@
 #define ORACLE_WP_H_
 
 #include <deque>
+#include <fstream>
 #include "wp_data_struct.h"
+
+using namespace std;
 
 template<class ADDRESS, class FLAGS>
 class Oracle {
@@ -29,10 +32,10 @@ public:
 	bool	read_fault		(ADDRESS start_addr, ADDRESS end_addr);
 	bool	write_fault	(ADDRESS start_addr, ADDRESS end_addr);
 	
-	typename std::deque<watchpoint_t<ADDRESS, FLAGS> >::iterator
-		search_address (ADDRESS start_addr, std::deque<watchpoint_t<ADDRESS, FLAGS> > &wp);
+	typename deque<watchpoint_t<ADDRESS, FLAGS> >::iterator
+		search_address (ADDRESS start_addr, deque<watchpoint_t<ADDRESS, FLAGS> > &wp);
 
-	void	watch_print();
+	void	watch_print(ofstream &output);
 //private:
 
 	void	wp_operation	(ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags,
@@ -50,15 +53,15 @@ public:
 	 * All these data are declared here is to save time by avoiding creating
 	 * and destroying them every time add_watchpoint and rm_watchpoint is called.
 	 */
-	std::deque< watchpoint_t<ADDRESS, FLAGS> > wp;
-	typename std::deque< watchpoint_t<ADDRESS, FLAGS> >::iterator wp_iter;
-	typename std::deque< watchpoint_t<ADDRESS, FLAGS> >::iterator pre_iter;
-	typename std::deque< watchpoint_t<ADDRESS, FLAGS> >::iterator aft_iter;
+	deque< watchpoint_t<ADDRESS, FLAGS> > wp;
+	typename deque< watchpoint_t<ADDRESS, FLAGS> >::iterator wp_iter;
+	typename deque< watchpoint_t<ADDRESS, FLAGS> >::iterator pre_iter;
+	typename deque< watchpoint_t<ADDRESS, FLAGS> >::iterator aft_iter;
 };
 /*
 template<class ADDRESS, class FLAGS>
-typename std::deque<watchpoint_t<ADDRESS, FLAGS> >::iterator
-	search_address (ADDRESS start_addr, std::deque<watchpoint_t<ADDRESS, FLAGS> > &wp);
+typename deque<watchpoint_t<ADDRESS, FLAGS> >::iterator
+	search_address (ADDRESS start_addr, deque<watchpoint_t<ADDRESS, FLAGS> > &wp);
 */
 
 template<class FLAGS>

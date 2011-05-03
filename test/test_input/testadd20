@@ -1,6 +1,4 @@
-//This test is used with test_add.cpp as inputs.
-//add single wp.
-//adding flags that are already exist.
+oracle.txt
 2
 100
 400
@@ -8,3 +6,6 @@ rw
 150
 250
 r
+//This test is used with test_add.cpp as inputs.
+//add single wp.
+//adding flags that are already exist.

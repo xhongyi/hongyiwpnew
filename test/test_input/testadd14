@@ -1,6 +1,4 @@
-//This test is used with test_add.cpp as inputs.
-//add watch across multiple exsiting wp ranges.
-//add 1 wp that has diff flags and is front adjecent with another wp.
+oracle.txt
 4
 100
 199
@@ -14,3 +12,6 @@ w
 200
 599
 w
+//This test is used with test_add.cpp as inputs.
+//add watch across multiple exsiting wp ranges.
+//add 1 wp that has diff flags and is front adjecent with another wp.

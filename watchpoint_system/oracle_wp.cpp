@@ -2,7 +2,6 @@
 #define ORACLE_WP_CPP_
 
 #include "oracle_wp.h"
-#include <iostream>
 
 using namespace std;
 
@@ -76,17 +75,17 @@ bool Oracle<ADDRESS, FLAGS>::write_fault(ADDRESS start_addr, ADDRESS end_addr) {
 }
 
 template<class ADDRESS, class FLAGS>
-void Oracle<ADDRESS, FLAGS>::watch_print() {
-	cout << "There are " << wp.size() << " watchpoints" << endl;
+void Oracle<ADDRESS, FLAGS>::watch_print(ofstream &output) {
+	output << "There are " << wp.size() << " watchpoints" << endl;
 	for (unsigned int i = 0; i < wp.size() ; i++) {
-		cout << "This is watchpoint number " << i << ":" << endl;
-		cout << "start_addr = " << wp[i].start_addr << endl;
-		cout << "end_addr = " << wp[i].end_addr << endl;
+		output << "This is watchpoint number " << i << ":" << endl;
+		output << "start_addr = " << wp[i].start_addr << endl;
+		output << "end_addr = " << wp[i].end_addr << endl;
 		if (wp[i].flags & WA_READ)
-			cout << "R";
+			output << "R";
 		if (wp[i].flags & WA_WRITE)
-			cout << "W";
-		cout << endl;
+			output << "W";
+		output << endl;
 	}
 	return;
 }

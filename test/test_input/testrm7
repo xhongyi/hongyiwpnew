@@ -1,5 +1,4 @@
-//This test is used with test_rm.cpp as inputs.
-//rm 1 wp that the result wp is front adjacent, with the same flag.(merge)
+oracle.txt
 3
 100
 199
@@ -14,3 +13,5 @@ w
 200
 260
 w
+//This test is used with test_rm.cpp as inputs.
+//rm 1 wp that the result wp is front adjacent, with the same flag.(merge)

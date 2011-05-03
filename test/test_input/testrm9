@@ -1,6 +1,4 @@
-//This test is used with test_rm.cpp as inputs.
-//remove watch across multiple exsiting wp ranges.
-//remove 1 wp covers both wps.
+oracle.txt
 3
 100
 199
@@ -15,3 +13,6 @@ w
 150
 250
 r
+//This test is used with test_rm.cpp as inputs.
+//remove watch across multiple exsiting wp ranges.
+//remove 1 wp covers both wps.

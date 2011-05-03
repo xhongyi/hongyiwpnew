@@ -1,4 +1,5 @@
 #include "../watchpoint_system/page_table_wp.h"
+#include <iostream>
 
 using namespace std;
 
@@ -12,6 +13,16 @@ int main() {
 	unsigned int count = 0;
 //	unsigned int test_addr;
 //	bool watch_fault;
+
+	string filename="Oracle.txt";
+	cout <<"Please input the output filename for Oracle: "<<endl;
+	cin >>filename;
+	ofstream output_oracle(filename.c_str());
+
+	filename="PageTable.txt";
+	cout <<"Please input the output filename for WatchPoint_PT: "<<endl;
+	cin >>filename;
+	ofstream output_pt(filename.c_str());
 
 	cout << "Please input how many watchpoint you want in the system?" << endl;
 	cin >> watchpoint_num;
@@ -35,8 +46,9 @@ int main() {
 			count += pt_test.add_watchpoint(input.start_addr, input.end_addr, input.flags);
 		}
 	}
-	pt_test.watch_print();
-	cout <<count<<" changes made."<<endl;
+	wp_test.watch_print(output_oracle);
+	pt_test.watch_print(output_pt);
+	cout <<count<<" changes made before removing."<<endl;
 	
 	
 	cout << "Please input how many watchpoint you want to remove in the system?" << endl;
@@ -61,8 +73,13 @@ int main() {
 			count += pt_test.rm_watchpoint(input.start_addr, input.end_addr);
 		}
 	}
-	pt_test.watch_print();
+	wp_test.watch_print(output_oracle);
+	pt_test.watch_print(output_pt);
 	cout <<count<<" changes made."<<endl;
 	cout << "program ends" << endl;
+	
+	output_oracle.close();
+	output_pt.close();
+	
 	return 0;
 }
