@@ -8,10 +8,11 @@
 #include "../watchpoint_system/oracle_wp.h"
 #include <iostream>
 #include <string>
+#include <cstdlib>
 
 using namespace std;
 
-int main () {
+int main (int argc, char *argv[]) {
 	unsigned int watchpoint_num;
 	watchpoint_t<unsigned int, unsigned int> input;
 	string input_flags;
@@ -19,11 +20,14 @@ int main () {
 	deque<watchpoint_t<unsigned int, unsigned int> >::iterator test_iter;
 //	unsigned int test_addr;
 	bool watch_fault;
-	
-	string filename="Oracle.txt";
-	cout <<"Please input the output filename for Oracle: "<<endl;
-	cin >>filename;
-	ofstream output(filename.c_str());
+
+	ostream *output;
+	if (argc==1) {
+		output = &cout;
+	}
+	else {
+		output = new ofstream(argv[1]);
+	}
 
 	cout << "Please input how many watchpoint you want in the system?" << endl;
 	cin >> watchpoint_num;
@@ -44,7 +48,7 @@ int main () {
 			input.flags = 0;
 		wp_test.wp.push_back(input);
 	}
-	wp_test.watch_print(output);
+	wp_test.watch_print(*output);
 	cout << "The search start_addr = ";
 	cin >> input.start_addr;
 	cout << "The search end_addr = ";
@@ -75,7 +79,6 @@ int main () {
 		cout << "end_addr = " << test_iter->end_addr;
 	}
 	*/
-	output.close();
 	cout << "program ends" << endl;
 	return 0;
 }

@@ -1,10 +1,11 @@
 #include <string>
 #include <iostream>
+#include <cstdlib>
 #include "../watchpoint_system/oracle_wp.h"
 
 using namespace std;
 
-int main() {
+int main(int argc, char *argv[]) {
 	unsigned int watchpoint_num;
 	watchpoint_t<unsigned int, unsigned int> input;
 	string input_flags;
@@ -13,10 +14,13 @@ int main() {
 //	unsigned int test_addr;
 //	bool watch_fault;
 
-	string filename="Oracle.txt";
-	cout <<"Please input the output filename for Oracle: "<<endl;
-	cin >>filename;
-	ofstream output(filename.c_str());
+	ostream *output;
+	if (argc==1) {
+		output = &cout;
+	}
+	else {
+		output = new ofstream(argv[1]);
+	}
 
 	cout << "Please input how many watchpoint you want in the system?" << endl;
 	cin >> watchpoint_num;
@@ -38,7 +42,7 @@ int main() {
 		if (input.flags)
 			wp_test.add_watchpoint(input.start_addr, input.end_addr, input.flags);
 	}
-	wp_test.watch_print(output);
+	wp_test.watch_print(*output);
 /*
 	cout << "The search start_addr = ";
 	cin >> input.start_addr;
@@ -70,7 +74,6 @@ int main() {
 		cout << "end_addr = " << test_iter->end_addr;
 	}
 */
-	output.close();
 	cout << "program ends" << endl;
 	return 0;
 }

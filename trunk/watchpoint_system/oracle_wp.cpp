@@ -75,7 +75,7 @@ bool Oracle<ADDRESS, FLAGS>::write_fault(ADDRESS start_addr, ADDRESS end_addr) {
 }
 
 template<class ADDRESS, class FLAGS>
-void Oracle<ADDRESS, FLAGS>::watch_print(ofstream &output) {
+void Oracle<ADDRESS, FLAGS>::watch_print(ostream &output) {
 	output << "There are " << wp.size() << " watchpoints" << endl;
 	for (unsigned int i = 0; i < wp.size() ; i++) {
 		output << "This is watchpoint number " << i << ":" << endl;

@@ -37,7 +37,7 @@ public:
 	//bool	read_fault		(ADDRESS start_addr, ADDRESS end_addr);
 	//bool	write_fault		(ADDRESS start_addr, ADDRESS end_addr);
 	
-	void	watch_print(ofstream &output);
+	void	watch_print(ostream &output);
 	
 	/*
 	 *	returns the number of changes it does on bit_map
