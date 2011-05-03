@@ -1,3 +1,6 @@
+#ifndef PAGE_TABLE_WP_CPP_
+#define PAGE_TABLE_WP_CPP_
+
 #include "page_table_wp.h"
 #include <iostream>
 
@@ -79,3 +82,4 @@ unsigned int WatchPoint_PT<ADDRESS, FLAGS>::rm_watchpoint(ADDRESS start_addr, AD
 	return num_changes;																		//	return the count.
 }
 
+#endif
