@@ -13,7 +13,7 @@ using namespace std;
  *	And also initialize all pages to unwatched.
  */
 template<class ADDRESS, class FLAGS>
-WatchPoint_PT<ADDRESS, FLAGS>::WatchPoint_PT(WatchPoint<ADDRESS, FLAGS> &wp_ref) {
+WatchPoint_PT<ADDRESS, FLAGS>::WatchPoint_PT(Oracle<ADDRESS, FLAGS> &wp_ref) {
 	wp = &wp_ref;
 	for (int i=0;i<BIT_MAP_NUMBER;i++)
 		bit_map[i] = 0;

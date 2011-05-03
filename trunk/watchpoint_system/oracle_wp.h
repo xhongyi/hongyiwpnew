@@ -1,21 +1,21 @@
 /*
- * auto_wp.h
+ * oracle.h
  *
  *  Created on: Nov 18, 2010
  *      Author: xhongyi
  */
 
-#ifndef AUTO_WP_H_
-#define AUTO_WP_H_
+#ifndef ORACLE_WP_H_
+#define ORACLE_WP_H_
 
 #include <deque>
 #include "wp_data_struct.h"
 
 template<class ADDRESS, class FLAGS>
-class WatchPoint {
+class Oracle {
 public:
-	WatchPoint();
-	~WatchPoint();
+	Oracle();
+	~Oracle();
 /*
 	void	add_watch	(ADDRESS start_addr, ADDRESS end_addr);
 	void	add_read	(ADDRESS start_addr, ADDRESS end_addr);
@@ -73,5 +73,5 @@ FLAGS flag_union (FLAGS &x, FLAGS &y);
 template<class FLAGS>
 FLAGS flag_diff (FLAGS &x, FLAGS &y);
 
-#include "auto_wp.cpp"
-#endif /* AUTO_WP_H_ */
+#include "oracle_wp.cpp"
+#endif /* ORACLE_WP_H_ */

@@ -1,16 +1,16 @@
 CXX=g++
 CFLAGS = -g -Wall -Werror
-EXECS=test_add test_rm test_cache_algo test_print test_pt
-OBJS=$(WP_FOLDER)$(AUTO_WP).o $(WP_FOLDER)$(PT).o $(WP_FOLDER)$(CACHE_ALGO).o #$(WP_FOLDER)$(RC).o
+EXECS=test_add test_rm test_cache_algo test_print test_pt	#add executes here
+OBJS=$(WP_FOLDER)$(ORACLE).o $(WP_FOLDER)$(PT).o $(WP_FOLDER)$(CACHE_ALGO).o #$(WP_FOLDER)$(RC).o	#add objects here
 
 WP_FOLDER=watchpoint_system/
 WP_DATA=wp_data_struct
-AUTO_WP=auto_wp
+ORACLE=oracle_wp
 PT=page_table_wp
 CACHE_ALGO=cache_algo
 #RC=range_cache
 
-ALL_TEST=$(TEST_ADD) $(TEST_RM) $(TEST_CACHE_ALGO) $(TEST_PRINT) $(TEST_PT) 
+ALL_TEST=$(TEST_ADD) $(TEST_RM) $(TEST_CACHE_ALGO) $(TEST_PRINT) $(TEST_PT) 	#add tests here
 TEST_ADD=test/test_add
 TEST_RM=test/test_rm
 TEST_CACHE_ALGO=test/test_cache_algo
@@ -34,8 +34,8 @@ $(TEST_PRINT): $(OBJS) $(TEST_PRINT).cpp
 $(TEST_PT): $(OBJS) $(TEST_PT).cpp
 	$(CXX) $(CFLAGS) $(OBJS) $(TEST_PT).cpp -o test_pt
 
-$(AUTO_WP).o: $(AUTO_WP).cpp $(AUTO_WP).h
-	cd $(WP_FOLDER) & $(CXX) $(CFLAGS) -c $(AUTO_WP).cpp
+$(ORACLE).o: $(ORACLE).cpp $(ORACLE).h
+	cd $(WP_FOLDER) & $(CXX) $(CFLAGS) -c $(ORACLE).cpp
 
 $(PT).o: $(PT).cpp $(PT).h
 	cd $(WP_FOLDER) & $(CXX) $(CFLAGS) -c $(PT).cpp

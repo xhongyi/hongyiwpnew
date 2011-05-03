@@ -16,12 +16,12 @@
 #define	BIT_MAP_NUMBER_LENGTH	(VIRTUAL_ADDRESS_LENGTH - PAGE_OFFSET_LENGTH - BIT_MAP_OFFSET_LENGTH)
 #define	BIT_MAP_NUMBER			(1<<BIT_MAP_NUMBER_LENGTH)	//needs 128 KB to store these bits
 
-#include "auto_wp.h"
+#include "oracle_wp.h"
 
 template<class ADDRESS, class FLAGS>
-class WatchPoint_PT:public WatchPoint<ADDRESS, FLAGS> {
+class WatchPoint_PT {
 public:
-	WatchPoint_PT(WatchPoint<ADDRESS, FLAGS> &wp_ref);
+	WatchPoint_PT(Oracle<ADDRESS, FLAGS> &wp_ref);
 	~WatchPoint_PT();
 	
 	/*
@@ -55,7 +55,7 @@ public:
 	 *	initialized when constructing
 	 *	used for checking each page's state when rm_watchpoint is called
 	 */
-	WatchPoint<ADDRESS, FLAGS> *wp;
+	Oracle<ADDRESS, FLAGS> *wp;
 	
 	/*
 	 *	one bit for each page
