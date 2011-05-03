@@ -6,7 +6,7 @@ int main() {
 	unsigned int watchpoint_num;
 	watchpoint_t<unsigned int, unsigned int> input;
 	string input_flags;
-	WatchPoint<unsigned int, unsigned int> wp_test;
+	Oracle<unsigned int, unsigned int> wp_test;
 	WatchPoint_PT<unsigned int, unsigned int> pt_test(wp_test);
 	deque<watchpoint_t<unsigned int, unsigned int> >::iterator test_iter;
 	unsigned int count = 0;

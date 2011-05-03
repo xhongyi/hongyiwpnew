@@ -1,7 +1,7 @@
-#ifndef AUTO_WP_CPP_
-#define AUTO_WP_CPP_
+#ifndef ORACLE_WP_CPP_
+#define ORACLE_WP_CPP_
 
-#include "auto_wp.h"
+#include "oracle_wp.h"
 #include <iostream>
 
 using namespace std;
@@ -14,7 +14,7 @@ using namespace std;
  * whole memory by setting the end_addr to be max = -1(b1111....1111)
  */
 template<class ADDRESS, class FLAGS>
-WatchPoint<ADDRESS, FLAGS>::WatchPoint() {
+Oracle<ADDRESS, FLAGS>::Oracle() {
 	watchpoint_t<ADDRESS, FLAGS> temp;
 	temp.start_addr = 0;
 	temp.end_addr = -1;
@@ -23,36 +23,36 @@ WatchPoint<ADDRESS, FLAGS>::WatchPoint() {
 }
 
 template<class ADDRESS, class FLAGS>
-WatchPoint<ADDRESS, FLAGS>::~WatchPoint() {
+Oracle<ADDRESS, FLAGS>::~Oracle() {
 }
 /*
 template<class ADDRESS, class FLAGS>
-void WatchPoint<ADDRESS, FLAGS>::add_watch(ADDRESS start_addr, ADDRESS end_addr) {
+void Oracle<ADDRESS, FLAGS>::add_watch(ADDRESS start_addr, ADDRESS end_addr) {
 
 }
 
 template<class ADDRESS, class FLAGS>
-void WatchPoint<ADDRESS, FLAGS>::add_read(ADDRESS start_addr, ADDRESS end_addr) {
+void Oracle<ADDRESS, FLAGS>::add_read(ADDRESS start_addr, ADDRESS end_addr) {
 
 }
 
 template<class ADDRESS, class FLAGS>
-void WatchPoint<ADDRESS, FLAGS>::add_write(ADDRESS start_addr, ADDRESS end_addr) {
+void Oracle<ADDRESS, FLAGS>::add_write(ADDRESS start_addr, ADDRESS end_addr) {
 
 }
 
 template<class ADDRESS, class FLAGS>
-void WatchPoint<ADDRESS, FLAGS>::rm_watch(ADDRESS start_addr, ADDRESS end_addr) {
+void Oracle<ADDRESS, FLAGS>::rm_watch(ADDRESS start_addr, ADDRESS end_addr) {
 
 }
 
 template<class ADDRESS, class FLAGS>
-void WatchPoint<ADDRESS, FLAGS>::rm_read(ADDRESS start_addr, ADDRESS end_addr) {
+void Oracle<ADDRESS, FLAGS>::rm_read(ADDRESS start_addr, ADDRESS end_addr) {
 
 }
 
 template<class ADDRESS, class FLAGS>
-void WatchPoint<ADDRESS, FLAGS>::rm_write(ADDRESS start_addr, ADDRESS end_addr) {
+void Oracle<ADDRESS, FLAGS>::rm_write(ADDRESS start_addr, ADDRESS end_addr) {
 
 }
 */
@@ -61,22 +61,22 @@ void WatchPoint<ADDRESS, FLAGS>::rm_write(ADDRESS start_addr, ADDRESS end_addr) 
  * with different detection flags
  */
 template<class ADDRESS, class FLAGS>
-bool WatchPoint<ADDRESS, FLAGS>::watch_fault(ADDRESS start_addr, ADDRESS end_addr) {
+bool Oracle<ADDRESS, FLAGS>::watch_fault(ADDRESS start_addr, ADDRESS end_addr) {
 	return general_fault(start_addr, end_addr, WA_READ|WA_WRITE);
 }
 
 template<class ADDRESS, class FLAGS>
-bool WatchPoint<ADDRESS, FLAGS>::read_fault(ADDRESS start_addr, ADDRESS end_addr) {
+bool Oracle<ADDRESS, FLAGS>::read_fault(ADDRESS start_addr, ADDRESS end_addr) {
 	return general_fault(start_addr, end_addr, WA_READ);
 }
 
 template<class ADDRESS, class FLAGS>
-bool WatchPoint<ADDRESS, FLAGS>::write_fault(ADDRESS start_addr, ADDRESS end_addr) {
+bool Oracle<ADDRESS, FLAGS>::write_fault(ADDRESS start_addr, ADDRESS end_addr) {
 	return general_fault(start_addr, end_addr, WA_WRITE);
 }
 
 template<class ADDRESS, class FLAGS>
-void WatchPoint<ADDRESS, FLAGS>::watch_print() {
+void Oracle<ADDRESS, FLAGS>::watch_print() {
 	cout << "There are " << wp.size() << " watchpoints" << endl;
 	for (unsigned int i = 0; i < wp.size() ; i++) {
 		cout << "This is watchpoint number " << i << ":" << endl;
@@ -92,13 +92,13 @@ void WatchPoint<ADDRESS, FLAGS>::watch_print() {
 }
 
 template<class ADDRESS, class FLAGS>
-void WatchPoint<ADDRESS, FLAGS>::add_watchpoint(ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags) {
+void Oracle<ADDRESS, FLAGS>::add_watchpoint(ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags) {
 	wp_operation(start_addr, end_addr, target_flags, &flag_include, &flag_union);
 }
 
 
 template<class ADDRESS, class FLAGS>
-void WatchPoint<ADDRESS, FLAGS>::rm_watchpoint(ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags) {
+void Oracle<ADDRESS, FLAGS>::rm_watchpoint(ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags) {
 	wp_operation(start_addr, end_addr, target_flags, &flag_exclude, &flag_diff);
 }
 
@@ -111,7 +111,7 @@ void WatchPoint<ADDRESS, FLAGS>::rm_watchpoint(ADDRESS start_addr, ADDRESS end_a
  * and merging if necessary.
  */
 template<class ADDRESS, class FLAGS>
-void WatchPoint<ADDRESS, FLAGS>::wp_operation(ADDRESS start_addr, ADDRESS end_addr,
+void Oracle<ADDRESS, FLAGS>::wp_operation(ADDRESS start_addr, ADDRESS end_addr,
 		FLAGS target_flags, bool (*flag_test)(FLAGS &x, FLAGS &y),
 		FLAGS (*flag_op)(FLAGS &x, FLAGS &y) ) {
 	/*
@@ -342,7 +342,7 @@ void WatchPoint<ADDRESS, FLAGS>::wp_operation(ADDRESS start_addr, ADDRESS end_ad
 }
 
 template<class ADDRESS, class FLAGS>
-bool WatchPoint<ADDRESS, FLAGS>::general_fault(ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags) {
+bool Oracle<ADDRESS, FLAGS>::general_fault(ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags) {
 	wp_iter = search_address (start_addr, wp);
 	while (wp_iter != wp.end() && end_addr > wp_iter->end_addr) {
 		if (wp_iter->flags & target_flags)
@@ -358,7 +358,7 @@ bool WatchPoint<ADDRESS, FLAGS>::general_fault(ADDRESS start_addr, ADDRESS end_a
  */
 template<class ADDRESS, class FLAGS>
 typename deque<watchpoint_t<ADDRESS, FLAGS> >::iterator
-	WatchPoint<ADDRESS, FLAGS>::search_address (ADDRESS start_addr, deque<watchpoint_t<ADDRESS, FLAGS> > &wp) {
+	Oracle<ADDRESS, FLAGS>::search_address (ADDRESS start_addr, deque<watchpoint_t<ADDRESS, FLAGS> > &wp) {
 	typename deque<watchpoint_t<ADDRESS, FLAGS> >::iterator beg_iter;
 	typename deque<watchpoint_t<ADDRESS, FLAGS> >::iterator mid_iter;
 	typename deque<watchpoint_t<ADDRESS, FLAGS> >::iterator end_iter;
@@ -409,5 +409,5 @@ FLAGS flag_diff (FLAGS &x, FLAGS &y) {
 
 //If we decide that we don't want to include the .cpp in the .h file,
 //we need to add the following for each templated use case.
-//template class WatchPoint<unsigned int, unsigned int>;
+//template class Oracle<unsigned int, unsigned int>;
 #endif

@@ -5,7 +5,7 @@
  *      Author: xhongyi
  */
 
-#include "../watchpoint_system/auto_wp.h"
+#include "../watchpoint_system/oracle_wp.h"
 
 using namespace std;
 
@@ -13,7 +13,7 @@ int main() {
 	unsigned int watchpoint_num;
 	watchpoint_t<unsigned int, unsigned int> input;
 	string input_flags;
-	WatchPoint<unsigned int, unsigned int> wp_test;
+	Oracle<unsigned int, unsigned int> wp_test;
 	deque<watchpoint_t<unsigned int, unsigned int> >::iterator test_iter;
 
 	cout << "Please input how many watchpoint you want in the system?" << endl;

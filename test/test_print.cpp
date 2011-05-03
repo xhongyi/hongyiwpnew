@@ -5,7 +5,7 @@
  *      Author: xhongyi
  */
 
-#include "../watchpoint_system/auto_wp.h"
+#include "../watchpoint_system/oracle_wp.h"
 #include <iostream>
 #include <string>
 
@@ -15,7 +15,7 @@ int main () {
 	unsigned int watchpoint_num;
 	watchpoint_t<unsigned int, unsigned int> input;
 	string input_flags;
-	WatchPoint<unsigned int, unsigned int> wp_test;
+	Oracle<unsigned int, unsigned int> wp_test;
 	deque<watchpoint_t<unsigned int, unsigned int> >::iterator test_iter;
 //	unsigned int test_addr;
 	bool watch_fault;
