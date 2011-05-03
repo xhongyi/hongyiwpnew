@@ -13,8 +13,8 @@
 #define	PAGE_NUMBER				(1<<12)
 #define	BIT_MAP_OFFSET_LENGTH	3			//we store one bit for each page in a bit map, 
 											//which is byte addressable
-#define	BIT_MAP_NUMBER_LENGTH	17
-#define	BIT_MAP_NUMBER			(1<<17)		//needs 128 KB to store these bits
+#define	BIT_MAP_NUMBER_LENGTH	(VIRTUAL_ADDRESS_LENGTH - PAGE_OFFSET_LENGTH - BIT_MAP_OFFSET_LENGTH)
+#define	BIT_MAP_NUMBER			(1<<BIT_MAP_NUMBER_LENGTH)	//needs 128 KB to store these bits
 
 #include "auto_wp.h"
 
@@ -34,13 +34,9 @@ public:
 	 *	what kind of watchpoint it is having
 	 */
 	
-	//bool	general_fault	(ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags);
 	//bool	read_fault		(ADDRESS start_addr, ADDRESS end_addr);
 	//bool	write_fault		(ADDRESS start_addr, ADDRESS end_addr);
 	
-	//typename std::deque<watchpoint_t<ADDRESS, FLAGS> >::iterator
-	//		search_address	(ADDRESS start_addr, std::deque<watchpoint_t<ADDRESS, FLAGS> > &wp);
-
 	void	watch_print();
 	
 	/*

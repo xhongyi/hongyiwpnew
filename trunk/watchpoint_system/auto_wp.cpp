@@ -79,7 +79,7 @@ template<class ADDRESS, class FLAGS>
 void WatchPoint<ADDRESS, FLAGS>::watch_print() {
 	cout << "There are " << wp.size() << " watchpoints" << endl;
 	for (unsigned int i = 0; i < wp.size() ; i++) {
-		cout << "This is the " << i << "th watchpoint" << endl;
+		cout << "This is watchpoint number " << i << ":" << endl;
 		cout << "start_addr = " << wp[i].start_addr << endl;
 		cout << "end_addr = " << wp[i].end_addr << endl;
 		if (wp[i].flags & WA_READ)
@@ -407,5 +407,7 @@ FLAGS flag_diff (FLAGS &x, FLAGS &y) {
 	return (x & ~y);
 }
 
+//If we decide that we don't want to include the .cpp in the .h file,
+//we need to add the following for each templated use case.
 //template class WatchPoint<unsigned int, unsigned int>;
 #endif
