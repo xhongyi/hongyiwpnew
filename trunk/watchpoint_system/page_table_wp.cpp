@@ -2,7 +2,7 @@
 #define PAGE_TABLE_WP_CPP_
 
 #include "page_table_wp.h"
-#include <iostream>
+#include <fstream>
 
 using namespace std;
 
@@ -26,11 +26,11 @@ WatchPoint_PT<ADDRESS, FLAGS>::~WatchPoint_PT() {
 
 //	print only pages being watched, used for debugging
 template<class ADDRESS, class FLAGS>
-void WatchPoint_PT<ADDRESS, FLAGS>::watch_print() {
-	cout <<"Start printing watchpoints..."<<endl;
+void WatchPoint_PT<ADDRESS, FLAGS>::watch_print(ofstream &output) {
+	output <<"Start printing watchpoints..."<<endl;
 	for (ADDRESS i=0;i<PAGE_NUMBER;i++) {
 		if (bit_map[i>>3] & (1<<(i&0x7)) )
-			cout <<"page number "<<i<<" is being watched."<<endl;
+			output <<"page number "<<i<<" is being watched."<<endl;
 	}
 	return;
 }

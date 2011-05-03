@@ -19,6 +19,11 @@ int main () {
 	deque<watchpoint_t<unsigned int, unsigned int> >::iterator test_iter;
 //	unsigned int test_addr;
 	bool watch_fault;
+	
+	string filename="Oracle.txt";
+	cout <<"Please input the output filename for Oracle: "<<endl;
+	cin >>filename;
+	ofstream output(filename.c_str());
 
 	cout << "Please input how many watchpoint you want in the system?" << endl;
 	cin >> watchpoint_num;
@@ -39,7 +44,7 @@ int main () {
 			input.flags = 0;
 		wp_test.wp.push_back(input);
 	}
-	wp_test.watch_print();
+	wp_test.watch_print(output);
 	cout << "The search start_addr = ";
 	cin >> input.start_addr;
 	cout << "The search end_addr = ";
@@ -70,6 +75,7 @@ int main () {
 		cout << "end_addr = " << test_iter->end_addr;
 	}
 	*/
+	output.close();
 	cout << "program ends" << endl;
 	return 0;
 }
