@@ -5,7 +5,7 @@
  *      Author: xhongyi
  */
 
-#include "auto_wp.h"
+#include "../watchpoint_system/auto_wp.h"
 
 using namespace std;
 
