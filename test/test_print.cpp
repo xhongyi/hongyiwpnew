@@ -1,15 +1,24 @@
-#include "auto_wp.h"
+/*
+ * test_print.cpp
+ *
+ *  Created on: Nov 19, 2010
+ *      Author: xhongyi
+ */
+
+#include "../watchpoint_system/auto_wp.h"
+#include <iostream>
+#include <string>
 
 using namespace std;
 
-int main() {
+int main () {
 	unsigned int watchpoint_num;
 	watchpoint_t<unsigned int, unsigned int> input;
 	string input_flags;
 	WatchPoint<unsigned int, unsigned int> wp_test;
 	deque<watchpoint_t<unsigned int, unsigned int> >::iterator test_iter;
 //	unsigned int test_addr;
-//	bool watch_fault;
+	bool watch_fault;
 
 	cout << "Please input how many watchpoint you want in the system?" << endl;
 	cin >> watchpoint_num;
@@ -28,11 +37,9 @@ int main() {
 			input.flags = WA_READ | WA_WRITE;
 		else
 			input.flags = 0;
-		if (input.flags)
-			wp_test.add_watchpoint(input.start_addr, input.end_addr, input.flags);
+		wp_test.wp.push_back(input);
 	}
 	wp_test.watch_print();
-/*
 	cout << "The search start_addr = ";
 	cin >> input.start_addr;
 	cout << "The search end_addr = ";
@@ -52,7 +59,7 @@ int main() {
 		cout << "WatchFault!" << endl;
 	else
 		cout << "Not a Fault!" << endl;
-
+	/*
 	cout << "Please input the search address: ";
 	cin >> test_addr;
 	test_iter = search_address (test_addr, wp_test.wp);
@@ -62,7 +69,7 @@ int main() {
 		cout << "start_addr = " << test_iter->start_addr;
 		cout << "end_addr = " << test_iter->end_addr;
 	}
-*/
+	*/
 	cout << "program ends" << endl;
 	return 0;
 }

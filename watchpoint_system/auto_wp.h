@@ -5,8 +5,8 @@
  *      Author: xhongyi
  */
 
-#ifndef AUTO_WP_H_
-#define AUTO_WP_H_
+#ifndef _AUTO_WP_H_
+#define _AUTO_WP_H_
 
 #include <deque>
 #include "wp_data_struct.h"
