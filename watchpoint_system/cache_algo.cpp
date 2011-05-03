@@ -1,3 +1,6 @@
+#ifndef CACHE_ALGO_CPP_
+#define CACHE_ALGO_CPP_
+
 #include "cache_algo.h"
 #include <iostream>
 
@@ -146,3 +149,5 @@ bool CacheAlgo<ADDRESS>::check_overlap (ADDRESS start_addr, ADDRESS end_addr) {
 	}
 	return false;
 }
+
+#endif

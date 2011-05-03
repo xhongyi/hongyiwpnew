@@ -1,3 +1,6 @@
+#ifndef AUTO_WP_CPP_
+#define AUTO_WP_CPP_
+
 #include "auto_wp.h"
 #include <iostream>
 
@@ -403,3 +406,6 @@ template<class FLAGS>
 FLAGS flag_diff (FLAGS &x, FLAGS &y) {
 	return (x & ~y);
 }
+
+//template class WatchPoint<unsigned int, unsigned int>;
+#endif
