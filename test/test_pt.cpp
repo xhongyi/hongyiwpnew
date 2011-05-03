@@ -1,9 +1,10 @@
 #include "../watchpoint_system/page_table_wp.h"
 #include <iostream>
+#include <cstdlib>
 
 using namespace std;
 
-int main() {
+int main(int argc, char *argv[]) {
 	unsigned int watchpoint_num;
 	watchpoint_t<unsigned int, unsigned int> input;
 	string input_flags;
@@ -14,15 +15,20 @@ int main() {
 //	unsigned int test_addr;
 //	bool watch_fault;
 
-	string filename="Oracle.txt";
-	cout <<"Please input the output filename for Oracle: "<<endl;
-	cin >>filename;
-	ofstream output_oracle(filename.c_str());
-
-	filename="PageTable.txt";
-	cout <<"Please input the output filename for WatchPoint_PT: "<<endl;
-	cin >>filename;
-	ofstream output_pt(filename.c_str());
+	ostream *output_oracle;
+	ostream *output_pt;
+	if (argc==1) {
+		output_oracle = &cout;
+		output_pt = &cout;
+	}
+	else if (argc==2) {
+		output_oracle = new ofstream(argv[1]);
+		output_pt = output_oracle;
+	}
+	else {
+		output_oracle = new ofstream(argv[1]);
+		output_pt = new ofstream(argv[2]);
+	}
 
 	cout << "Please input how many watchpoint you want in the system?" << endl;
 	cin >> watchpoint_num;
@@ -46,8 +52,8 @@ int main() {
 			count += pt_test.add_watchpoint(input.start_addr, input.end_addr, input.flags);
 		}
 	}
-	wp_test.watch_print(output_oracle);
-	pt_test.watch_print(output_pt);
+	wp_test.watch_print(*output_oracle);
+	pt_test.watch_print(*output_pt);
 	cout <<count<<" changes made before removing."<<endl;
 	
 	
@@ -73,13 +79,9 @@ int main() {
 			count += pt_test.rm_watchpoint(input.start_addr, input.end_addr);
 		}
 	}
-	wp_test.watch_print(output_oracle);
-	pt_test.watch_print(output_pt);
+	wp_test.watch_print(*output_oracle);
+	pt_test.watch_print(*output_pt);
 	cout <<count<<" changes made."<<endl;
 	cout << "program ends" << endl;
-	
-	output_oracle.close();
-	output_pt.close();
-	
 	return 0;
 }

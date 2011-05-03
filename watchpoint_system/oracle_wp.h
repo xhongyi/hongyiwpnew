@@ -9,6 +9,7 @@
 #define ORACLE_WP_H_
 
 #include <deque>
+#include <ostream>
 #include <fstream>
 #include "wp_data_struct.h"
 
@@ -35,7 +36,7 @@ public:
 	typename deque<watchpoint_t<ADDRESS, FLAGS> >::iterator
 		search_address (ADDRESS start_addr, deque<watchpoint_t<ADDRESS, FLAGS> > &wp);
 
-	void	watch_print(ofstream &output);
+	void	watch_print(ostream &output);
 //private:
 
 	void	wp_operation	(ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags,
