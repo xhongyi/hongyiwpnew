@@ -13,7 +13,7 @@
 
 struct statistics_t {
 	long long checks;
-	long long faults;
+	long long oracle_faults;
 	long long sets;
 	long long updates;
 };
@@ -28,7 +28,7 @@ public:
 	int end_thread(int32_t thread_id);
 	void print_threads();
 	
-	void reset();int32_t
+	void reset();
 	void reset(int32_t thread_id);
 	
 	bool watch_fault(ADDRESS start, ADDRESS end, int32_t thread_id, bool ignore_statistics=false);
@@ -36,7 +36,7 @@ public:
 	bool write_fault(ADDRESS start, ADDRESS end, int32_t thread_id, bool ignore_statistics=false);
 	void print_watchpoints();
 	
-	int set_watch		(ADDRESS start, ADDRESS end, int32_t thread_id, bool ignore_statistics=false);	//update 11
+	int set_watch		(ADDRESS start, ADDRESS end, int32_t thread_id, bool ignore_statistics=false);	//update 11	(write, read)
 	int set_read		(ADDRESS start, ADDRESS end, int32_t thread_id, bool ignore_statistics=false);	//set x1
 	int set_write		(ADDRESS start, ADDRESS end, int32_t thread_id, bool ignore_statistics=false);	//set 1x
 	int update_set_read	(ADDRESS start, ADDRESS end, int32_t thread_id, bool ignore_statistics=false);	//update 01
@@ -60,9 +60,11 @@ public:
 private:
 	map<int32_t, Oracle> oracle_wp;
 	map<int32_t, statistics_t> statistics;
+	map<int32_t, statistics_t> statistics_inactive;
 	
-	map<int32_t, statistics_t>::iterator statistics_iter;
 	map<int32_t, Oracle>::iterator oracle_wp_iter;
+	map<int32_t, statistics_t>::iterator statistics_iter;
+	map<int32_t, statistics_t>::iterator statistics_inactive_iter;
 };
 
 #include "watchpoint.cpp"
