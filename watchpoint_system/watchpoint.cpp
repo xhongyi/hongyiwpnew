@@ -3,7 +3,7 @@
 
 #include "watchpoint.h"
 
-statistics_t& operator +=(statistics_t &a, const statistics_t &b) {\
+statistics_t& operator +=(statistics_t &a, const statistics_t &b) {
 	a.checks += b.checks;
 	a.oracle_faults += b.oracle_faults;
 	a.sets += b.sets;
