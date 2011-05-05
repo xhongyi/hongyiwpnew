@@ -53,7 +53,7 @@ public:
 	statistics_t get_statistics(int32_t thread_id);
 	int set_statistics(int32_t thread_id, statistics_t input);
 	statistics_t clear_statistics();
-	statistics_t operator+(const statistics_t other);
+	statistics_t& operator +=(statistics_t &a, const statistics_t &b);
 	void print_statistics(bool active);
 	void print_statistics(statistics_t& to_print);
 
@@ -63,6 +63,7 @@ private:
 	map<int32_t, statistics_t> statistics_inactive;
 	
 	map<int32_t, Oracle>::iterator oracle_wp_iter;
+	map<int32_t, Oracle>::iterator oracle_wp_iter_2;
 	map<int32_t, statistics_t>::iterator statistics_iter;
 	map<int32_t, statistics_t>::iterator statistics_inactive_iter;
 };
