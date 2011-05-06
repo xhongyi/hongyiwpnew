@@ -10,6 +10,7 @@
 
 #include <deque>
 #include <iostream>
+#include <iomanip>
 #include <ostream>
 #include <fstream>
 #include "wp_data_struct.h"

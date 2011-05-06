@@ -76,10 +76,10 @@ public:
 	bool compare_ww		(int32_t thread_id1, int32_t thread_id2);
 	
 	//Hardware Emulation Statistic Functions
-	statistics_t get_statistics			(int32_t thread_id);						
+	statistics_t get_statistics			(int32_t thread_id);
 	int			 set_statistics			(int32_t thread_id, statistics_t input);
 	statistics_t clear_statistics		();
-	void		 print_statistics		(bool active);
+	void		 print_statistics		(bool active = false);
 	void		 print_statistics		(statistics_t& to_print);
 
 private:
