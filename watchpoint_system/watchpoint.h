@@ -25,7 +25,7 @@ struct statistics_t {
 /*
  *	operator that is used for a += b
  */
-statistics_t& operator +=(statistics_t &a, const statistics_t &b);
+inline statistics_t& operator +=(statistics_t &a, const statistics_t &b);
 
 /*
  *	WatchPoint Library API
