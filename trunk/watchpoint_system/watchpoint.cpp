@@ -164,6 +164,9 @@ bool  WatchPoint<ADDRESS, FLAGS>::read_fault(ADDRESS start, ADDRESS end, int32_t
 	return false;
 }
 
+/*
+ *	Check for w faults in thead_id and update statistics if not ignored
+ */
 template<class ADDRESS, class FLAGS>
 bool  WatchPoint<ADDRESS, FLAGS>::write_fault(ADDRESS start, ADDRESS end, int32_t thread_id, bool ignore_statistics) {
 	oracle_wp_iter = oracle_wp.find(thread_id);
@@ -338,13 +341,13 @@ bool WatchPoint<ADDRESS, FLAGS>::general_compare(int32_t thread_id1, int32_t thr
 			/*
 			 *	check only for required flags in thread #1
 			 */
-			if (oracle_wp_iter->second.wp_iter->second.flags & flag_thread1) {
+			if (oracle_wp_iter->second.wp_iter->flags & flag_thread1) {
 				/*
 				 *	check for faults for required flags in thread #2
 				 */
-				if (oracle_wp_iter->second.general_fault(oracle_wp_iter->second.wp_iter->second.start_addr, 
-																					oracle_wp_iter->second.wp_iter->second.end_addr, 
-																					flag_thread2) ) {
+				if (oracle_wp_iter_2->second.general_fault(oracle_wp_iter->second.wp_iter->start_addr, 
+														 oracle_wp_iter->second.wp_iter->end_addr, 
+														 flag_thread2) ) {
 					return true;
 				}
 			}
@@ -440,7 +443,7 @@ void WatchPoint<ADDRESS, FLAGS>::print_statistics(bool active) {
 		cout <<"Printing statistics for all threads (both active and inactive): "<<endl;
 		statistics_iter = statistics.begin();
 		statistics_inactive_iter = statistics_inactive.begin();
-		while (statistics_iter != statistics.end() && statistics_inactive_iter != statistics_inactive.end()) {
+		while (statistics_iter != statistics.end() || statistics_inactive_iter != statistics_inactive.end()) {
 			if (statistics_inactive_iter == statistics_inactive.end()) {
 				cout <<"Statistics of active thead #"<<statistics_iter->first<<" : "<<endl;
 				print_statistics(statistics_iter->second);

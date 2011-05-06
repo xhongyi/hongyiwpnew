@@ -78,10 +78,10 @@ template<class ADDRESS, class FLAGS>
 void Oracle<ADDRESS, FLAGS>::watch_print(ostream &output) {
 	output << "There are " << wp.size() << " watchpoints" << endl;
 	for (unsigned int i = 0; i < wp.size() ; i++) {
-		if (wp[i].flags) {													//	Only print if there is a flag exists
+		if (wp[i].flags) {													//	Only print if there is a flag existing
 			output << "This is watchpoint number " << i << ":" << endl;
-			output << "start_addr = " << wp[i].start_addr << endl;
-			output << "end_addr = " << wp[i].end_addr << endl;
+			output << "start_addr = " << setw(10) << wp[i].start_addr << " ";
+			output << "end_addr = " << setw(10) << wp[i].end_addr << " ";
 			if (wp[i].flags & WA_READ)
 				output << "R";
 			if (wp[i].flags & WA_WRITE)
