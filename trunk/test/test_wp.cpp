@@ -140,6 +140,6 @@ int main(int argc, char *argv[]) {
 	}
 	wp_test.print_statistics(*output);
 	cout <<"Printing active only... "<<endl;
-	wp_test.print_statistics(true, *output);
+	wp_test.print_statistics(*output, true);
 	return 0;
 }

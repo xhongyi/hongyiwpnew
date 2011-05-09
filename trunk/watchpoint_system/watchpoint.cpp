@@ -140,7 +140,7 @@ void WatchPoint<ADDRESS, FLAGS>::reset(int32_t thread_id) {
 }
 
 /*
- *	Check for r/w faults in thead_id and update statistics if not ignored
+ *	Check for r/w faults in thread_id and update statistics if not ignored
  */
 template<class ADDRESS, class FLAGS>
 bool  WatchPoint<ADDRESS, FLAGS>::watch_fault(ADDRESS start, ADDRESS end, int32_t thread_id, bool ignore_statistics) {
@@ -159,7 +159,7 @@ bool  WatchPoint<ADDRESS, FLAGS>::watch_fault(ADDRESS start, ADDRESS end, int32_
 }
 
 /*
- *	Check for r faults in thead_id and update statistics if not ignored
+ *	Check for r faults in thread_id and update statistics if not ignored
  */
 template<class ADDRESS, class FLAGS>
 bool  WatchPoint<ADDRESS, FLAGS>::read_fault(ADDRESS start, ADDRESS end, int32_t thread_id, bool ignore_statistics) {
@@ -178,7 +178,7 @@ bool  WatchPoint<ADDRESS, FLAGS>::read_fault(ADDRESS start, ADDRESS end, int32_t
 }
 
 /*
- *	Check for w faults in thead_id and update statistics if not ignored
+ *	Check for w faults in thread_id and update statistics if not ignored
  */
 template<class ADDRESS, class FLAGS>
 bool  WatchPoint<ADDRESS, FLAGS>::write_fault(ADDRESS start, ADDRESS end, int32_t thread_id, bool ignore_statistics) {
@@ -444,44 +444,44 @@ statistics_t WatchPoint<ADDRESS, FLAGS>::clear_statistics() {
  *	Print statistics thread by thread
  */
 template<class ADDRESS, class FLAGS>
-void WatchPoint<ADDRESS, FLAGS>::print_statistics(bool active, ostream &output) {
+void WatchPoint<ADDRESS, FLAGS>::print_statistics(ostream &output, bool active) {
 	if (active) {        // if active, only print active threads' statistics only
-		output <<"Printing statistics for all active threads: "<<endl;
+		output << "Printing statistics for all active threads: " << endl;
 		for (statistics_iter = statistics.begin();statistics_iter != statistics.end();statistics_iter++) {
-			output <<"Statistics of thead #"<<statistics_iter->first<<" : "<<endl;
+			output << "Thread " << statistics_iter->first << " statistics: " << endl;
 			print_statistics(statistics_iter->second, output);
 		}
 	}
 	else {               // if !active, print all threads' statistics
-		output <<"Printing statistics for all threads (both active and inactive): "<<endl;
+		output << "Printing statistics for all threads (both active and inactive): " << endl;
 		statistics_iter = statistics.begin();
 		statistics_inactive_iter = statistics_inactive.begin();
 		while (statistics_iter != statistics.end() || statistics_inactive_iter != statistics_inactive.end()) {
 			if (statistics_inactive_iter == statistics_inactive.end()) {
-				output <<"Statistics of active thead #"<<statistics_iter->first<<" : "<<endl;
+				output << "Active Thread " << statistics_iter->first << " statistics: " << endl;
 				print_statistics(statistics_iter->second, output);
 				statistics_iter++;
 			}
 			else if (statistics_iter == statistics.end()) {
-				output <<"Statistics of inactive thead #"<<statistics_inactive_iter->first<<" : "<<endl;
+				output << "Inactive Thread " << statistics_inactive_iter->first << " statistics: " << endl;
 				print_statistics(statistics_inactive_iter->second, output);
 				statistics_inactive_iter++;
 			}
 			else {
 				if (statistics_iter->first <= statistics_inactive_iter->first) {
-					output <<"Statistics of active thead #"<<statistics_iter->first<<" : "<<endl;
+					output << "Active Thread " <<statistics_iter->first << " statistics: " << endl;
 					print_statistics(statistics_iter->second, output);
 					statistics_iter++;
 				}
 				else {
-					output <<"Statistics of inactive thead #"<<statistics_inactive_iter->first<<" : "<<endl;
+					output << "Inactive Thread " << statistics_inactive_iter->first << " statistics: " << endl;
 					print_statistics(statistics_inactive_iter->second, output);
 					statistics_inactive_iter++;
 				}
 			}
 		}
 	}
-	output <<"Statistics printing ends."<<endl;
+	output <<"End of statistics printing."<<endl;
 	return;
 }
 
@@ -490,10 +490,10 @@ void WatchPoint<ADDRESS, FLAGS>::print_statistics(bool active, ostream &output) 
  */
 template<class ADDRESS, class FLAGS>
 void WatchPoint<ADDRESS, FLAGS>::print_statistics(const statistics_t& to_print, ostream &output) {
-	output <<"Total number of checks for faults: "<<to_print.checks<<endl;
-	output <<"Total number of faults checked: "<<to_print.oracle_faults<<endl;
-	output <<"Total number of \'set\'s: "<<to_print.sets<<endl;
-	output <<"Total number of \'update\'s: "<<to_print.updates<<endl;
+	output << "Checks for watchpoint faults: " << to_print.checks << endl;
+	output << "Watchpoint faults taken: " << to_print.oracle_faults << endl;
+	output << "Watchpoint \'set\'s: " << to_print.sets << endl;
+	output << "Watchpoint \'update\'s: " << to_print.updates << endl;
 	output <<endl;
 	return;
 }

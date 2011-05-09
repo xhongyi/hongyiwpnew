@@ -91,7 +91,7 @@ public:
 	statistics_t get_statistics   (int32_t thread_id);
 	int          set_statistics   (int32_t thread_id, statistics_t input);
 	statistics_t clear_statistics ();
-	void         print_statistics (bool active = false, ostream &output = cout);
+	void         print_statistics (ostream &output = cout, bool active = false);
 	void         print_statistics (const statistics_t& to_print, ostream &output = cout);
 
 private:
