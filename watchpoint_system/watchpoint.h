@@ -28,6 +28,12 @@ struct statistics_t {
 inline statistics_t& operator +=(statistics_t &a, const statistics_t &b);
 
 /*
+ *	operator that is used for c = a + b
+ *		adding all statistics of a and b and then return the result
+ */
+inline statistics_t operator +(const statistics_t &a, const statistics_t &b);
+
+/*
  *	WatchPoint Library API
  */
 template<class ADDRESS, class FLAGS>
@@ -80,7 +86,7 @@ public:
 	int			 set_statistics			(int32_t thread_id, statistics_t input);
 	statistics_t clear_statistics		();
 	void		 print_statistics		(bool active = false);
-	void		 print_statistics		(statistics_t& to_print);
+	void		 print_statistics		(const statistics_t& to_print);
 
 private:
 	//Data Structures (mainly maps from thread_id's to the thread's data)
