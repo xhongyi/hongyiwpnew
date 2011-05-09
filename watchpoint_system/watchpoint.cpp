@@ -91,10 +91,10 @@ int WatchPoint<ADDRESS, FLAGS>::end_thread(int32_t thread_id) {
  *	Printing all active thread_id's
  */
 template<class ADDRESS, class FLAGS>
-void WatchPoint<ADDRESS, FLAGS>::print_threads() {
-	cout <<"Printing active threads: "<<endl;
+void WatchPoint<ADDRESS, FLAGS>::print_threads(ostream &output) {
+	output <<"Printing active threads: "<<endl;
 	for (statistics_iter = statistics.begin();statistics_iter != statistics.end();statistics_iter++) { // for all active thread_id's
-		cout <<"Thread #"<<statistics_iter->first<<" is active."<<endl;                                 // print to std::cout
+		output <<"Thread #"<<statistics_iter->first<<" is active."<<endl;                                 // print to std::output
 	}
 	return;
 }
@@ -200,13 +200,13 @@ bool  WatchPoint<ADDRESS, FLAGS>::write_fault(ADDRESS start, ADDRESS end, int32_
  *	Printing all existing watchpoints thread by thread (active only)
  */
 template<class ADDRESS, class FLAGS>
-void WatchPoint<ADDRESS, FLAGS>::print_watchpoints() {
-	cout <<"Printing all existing watchpoints: "<<endl;
+void WatchPoint<ADDRESS, FLAGS>::print_watchpoints(ostream &output) {
+	output <<"Printing all existing watchpoints: "<<endl;
 	for (oracle_wp_iter = oracle_wp.begin();oracle_wp_iter != oracle_wp.end();oracle_wp_iter++) {
-		cout <<"Watchpoints in thread #"<<oracle_wp_iter->first<<":"<<endl;
-		oracle_wp_iter->second.watch_print();
+		output <<"Watchpoints in thread #"<<oracle_wp_iter->first<<":"<<endl;
+		oracle_wp_iter->second.watch_print(output);
 	}
-	cout <<"Watchpoint print ends."<<endl;
+	output <<"Watchpoint print ends."<<endl;
 }
 
 //set  11   (r/w)
@@ -444,44 +444,44 @@ statistics_t WatchPoint<ADDRESS, FLAGS>::clear_statistics() {
  *	Print statistics thread by thread
  */
 template<class ADDRESS, class FLAGS>
-void WatchPoint<ADDRESS, FLAGS>::print_statistics(bool active) {
+void WatchPoint<ADDRESS, FLAGS>::print_statistics(bool active, ostream &output) {
 	if (active) {        // if active, only print active threads' statistics only
-		cout <<"Printing statistics for all active threads: "<<endl;
+		output <<"Printing statistics for all active threads: "<<endl;
 		for (statistics_iter = statistics.begin();statistics_iter != statistics.end();statistics_iter++) {
-			cout <<"Statistics of thead #"<<statistics_iter->first<<" : "<<endl;
-			print_statistics(statistics_iter->second);
+			output <<"Statistics of thead #"<<statistics_iter->first<<" : "<<endl;
+			print_statistics(statistics_iter->second, output);
 		}
 	}
 	else {               // if !active, print all threads' statistics
-		cout <<"Printing statistics for all threads (both active and inactive): "<<endl;
+		output <<"Printing statistics for all threads (both active and inactive): "<<endl;
 		statistics_iter = statistics.begin();
 		statistics_inactive_iter = statistics_inactive.begin();
 		while (statistics_iter != statistics.end() || statistics_inactive_iter != statistics_inactive.end()) {
 			if (statistics_inactive_iter == statistics_inactive.end()) {
-				cout <<"Statistics of active thead #"<<statistics_iter->first<<" : "<<endl;
-				print_statistics(statistics_iter->second);
+				output <<"Statistics of active thead #"<<statistics_iter->first<<" : "<<endl;
+				print_statistics(statistics_iter->second, output);
 				statistics_iter++;
 			}
 			else if (statistics_iter == statistics.end()) {
-				cout <<"Statistics of inactive thead #"<<statistics_inactive_iter->first<<" : "<<endl;
-				print_statistics(statistics_inactive_iter->second);
+				output <<"Statistics of inactive thead #"<<statistics_inactive_iter->first<<" : "<<endl;
+				print_statistics(statistics_inactive_iter->second, output);
 				statistics_inactive_iter++;
 			}
 			else {
 				if (statistics_iter->first <= statistics_inactive_iter->first) {
-					cout <<"Statistics of active thead #"<<statistics_iter->first<<" : "<<endl;
-					print_statistics(statistics_iter->second);
+					output <<"Statistics of active thead #"<<statistics_iter->first<<" : "<<endl;
+					print_statistics(statistics_iter->second, output);
 					statistics_iter++;
 				}
 				else {
-					cout <<"Statistics of inactive thead #"<<statistics_inactive_iter->first<<" : "<<endl;
-					print_statistics(statistics_inactive_iter->second);
+					output <<"Statistics of inactive thead #"<<statistics_inactive_iter->first<<" : "<<endl;
+					print_statistics(statistics_inactive_iter->second, output);
 					statistics_inactive_iter++;
 				}
 			}
 		}
 	}
-	cout <<"Statistics printing ends."<<endl;
+	output <<"Statistics printing ends."<<endl;
 	return;
 }
 
@@ -489,12 +489,12 @@ void WatchPoint<ADDRESS, FLAGS>::print_statistics(bool active) {
  *	Print statistics (called by print_statistics(bool active) )
  */
 template<class ADDRESS, class FLAGS>
-void WatchPoint<ADDRESS, FLAGS>::print_statistics(const statistics_t& to_print) {
-	cout <<"Total number of checks for faults: "<<to_print.checks<<endl;
-	cout <<"Total number of faults checked: "<<to_print.oracle_faults<<endl;
-	cout <<"Total number of \'set\'s: "<<to_print.sets<<endl;
-	cout <<"Total number of \'update\'s: "<<to_print.updates<<endl;
-	cout <<endl;
+void WatchPoint<ADDRESS, FLAGS>::print_statistics(const statistics_t& to_print, ostream &output) {
+	output <<"Total number of checks for faults: "<<to_print.checks<<endl;
+	output <<"Total number of faults checked: "<<to_print.oracle_faults<<endl;
+	output <<"Total number of \'set\'s: "<<to_print.sets<<endl;
+	output <<"Total number of \'update\'s: "<<to_print.updates<<endl;
+	output <<endl;
 	return;
 }
 
