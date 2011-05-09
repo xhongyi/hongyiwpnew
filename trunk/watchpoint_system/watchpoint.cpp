@@ -4,10 +4,10 @@
 #include "watchpoint.h"
 
 /*
- *	operator that is used for a += b
- *		adding all statistics of b to a and then return the result to a
+ * operator that is used for a += b
+ *    adding all statistics of b to a and then return the result to a
  */
-inline statistics_t& operator +=(statistics_t &a, const statistics_t &b) {	//	not inline implementation will make it multiple definition
+inline statistics_t& operator +=(statistics_t &a, const statistics_t &b) { // not inline implementation will make it multiple definition
 	a.checks += b.checks;
 	a.oracle_faults += b.oracle_faults;
 	a.sets += b.sets;
@@ -16,8 +16,8 @@ inline statistics_t& operator +=(statistics_t &a, const statistics_t &b) {	//	no
 }
 
 /*
- *	operator that is used for c = a + b
- *		adding all statistics of a and b and then return the result
+ * operator that is used for c = a + b
+ *    adding all statistics of a and b and then return the result
  */
 inline statistics_t operator +(const statistics_t &a, const statistics_t &b) {
 	statistics_t result;
@@ -29,46 +29,46 @@ inline statistics_t operator +(const statistics_t &a, const statistics_t &b) {
 }
 
 /*
- *	Constructor
+ * Constructor
  */
 template<class ADDRESS, class FLAGS>
 WatchPoint<ADDRESS, FLAGS>::WatchPoint() {
 }
 
 /*
- *	Destructor
+ * Destructor
  */
 template<class ADDRESS, class FLAGS>
 WatchPoint<ADDRESS, FLAGS>::~WatchPoint() {
 }
 
 /*
- *	Starting a thread with thread_id
+ * Starting a thread with thread_id
  */
 template<class ADDRESS, class FLAGS>
 int WatchPoint<ADDRESS, FLAGS>::start_thread(int32_t thread_id) {
 	statistics_iter = statistics.find(thread_id);
-	if (statistics_iter == statistics.end()) {							//	if thread_id is not active
+	if (statistics_iter == statistics.end()) {                     // if thread_id is not active
 		Oracle<ADDRESS, FLAGS> empty_oracle;
 		/*
 		 *	Initiating statistics
 		 */
-		statistics_inactive_iter = statistics_inactive.find(thread_id);	//	search for inactive thread_id
-																		//	(just in case we start an inactive thread again, 
-																		//		which is actually impossible)
-		if (statistics_inactive_iter == statistics_inactive.end())		//	if not found
-			statistics[thread_id] = clear_statistics();					//	initiate to zeros
-		else {															//	if found
-			statistics[thread_id] = statistics_inactive_iter->second;	//	copy the original inactive data
-			statistics_inactive.erase(statistics_inactive_iter);		//	erase thread_id from inactive
+		statistics_inactive_iter = statistics_inactive.find(thread_id);   // search for inactive thread_id
+                                                                        // (just in case we start an inactive thread again, 
+                                                                        //    which is actually impossible)
+		if (statistics_inactive_iter == statistics_inactive.end())        // if not found
+			statistics[thread_id] = clear_statistics();                    // initiate to zeros
+		else {                                                            // if found
+			statistics[thread_id] = statistics_inactive_iter->second;      // copy the original inactive data
+			statistics_inactive.erase(statistics_inactive_iter);           // erase thread_id from inactive
 		}
 		/*
-		 *	Initiating Oracle
+		 * Initiating Oracle
 		 */
 		oracle_wp[thread_id] = empty_oracle;
-		return 0;														//	normal start: return 0
+		return 0;                                                         // normal start: return 0
 	}
-	return -1;															//	abnormal start: starting active thread again, return -1
+	return -1;                                                           // abnormal start: starting active thread again, return -1
 }
 
 /*
@@ -77,14 +77,14 @@ int WatchPoint<ADDRESS, FLAGS>::start_thread(int32_t thread_id) {
 template<class ADDRESS, class FLAGS>
 int WatchPoint<ADDRESS, FLAGS>::end_thread(int32_t thread_id) {
 	statistics_iter = statistics.find(thread_id);
-	if (statistics_iter != statistics.end()) {						//	if thread_id is active
+	if (statistics_iter != statistics.end()) {                           // if thread_id is active
 		oracle_wp_iter = oracle_wp.find(thread_id);
-		statistics_inactive[thread_id] = statistics_iter->second;	//	move its statistics to inactive
-		statistics.erase(statistics_iter);							//	remove it from active statistics
-		oracle_wp.erase(oracle_wp_iter);							//	remove its Oracle watchpoint data
-		return 0;													//	normal end: return 0
+		statistics_inactive[thread_id] = statistics_iter->second;         // move its statistics to inactive
+		statistics.erase(statistics_iter);                                // remove it from active statistics
+		oracle_wp.erase(oracle_wp_iter);                                  // remove its Oracle watchpoint data
+		return 0;                                                         // normal end: return 0
 	}
-	return -1;														//	abnormal end: thread_id not found or inactive, return -1
+	return -1;                                                           // abnormal end: thread_id not found or inactive, return -1
 }
 
 /*
@@ -93,8 +93,8 @@ int WatchPoint<ADDRESS, FLAGS>::end_thread(int32_t thread_id) {
 template<class ADDRESS, class FLAGS>
 void WatchPoint<ADDRESS, FLAGS>::print_threads() {
 	cout <<"Printing active threads: "<<endl;
-	for (statistics_iter = statistics.begin();statistics_iter != statistics.end();statistics_iter++) {	//	for all active thread_id's
-		cout <<"Thread #"<<statistics_iter->first<<" is active."<<endl;									//	print to std::cout
+	for (statistics_iter = statistics.begin();statistics_iter != statistics.end();statistics_iter++) { // for all active thread_id's
+		cout <<"Thread #"<<statistics_iter->first<<" is active."<<endl;                                 // print to std::cout
 	}
 	return;
 }
@@ -108,14 +108,14 @@ void WatchPoint<ADDRESS, FLAGS>::reset() {
 	statistics_t empty_statistics = clear_statistics();
 	oracle_wp_iter = oracle_wp.begin();
 	for (statistics_iter = statistics.begin();statistics_iter != statistics.end();statistics_iter++) {
-																//	for all active thread_id's
-		statistics_iter->second = empty_statistics;				//	clear statistics
-		oracle_wp_iter->second = empty_oracle;					//	clear Oracle watchpoints
-		oracle_wp_iter++;										//	Oracle should be of the same length as statistics
+                                                            // for all active thread_id's
+		statistics_iter->second = empty_statistics;           // clear statistics
+		oracle_wp_iter->second = empty_oracle;                // clear Oracle watchpoints
+		oracle_wp_iter++;                                     // Oracle should be of the same length as statistics
 	}
 	for (statistics_inactive_iter = statistics_inactive.begin();statistics_inactive_iter != statistics_inactive.end();statistics_inactive_iter++)
-																//	for all inactive thread_id's
-		statistics_inactive_iter->second = empty_statistics;	//	clear inactive statistics
+                                                            // for all inactive thread_id's
+		statistics_inactive_iter->second = empty_statistics;  // clear inactive statistics
 	return;
 }
 
@@ -124,17 +124,17 @@ void WatchPoint<ADDRESS, FLAGS>::reset() {
  */
 template<class ADDRESS, class FLAGS>
 void WatchPoint<ADDRESS, FLAGS>::reset(int32_t thread_id) {
-	statistics_iter = statistics.find(thread_id);		//	search for active thread_id
-	if (statistics_iter != statistics.end()) {			//	if found active
+	statistics_iter = statistics.find(thread_id);                  // search for active thread_id
+	if (statistics_iter != statistics.end()) {                     // if found active
 		Oracle<ADDRESS, FLAGS> empty_oracle;
 		oracle_wp_iter = oracle_wp.find(thread_id);
-		statistics_iter->second = clear_statistics();	//	clear statistics
-		oracle_wp_iter->second = empty_oracle;			//	clear Oracle watchpoints
+		statistics_iter->second = clear_statistics();               // clear statistics
+		oracle_wp_iter->second = empty_oracle;                      // clear Oracle watchpoints
 	}
 	else {
 		statistics_inactive_iter = statistics_inactive.find(thread_id);
-		if (statistics_inactive_iter != statistics_inactive.end())		//	if found inactive
-			statistics_inactive_iter->second = clear_statistics();		//	clear inactive statistics
+		if (statistics_inactive_iter != statistics_inactive.end())  // if found inactive
+			statistics_inactive_iter->second = clear_statistics();   // clear inactive statistics
 	}
 	return;
 }
@@ -145,17 +145,17 @@ void WatchPoint<ADDRESS, FLAGS>::reset(int32_t thread_id) {
 template<class ADDRESS, class FLAGS>
 bool  WatchPoint<ADDRESS, FLAGS>::watch_fault(ADDRESS start, ADDRESS end, int32_t thread_id, bool ignore_statistics) {
 	oracle_wp_iter = oracle_wp.find(thread_id);
-	if (oracle_wp_iter != oracle_wp.end()) {									//	if thread_id found active
-		bool oracle_fault = oracle_wp_iter->second.watch_fault(start, end);		//	check if Oracle fault
-		if (!ignore_statistics) {												//	if not ignore statistics
+	if (oracle_wp_iter != oracle_wp.end()) {                                // if thread_id found active
+		bool oracle_fault = oracle_wp_iter->second.watch_fault(start, end);  // check if Oracle fault
+		if (!ignore_statistics) {                                            // if not ignore statistics
 			statistics_iter = statistics.find(thread_id);
-			statistics_iter->second.checks++;									//	checks++
-			if (oracle_fault)													//	and if it is a Oracle fault
-				statistics_iter->second.oracle_faults++;						//	oracle_fault++
+			statistics_iter->second.checks++;                                 // checks++
+			if (oracle_fault)                                                 // and if it is a Oracle fault
+				statistics_iter->second.oracle_faults++;                       // oracle_fault++
 		}
-		return oracle_fault;													//	return Oracle fault
+		return oracle_fault;                                                 // return Oracle fault
 	}
-	return false;																//	return false if not found or inactive
+	return false;                                                           // return false if not found or inactive
 }
 
 /*
@@ -165,7 +165,7 @@ template<class ADDRESS, class FLAGS>
 bool  WatchPoint<ADDRESS, FLAGS>::read_fault(ADDRESS start, ADDRESS end, int32_t thread_id, bool ignore_statistics) {
 	oracle_wp_iter = oracle_wp.find(thread_id);
 	if (oracle_wp_iter != oracle_wp.end()) {
-		bool oracle_fault = oracle_wp_iter->second.read_fault(start, end);	//	check for Oracle read fault
+		bool oracle_fault = oracle_wp_iter->second.read_fault(start, end);   // check for Oracle read fault
 		if (!ignore_statistics) {
 			statistics_iter = statistics.find(thread_id);
 			statistics_iter->second.checks++;
@@ -184,7 +184,7 @@ template<class ADDRESS, class FLAGS>
 bool  WatchPoint<ADDRESS, FLAGS>::write_fault(ADDRESS start, ADDRESS end, int32_t thread_id, bool ignore_statistics) {
 	oracle_wp_iter = oracle_wp.find(thread_id);
 	if (oracle_wp_iter != oracle_wp.end()) {
-		bool oracle_fault = oracle_wp_iter->second.write_fault(start, end);	//	check for Oracle write fault
+		bool oracle_fault = oracle_wp_iter->second.write_fault(start, end);  // check for Oracle write fault
 		if (!ignore_statistics) {
 			statistics_iter = statistics.find(thread_id);
 			statistics_iter->second.checks++;
@@ -209,31 +209,31 @@ void WatchPoint<ADDRESS, FLAGS>::print_watchpoints() {
 	cout <<"Watchpoint print ends."<<endl;
 }
 
-//set	 11	(r/w)
+//set  11   (r/w)
 template<class ADDRESS, class FLAGS>
 int WatchPoint<ADDRESS, FLAGS>::set_watch(ADDRESS start, ADDRESS end, int32_t thread_id, bool ignore_statistics) {
 	oracle_wp_iter = oracle_wp.find(thread_id);
-	if (oracle_wp_iter != oracle_wp.end()) {									//	if thread_id found
-		oracle_wp_iter->second.add_watchpoint(start, end, WA_READ | WA_WRITE);	//	set	 11	(r/w)
-		if (!ignore_statistics) {												//	if not ignored
+	if (oracle_wp_iter != oracle_wp.end()) {                                   // if thread_id found
+		oracle_wp_iter->second.add_watchpoint(start, end, WA_READ | WA_WRITE);  // set    11   (r/w)
+		if (!ignore_statistics) {                                               // if not ignored
 			statistics_iter = statistics.find(thread_id);
-			statistics_iter->second.sets++;										//	sets++
+			statistics_iter->second.sets++;                                      // sets++
 		}
-		return 0;																//	normal set: return 0
+		return 0;                                                               // normal set: return 0
 	}
-	return -1;																	//	abnormal set: thread_id not found, return -1
+	return -1;                                                                 // abnormal set: thread_id not found, return -1
 }
 
-//set	 10
+//set  10
 template<class ADDRESS, class FLAGS>
 int WatchPoint<ADDRESS, FLAGS>::set_read(ADDRESS start, ADDRESS end, int32_t thread_id, bool ignore_statistics) {
 	oracle_wp_iter = oracle_wp.find(thread_id);
 	if (oracle_wp_iter != oracle_wp.end()) {
-		oracle_wp_iter->second.add_watchpoint(start, end, WA_READ);				//	set r
-		oracle_wp_iter->second.rm_watchpoint(start, end, WA_WRITE);				//	reset w
+		oracle_wp_iter->second.add_watchpoint(start, end, WA_READ);             // set r
+		oracle_wp_iter->second.rm_watchpoint(start, end, WA_WRITE);             // reset w
 		if (!ignore_statistics) {
 			statistics_iter = statistics.find(thread_id);
-			statistics_iter->second.sets++;										//	sets++ (if !ignored)
+			statistics_iter->second.sets++;                                      // sets++ (if !ignored)
 		}
 		return 0;
 	}
@@ -245,11 +245,11 @@ template<class ADDRESS, class FLAGS>
 int WatchPoint<ADDRESS, FLAGS>::set_write(ADDRESS start, ADDRESS end, int32_t thread_id, bool ignore_statistics) {
 	oracle_wp_iter = oracle_wp.find(thread_id);
 	if (oracle_wp_iter != oracle_wp.end()) {
-		oracle_wp_iter->second.add_watchpoint(start, end, WA_WRITE);			//	set w
-		oracle_wp_iter->second.rm_watchpoint(start, end, WA_READ);				//	reset r
+		oracle_wp_iter->second.add_watchpoint(start, end, WA_WRITE);            // set w
+		oracle_wp_iter->second.rm_watchpoint(start, end, WA_READ);              // reset r
 		if (!ignore_statistics) {
 			statistics_iter = statistics.find(thread_id);
-			statistics_iter->second.sets++;										//	sets++ (if !ignored)
+			statistics_iter->second.sets++;                                      // sets++ (if !ignored)
 		}
 		return 0;
 	}
@@ -261,10 +261,10 @@ template<class ADDRESS, class FLAGS>
 int WatchPoint<ADDRESS, FLAGS>::rm_watch(ADDRESS start, ADDRESS end, int32_t thread_id, bool ignore_statistics) {
 	oracle_wp_iter = oracle_wp.find(thread_id);
 	if (oracle_wp_iter != oracle_wp.end()) {
-		oracle_wp_iter->second.rm_watchpoint(start, end, WA_READ | WA_WRITE);	//	reset r/w
+		oracle_wp_iter->second.rm_watchpoint(start, end, WA_READ | WA_WRITE);   // reset r/w
 		if (!ignore_statistics) {
 			statistics_iter = statistics.find(thread_id);
-			statistics_iter->second.sets++;										//	sets++ (if !ignored)
+			statistics_iter->second.sets++;                                      // sets++ (if !ignored)
 		}
 		return 0;
 	}
@@ -276,10 +276,10 @@ template<class ADDRESS, class FLAGS>
 int WatchPoint<ADDRESS, FLAGS>::update_set_read(ADDRESS start, ADDRESS end, int32_t thread_id, bool ignore_statistics) {
 	oracle_wp_iter = oracle_wp.find(thread_id);
 	if (oracle_wp_iter != oracle_wp.end()) {
-		oracle_wp_iter->second.add_watchpoint(start, end, WA_READ);				//	set r
+		oracle_wp_iter->second.add_watchpoint(start, end, WA_READ);             // set r
 		if (!ignore_statistics) {
 			statistics_iter = statistics.find(thread_id);
-			statistics_iter->second.updates++;									//	updates++ (if !ignored)
+			statistics_iter->second.updates++;                                   // updates++ (if !ignored)
 		}
 		return 0;
 	}
@@ -291,10 +291,10 @@ template<class ADDRESS, class FLAGS>
 int WatchPoint<ADDRESS, FLAGS>::update_set_write(ADDRESS start, ADDRESS end, int32_t thread_id, bool ignore_statistics) {
 	oracle_wp_iter = oracle_wp.find(thread_id);
 	if (oracle_wp_iter != oracle_wp.end()) {
-		oracle_wp_iter->second.add_watchpoint(start, end, WA_WRITE);			//	set w
+		oracle_wp_iter->second.add_watchpoint(start, end, WA_WRITE);            // set w
 		if (!ignore_statistics) {
 			statistics_iter = statistics.find(thread_id);
-			statistics_iter->second.updates++;									//	updates++ (if !ignored)
+			statistics_iter->second.updates++;                                   // updates++ (if !ignored)
 		}
 		return 0;
 	}
@@ -306,10 +306,10 @@ template<class ADDRESS, class FLAGS>
 int WatchPoint<ADDRESS, FLAGS>::rm_read(ADDRESS start, ADDRESS end, int32_t thread_id, bool ignore_statistics) {
 	oracle_wp_iter = oracle_wp.find(thread_id);
 	if (oracle_wp_iter != oracle_wp.end()) {
-		oracle_wp_iter->second.rm_watchpoint(start, end, WA_READ);				//	reset r
+		oracle_wp_iter->second.rm_watchpoint(start, end, WA_READ);              // reset r
 		if (!ignore_statistics) {
 			statistics_iter = statistics.find(thread_id);
-			statistics_iter->second.updates++;									//	updates++ (if !ignored)
+			statistics_iter->second.updates++;                                   // updates++ (if !ignored)
 		}
 		return 0;
 	}
@@ -321,10 +321,10 @@ template<class ADDRESS, class FLAGS>
 int WatchPoint<ADDRESS, FLAGS>::rm_write(ADDRESS start, ADDRESS end, int32_t thread_id, bool ignore_statistics) {
 	oracle_wp_iter = oracle_wp.find(thread_id);
 	if (oracle_wp_iter != oracle_wp.end()) {
-		oracle_wp_iter->second.rm_watchpoint(start, end, WA_WRITE);				//	reset w
+		oracle_wp_iter->second.rm_watchpoint(start, end, WA_WRITE);             // reset w
 		if (!ignore_statistics) {
 			statistics_iter = statistics.find(thread_id);
-			statistics_iter->second.updates++;									//	updates++ (if !ignored)
+			statistics_iter->second.updates++;                                   // updates++ (if !ignored)
 		}
 		return 0;
 	}
@@ -359,8 +359,8 @@ bool WatchPoint<ADDRESS, FLAGS>::general_compare(int32_t thread_id1, int32_t thr
 				 *	check for faults for required flags in thread #2
 				 */
 				if (oracle_wp_iter_2->second.general_fault(oracle_wp_iter->second.wp_iter->start_addr, 
-														 oracle_wp_iter->second.wp_iter->end_addr, 
-														 flag_thread2) ) {
+                                                       oracle_wp_iter->second.wp_iter->end_addr, 
+                                                       flag_thread2) ) {
 					return true;
 				}
 			}
@@ -395,16 +395,16 @@ bool WatchPoint<ADDRESS, FLAGS>::compare_ww(int32_t thread_id1, int32_t thread_i
 template<class ADDRESS, class FLAGS>
 statistics_t WatchPoint<ADDRESS, FLAGS>::get_statistics(int32_t thread_id) {
 	statistics_iter = statistics.find(thread_id);
-	if (statistics_iter != statistics.end()) {								//	if found active
-		return statistics_iter->second;										//	return active statistics
+	if (statistics_iter != statistics.end()) {                        // if found active
+		return statistics_iter->second;                                // return active statistics
 	}
 	else {
 		statistics_inactive_iter = statistics_inactive.find(thread_id);
-		if (statistics_inactive_iter != statistics_inactive.end()) {		//	if found inactive
-			return statistics_inactive_iter->second;						//	return inactive statistics
+		if (statistics_inactive_iter != statistics_inactive.end()) {   // if found inactive
+			return statistics_inactive_iter->second;                    // return inactive statistics
 		}
 	}
-	return clear_statistics();												//	if not found, return zero statistics
+	return clear_statistics();                                        // if not found, return zero statistics
 }
 
 /*
@@ -413,18 +413,18 @@ statistics_t WatchPoint<ADDRESS, FLAGS>::get_statistics(int32_t thread_id) {
 template<class ADDRESS, class FLAGS>
 int WatchPoint<ADDRESS, FLAGS>::set_statistics(int32_t thread_id, statistics_t input) {
 	statistics_iter = statistics.find(thread_id);
-	if (statistics_iter != statistics.end()) {							//	if found active
-		statistics_iter->second = input;								//	set statistics = input
-		return 0;														//	normal set: return 0
+	if (statistics_iter != statistics.end()) {                        // if found active
+		statistics_iter->second = input;                               // set statistics = input
+		return 0;                                                      // normal set: return 0
 	}
 	else {
 		statistics_inactive_iter = statistics_inactive.find(thread_id);
-		if (statistics_inactive_iter != statistics_inactive.end()) {	//	if found inactive
-			statistics_inactive_iter->second = input;					//	set statistics = input
-			return 0;													//	normal set: return 0
+		if (statistics_inactive_iter != statistics_inactive.end()) {   // if found inactive
+			statistics_inactive_iter->second = input;                   // set statistics = input
+			return 0;                                                   // normal set: return 0
 		}
 	}
-	return -1;															//	abnormal set: tread_id not found, return -1
+	return -1;                                                        // abnormal set: tread_id not found, return -1
 }
 
 /*
@@ -445,14 +445,14 @@ statistics_t WatchPoint<ADDRESS, FLAGS>::clear_statistics() {
  */
 template<class ADDRESS, class FLAGS>
 void WatchPoint<ADDRESS, FLAGS>::print_statistics(bool active) {
-	if (active) {		//	if active, only print active threads' statistics only
+	if (active) {        // if active, only print active threads' statistics only
 		cout <<"Printing statistics for all active threads: "<<endl;
 		for (statistics_iter = statistics.begin();statistics_iter != statistics.end();statistics_iter++) {
 			cout <<"Statistics of thead #"<<statistics_iter->first<<" : "<<endl;
 			print_statistics(statistics_iter->second);
 		}
 	}
-	else {				//	if !active, print all threads' statistics
+	else {               // if !active, print all threads' statistics
 		cout <<"Printing statistics for all threads (both active and inactive): "<<endl;
 		statistics_iter = statistics.begin();
 		statistics_inactive_iter = statistics_inactive.begin();

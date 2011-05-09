@@ -78,7 +78,7 @@ template<class ADDRESS, class FLAGS>
 void Oracle<ADDRESS, FLAGS>::watch_print(ostream &output) {
 	output << "There are " << wp.size() << " watchpoints" << endl;
 	for (unsigned int i = 0; i < wp.size() ; i++) {
-		if (wp[i].flags) {													//	Only print if there is a flag existing
+		if (wp[i].flags) {                                                   //	Only print if there is an existing flag
 			output << "This is watchpoint number " << i << ":" << endl;
 			output << "start_addr = " << setw(10) << wp[i].start_addr << " ";
 			output << "end_addr = " << setw(10) << wp[i].end_addr << " ";
@@ -151,10 +151,10 @@ void Oracle<ADDRESS, FLAGS>::wp_operation(ADDRESS start_addr, ADDRESS end_addr,
 					 */
 					if (pre_iter->flags == flag_op(wp_iter->flags, target_flags) ) {
 						wp_iter->start_addr = pre_iter->start_addr;
-						wp_iter = wp.erase(pre_iter); //Erase pre_iter and restore wp_iter.
+						wp_iter = wp.erase(pre_iter); // Erase pre_iter and restore wp_iter.
 					}
-					//We can't update the flags for now. We must wait until we have
-					//determined wether merge or split at the end_addr.
+					// We can't update the flags for now. We must wait until we have
+					// determined wether merge or split at the end_addr.
 				}
 			}
 			/*
@@ -199,7 +199,7 @@ void Oracle<ADDRESS, FLAGS>::wp_operation(ADDRESS start_addr, ADDRESS end_addr,
 				insert_t.end_addr = end_addr;
 				insert_t.flags = flag_op(wp_iter->flags, target_flags);
 				wp_iter->start_addr = end_addr + 1;
-				wp.insert(wp_iter, insert_t); //No need to restore as we are done.
+				wp.insert(wp_iter, insert_t); // No need to restore as we are done.
 			}
 		}
 		return;
@@ -301,7 +301,7 @@ void Oracle<ADDRESS, FLAGS>::wp_operation(ADDRESS start_addr, ADDRESS end_addr,
 				 */
 				if (aft_iter->flags == flag_op(wp_iter->flags, target_flags) ) {
 					wp_iter->end_addr = aft_iter->end_addr;
-					wp.erase(aft_iter); //erase and increment wp_iter.
+					wp.erase(aft_iter); //  erase and increment wp_iter.
 				}
 			}
 		}
@@ -324,7 +324,7 @@ void Oracle<ADDRESS, FLAGS>::wp_operation(ADDRESS start_addr, ADDRESS end_addr,
 				insert_t.end_addr = end_addr;
 				insert_t.flags = flag_op(wp_iter->flags, target_flags);
 				wp_iter->start_addr = end_addr + 1;
-				wp.insert(wp_iter, insert_t); //Insert, no need to restore wp_iter
+				wp.insert(wp_iter, insert_t); // Insert, no need to restore wp_iter
 			}
 		}
 	}
@@ -409,7 +409,7 @@ FLAGS flag_diff (FLAGS &x, FLAGS &y) {
 	return (x & ~y);
 }
 
-//If we decide that we don't want to include the .cpp in the .h file,
-//we need to add the following for each templated use case.
-//template class Oracle<unsigned int, unsigned int>;
+// If we decide that we don't want to include the .cpp in the .h file,
+// we need to add the following for each templated use case.
+// template class Oracle<unsigned int, unsigned int>;
 #endif
