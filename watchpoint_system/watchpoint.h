@@ -12,6 +12,12 @@
 #include <map>
 #include "oracle_wp.h"
 
+#define IGNORE_STATS true
+#define STORE_STATS false
+
+#define ACTIVE_ONLY true
+#define INCLUDE_INACTIVE false
+
 /*
  *	Structure that contains all hardware emulation statistics for one thread
  */
