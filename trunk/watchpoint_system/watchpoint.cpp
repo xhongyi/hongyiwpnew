@@ -16,6 +16,19 @@ inline statistics_t& operator +=(statistics_t &a, const statistics_t &b) {	//	no
 }
 
 /*
+ *	operator that is used for c = a + b
+ *		adding all statistics of a and b and then return the result
+ */
+inline statistics_t operator +(const statistics_t &a, const statistics_t &b) {
+	statistics_t result;
+	result.checks = a.checks + b.checks;
+	result.oracle_faults = a.oracle_faults + b.oracle_faults;
+	result.sets = a.sets + b.sets;
+	result.updates = a.updates + b.updates;
+	return result;
+}
+
+/*
  *	Constructor
  */
 template<class ADDRESS, class FLAGS>
@@ -476,11 +489,12 @@ void WatchPoint<ADDRESS, FLAGS>::print_statistics(bool active) {
  *	Print statistics (called by print_statistics(bool active) )
  */
 template<class ADDRESS, class FLAGS>
-void WatchPoint<ADDRESS, FLAGS>::print_statistics(statistics_t& to_print) {
+void WatchPoint<ADDRESS, FLAGS>::print_statistics(const statistics_t& to_print) {
 	cout <<"Total number of checks for faults: "<<to_print.checks<<endl;
 	cout <<"Total number of faults checked: "<<to_print.oracle_faults<<endl;
 	cout <<"Total number of \'set\'s: "<<to_print.sets<<endl;
 	cout <<"Total number of \'update\'s: "<<to_print.updates<<endl;
+	cout <<endl;
 	return;
 }
 

@@ -23,20 +23,6 @@ int main() {
 		cin >>thread_id;
 	}
 	wp_test.print_threads();
-	//	Ending threads
-	cout <<"----------------------------Ending Threads----------------------------"<<endl;
-	cout <<"Please enter thread_id you want to end: (enter -1 to end)"<<endl;
-	cin >>thread_id;
-	while (thread_id != -1) {
-		cout <<"Ending thread #"<<thread_id<<" ...\t\t";
-		if (wp_test.end_thread(thread_id))
-			cout <<"Failed to end thread #"<<thread_id<<" !!!"<<endl;
-		else
-			cout <<"Succeeded! "<<endl;
-		cout <<"Please enter thread_id you want to end: (enter -1 to end)"<<endl;
-		cin >>thread_id;
-	}
-	wp_test.print_threads();
 	//	Changing Watchpoints
 	cout <<"-------------------------Changing Watchpoints-------------------------"<<endl;
 	cout <<"Please enter the watchpoint you want to change: <thread_id> <start> <end> <flag(rw)> "<<endl;
@@ -70,6 +56,20 @@ int main() {
 		cin >>thread_id >>start >>end >>flag;
 	}
 	wp_test.print_watchpoints();
+	//	Ending threads
+	cout <<"----------------------------Ending Threads----------------------------"<<endl;
+	cout <<"Please enter thread_id you want to end: (enter -1 to end)"<<endl;
+	cin >>thread_id;
+	while (thread_id != -1) {
+		cout <<"Ending thread #"<<thread_id<<" ...\t\t";
+		if (wp_test.end_thread(thread_id))
+			cout <<"Failed to end thread #"<<thread_id<<" !!!"<<endl;
+		else
+			cout <<"Succeeded! "<<endl;
+		cout <<"Please enter thread_id you want to end: (enter -1 to end)"<<endl;
+		cin >>thread_id;
+	}
+	wp_test.print_threads();
 	//	Checking Watchpoints
 	cout <<"-------------------------Checking Watchpoints-------------------------"<<endl;
 	cout <<"Please enter the watchpoint you want to check: <thread_id> <start> <end> <flag(rw)> "<<endl;
@@ -87,6 +87,8 @@ int main() {
 		}
 		if (result)
 			cout <<"It is a fault!"<<endl;
+		else
+			cout <<endl;
 		cout <<"Please enter the watchpoint you want to check: <thread_id> <start> <end> <flag(rw)> "<<endl;
 		cin >>thread_id >>start >>end >>flag;
 	}
@@ -115,6 +117,20 @@ int main() {
 	//	Manipulating Statistics
 	cout <<"-----------------------Manipulating Statistics------------------------"<<endl;
 	wp_test.print_statistics();
-	cout <<"Test program is still not finished. "<<endl;
+	cout <<"Please enter the thread_id of the statistics you want to change: <thread_id1> += <thread_id2> "<<endl;
+	cin >>thread_id >>thread_id_2;
+	while (thread_id != -1) {
+		wp_test.print_statistics(wp_test.get_statistics(thread_id));
+		cout <<" += "<<endl;
+		wp_test.print_statistics(wp_test.get_statistics(thread_id_2));
+		wp_test.set_statistics(thread_id, wp_test.get_statistics(thread_id) + wp_test.get_statistics(thread_id_2));
+		cout <<"result: "<<endl;
+		wp_test.print_statistics(wp_test.get_statistics(thread_id));
+		cout <<"Please enter the thread_id of the statistics you want to change: <thread_id1> += <thread_id2> "<<endl;
+		cin >>thread_id >>thread_id_2;
+	}
+	wp_test.print_statistics();
+	cout <<"Printing active only... "<<endl;
+	wp_test.print_statistics(true);
 	return 0;
 }
