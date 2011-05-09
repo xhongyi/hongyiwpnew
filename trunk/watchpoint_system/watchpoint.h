@@ -46,7 +46,7 @@ public:
 	int start_thread(int32_t thread_id);   // returns 0 on success, -1 on failure
                                           //    (can't have multiple active threads holding the same thread_id)
 	int end_thread(int32_t thread_id);     // turns an active thread into inactive state
-	void print_threads();                  // prints all active thread_id's
+	void print_threads(ostream &output = cout);                  // prints all active thread_id's
 	
 	//Reset Functions
 	void reset();                          // resets all threads, whether active or inactive
@@ -56,7 +56,7 @@ public:
 	bool watch_fault     (ADDRESS start, ADDRESS end, int32_t thread_id, bool ignore_statistics=false);   //	check for r/w faults
 	bool read_fault      (ADDRESS start, ADDRESS end, int32_t thread_id, bool ignore_statistics=false);   //	only check r faults
 	bool write_fault     (ADDRESS start, ADDRESS end, int32_t thread_id, bool ignore_statistics=false);   //	only check w faults
-	void print_watchpoints();
+	void print_watchpoints(ostream &output = cout);
 	
 	//Changing Watchpoints
 	int set_watch        (ADDRESS start, ADDRESS end, int32_t thread_id, bool ignore_statistics=false);   //set    11 (rw)
@@ -85,8 +85,8 @@ public:
 	statistics_t get_statistics   (int32_t thread_id);
 	int          set_statistics   (int32_t thread_id, statistics_t input);
 	statistics_t clear_statistics ();
-	void         print_statistics (bool active = false);
-	void         print_statistics (const statistics_t& to_print);
+	void         print_statistics (bool active = false, ostream &output = cout);
+	void         print_statistics (const statistics_t& to_print, ostream &output = cout);
 
 private:
 	//Data Structures (mainly maps from thread_id's to the thread's data)

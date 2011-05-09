@@ -3,12 +3,21 @@
 #include <iostream>
 using namespace std;
 
-int main() {
+int main(int argc, char *argv[]) {
 	WatchPoint<unsigned int, unsigned int> wp_test;
 	int thread_id, thread_id_2;
 	unsigned int start, end;
 	string flag;
 	int result;
+
+	ostream *output;
+	if (argc==1) {
+		output = &cout;
+	}
+	else {
+		output = new ofstream(argv[1]);
+	}
+	
 	//	Starting threads
 	cout <<"---------------------------Starting Threads---------------------------"<<endl;
 	cout <<"Please enter thread_id you want to start: (enter -1 to end)"<<endl;
@@ -22,7 +31,7 @@ int main() {
 		cout <<"Please enter thread_id you want to start: (enter -1 to end)"<<endl;
 		cin >>thread_id;
 	}
-	wp_test.print_threads();
+	wp_test.print_threads(*output);
 	//	Changing Watchpoints
 	cout <<"-------------------------Changing Watchpoints-------------------------"<<endl;
 	cout <<"Please enter the watchpoint you want to change: <thread_id> <start> <end> <flag(rw)> "<<endl;
@@ -55,7 +64,7 @@ int main() {
 		cout <<"Please enter the watchpoint you want to change: <thread_id> <start> <end> <flag(rw)> "<<endl;
 		cin >>thread_id >>start >>end >>flag;
 	}
-	wp_test.print_watchpoints();
+	wp_test.print_watchpoints(*output);
 	//	Ending threads
 	cout <<"----------------------------Ending Threads----------------------------"<<endl;
 	cout <<"Please enter thread_id you want to end: (enter -1 to end)"<<endl;
@@ -69,7 +78,7 @@ int main() {
 		cout <<"Please enter thread_id you want to end: (enter -1 to end)"<<endl;
 		cin >>thread_id;
 	}
-	wp_test.print_threads();
+	wp_test.print_threads(*output);
 	//	Checking Watchpoints
 	cout <<"-------------------------Checking Watchpoints-------------------------"<<endl;
 	cout <<"Please enter the watchpoint you want to check: <thread_id> <start> <end> <flag(rw)> "<<endl;
@@ -116,21 +125,21 @@ int main() {
 	}
 	//	Manipulating Statistics
 	cout <<"-----------------------Manipulating Statistics------------------------"<<endl;
-	wp_test.print_statistics();
+	wp_test.print_statistics(*output);
 	cout <<"Please enter the thread_id of the statistics you want to change: <thread_id1> += <thread_id2> "<<endl;
 	cin >>thread_id >>thread_id_2;
 	while (thread_id != -1) {
-		wp_test.print_statistics(wp_test.get_statistics(thread_id));
+		wp_test.print_statistics(wp_test.get_statistics(thread_id), *output);
 		cout <<" += "<<endl;
-		wp_test.print_statistics(wp_test.get_statistics(thread_id_2));
+		wp_test.print_statistics(wp_test.get_statistics(thread_id_2), *output);
 		wp_test.set_statistics(thread_id, wp_test.get_statistics(thread_id) + wp_test.get_statistics(thread_id_2));
 		cout <<"result: "<<endl;
-		wp_test.print_statistics(wp_test.get_statistics(thread_id));
+		wp_test.print_statistics(wp_test.get_statistics(thread_id), *output);
 		cout <<"Please enter the thread_id of the statistics you want to change: <thread_id1> += <thread_id2> "<<endl;
 		cin >>thread_id >>thread_id_2;
 	}
-	wp_test.print_statistics();
+	wp_test.print_statistics(*output);
 	cout <<"Printing active only... "<<endl;
-	wp_test.print_statistics(true);
+	wp_test.print_statistics(true, *output);
 	return 0;
 }
