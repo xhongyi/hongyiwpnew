@@ -1,6 +1,6 @@
 CXX=g++
 CFLAGS=-Wall -Werror -O3
-EXECS=test_add test_rm test_cache_algo test_print test_pt test_wp	#add executes here
+EXECS=test_add test_rm test_cache_algo test_print test_pt test_wp pintools	#add executes here
 OBJS=$(WP_FOLDER)$(WATCHPOINT).o $(WP_FOLDER)$(ORACLE).o $(WP_FOLDER)$(PT).o $(WP_FOLDER)$(CACHE_ALGO).o #$(WP_FOLDER)$(RC).o	#add objects here
 
 WP_FOLDER=watchpoint_system/
@@ -10,6 +10,8 @@ PT=page_table_wp
 CACHE_ALGO=cache_algo
 #RC=range_cache
 WATCHPOINT=watchpoint
+PINTOOLS=pintools
+.PHONY : pintools clean
 
 ALL_TEST=$(TEST_ADD) $(TEST_RM) $(TEST_CACHE_ALGO) $(TEST_PRINT) $(TEST_PT) $(TEST_WP) 	#add tests here
 TEST_ADD=test/test_add
@@ -19,7 +21,7 @@ TEST_PRINT=test/test_print
 TEST_PT=test/test_pt
 TEST_WP=test/test_wp
 
-all: $(ALL_TEST)
+all: $(ALL_TEST) $(PINTOOLS)
 
 $(TEST_ADD): $(OBJS) $(TEST_ADD).cpp
 	$(CXX) $(CFLAGS) $(TEST_ADD).cpp $(OBJS) -o test_add
@@ -51,9 +53,12 @@ $(CACHE_ALGO).o: $(CACHE_ALGO).cpp $(CACHE_ALGO).h
 $(WATCHPOINT).o: $(WATCHPOINT).cpp $(WATCHPOINT).h
 	cd $(WP_FOLDER) & $(CXX) $(CFLAGS) -c $(WATCHPOINT).cpp
 
+$(PINTOOLS):
+	cd pintools; $(MAKE)
+
 #$(RC).o: $(RC).cpp $(RC).h
 #	cd $(WP_FOLDER) & $(CXX) $(CFLAGS) -c $(RC).cpp
 
 clean:
-	rm $(EXECS) $(WP_FOLDER)*.o
+	rm $(EXECS) $(WP_FOLDER)*.o; cd pintools; $(MAKE) clean
 
