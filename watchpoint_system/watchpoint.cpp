@@ -75,7 +75,9 @@ int WatchPoint<ADDRESS, FLAGS>::start_thread(int32_t thread_id) {
       /*
        * Initiating Page Table
        */
+#ifdef PAGE_TABLE
       page_table_wp.start_thread(thread_id, &(oracle_wp.find(thread_id)->second) );
+#endif
       return 0;                                                         // normal start: return 0
    }
    return -1;                                                           // abnormal start: starting active thread again, return -1
