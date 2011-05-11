@@ -8,9 +8,14 @@
 #ifndef WATCHPOINT_H_
 #define WATCHPOINT_H_
 
+#define PAGE_TABLE
+
 #include <stdint.h>     //contains int32_t
 #include <map>
 #include "oracle_wp.h"
+#ifdef PAGE_TABLE
+#include "page_table_wp.h"
+#endif
 
 #define IGNORE_STATS true
 #define STORE_STATS false
@@ -22,10 +27,13 @@
  *	Structure that contains all hardware emulation statistics for one thread
  */
 struct statistics_t {
-	long long checks;          //	total number of checks on faults
-	long long oracle_faults;   //	total number of times that the Oracle get faults
-	long long sets;            //	total number of times the API sets a watchpoint
-	long long updates;         //	total number of times the API updates a watchpoint
+	long long checks;               //  total number of checks on faults
+	long long oracle_faults;        //  total number of times that the Oracle get faults
+	long long sets;                 //	total number of times the API sets a watchpoint
+	long long updates;              //	total number of times the API updates a watchpoint
+	#ifdef PAGE_TABLE
+	long long page_table_faults;    //  total number of times that the page_table get faults
+	#endif
 };
 
 /*
@@ -93,12 +101,15 @@ public:
 	statistics_t clear_statistics ();
 	void         print_statistics (ostream &output = cout, bool active = false);
 	void         print_statistics (const statistics_t& to_print, ostream &output = cout);
-
+	
 private:
 	//Data Structures (mainly maps from thread_id's to the thread's data)
 	map<int32_t, Oracle<ADDRESS, FLAGS> >                    oracle_wp;           //	for storing byte accurate emulation class
 	map<int32_t, statistics_t>                               statistics;          //	for storing all active threads and statistics
 	map<int32_t, statistics_t>                               statistics_inactive; //	for storing all inactive threads and statistics (no overlaps)
+	#ifdef PAGE_TABLE
+	WatchPoint_PT<ADDRESS, FLAGS>                            page_table_wp;       // only one page_table for the page_table watchpoint system
+	#endif
 	
 	//Useful iterators
 	typename map<int32_t, Oracle<ADDRESS, FLAGS> >::iterator oracle_wp_iter;
