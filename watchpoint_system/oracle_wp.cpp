@@ -24,37 +24,7 @@ Oracle<ADDRESS, FLAGS>::Oracle() {
 template<class ADDRESS, class FLAGS>
 Oracle<ADDRESS, FLAGS>::~Oracle() {
 }
-/*
-template<class ADDRESS, class FLAGS>
-void Oracle<ADDRESS, FLAGS>::add_watch(ADDRESS start_addr, ADDRESS end_addr) {
 
-}
-
-template<class ADDRESS, class FLAGS>
-void Oracle<ADDRESS, FLAGS>::add_read(ADDRESS start_addr, ADDRESS end_addr) {
-
-}
-
-template<class ADDRESS, class FLAGS>
-void Oracle<ADDRESS, FLAGS>::add_write(ADDRESS start_addr, ADDRESS end_addr) {
-
-}
-
-template<class ADDRESS, class FLAGS>
-void Oracle<ADDRESS, FLAGS>::rm_watch(ADDRESS start_addr, ADDRESS end_addr) {
-
-}
-
-template<class ADDRESS, class FLAGS>
-void Oracle<ADDRESS, FLAGS>::rm_read(ADDRESS start_addr, ADDRESS end_addr) {
-
-}
-
-template<class ADDRESS, class FLAGS>
-void Oracle<ADDRESS, FLAGS>::rm_write(ADDRESS start_addr, ADDRESS end_addr) {
-
-}
-*/
 /*
  * Below 3 wp fault detector all utilize the general_fault() function,
  * with different detection flags
