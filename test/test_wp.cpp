@@ -32,6 +32,7 @@ int main(int argc, char *argv[]) {
 		cin >>thread_id;
 	}
 	wp_test.print_threads(*output);
+	wp_test.reset();
 	//	Changing Watchpoints
 	cout <<"-------------------------Changing Watchpoints-------------------------"<<endl;
 	cout <<"Please enter the watchpoint you want to change: <thread_id> <start> <end> <flag(rw)> "<<endl;

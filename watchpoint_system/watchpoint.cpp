@@ -131,7 +131,8 @@ void WatchPoint<ADDRESS, FLAGS>::reset() {
       statistics_iter->second = empty_statistics;           // clear statistics
       oracle_wp_iter->second = empty_oracle;                // clear Oracle watchpoints
       #ifdef PAGE_TABLE
-      page_table_wp_iter->second = new WatchPoint_PT<ADDRESS, FLAGS>(oracle_wp_iter->second);
+      WatchPoint_PT<ADDRESS, FLAGS> empty_page_table(oracle_wp_iter->second);
+      page_table_wp_iter->second = empty_page_table;
       page_table_wp_iter++;
       #endif
       oracle_wp_iter++;                                     // Oracle should be of the same length as statistics
