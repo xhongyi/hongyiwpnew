@@ -383,6 +383,23 @@ typename deque<watchpoint_t<ADDRESS, FLAGS> >::iterator
 		return end_iter;
 }
 
+//traverse functions
+template<class ADDRESS, class FLAGS>
+watchpoint_t<ADDRESS, FLAGS>& Oracle<ADDRESS, FLAGS>::start_traverse() {
+   wp_iter_traverse = wp.begin();
+   return *wp_iter_traverse;
+}
+
+template<class ADDRESS, class FLAGS>
+bool Oracle<ADDRESS, FLAGS>::continue_traverse(watchpoint_t<ADDRESS, FLAGS>& watchpoint) {
+   wp_iter_traverse++;
+   if (wp_iter_traverse!=wp.end()) {
+      watchpoint = *wp_iter_traverse;
+      return true;
+   }
+   return false;
+}
+
 /*
  * Returns true if all the target_flags are included by container_flags
  */
