@@ -54,6 +54,7 @@ template<class ADDRESS, class FLAGS>
 class WatchPoint {
 public:
 	WatchPoint();  //	Constructor
+    WatchPoint(bool); // Constructor that turns off hardware emulation.
 	~WatchPoint(); //	Destructor
 	
 	//Threading Calls
@@ -110,6 +111,8 @@ private:
 	#ifdef PAGE_TABLE
 	map<int32_t, WatchPoint_PT<ADDRESS, FLAGS> >             page_table_wp;
 	#endif
+
+    bool                                                     emulate_hardware;
 	
 	//Useful iterators
 	typename map<int32_t, Oracle<ADDRESS, FLAGS> >::iterator oracle_wp_iter;
