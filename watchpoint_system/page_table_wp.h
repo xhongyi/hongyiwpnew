@@ -16,11 +16,10 @@
 #define  BIT_MAP_NUMBER_LENGTH   (VIRTUAL_ADDRESS_LENGTH - PAGE_OFFSET_LENGTH - BIT_MAP_OFFSET_LENGTH)
 #define  BIT_MAP_NUMBER          (1<<BIT_MAP_NUMBER_LENGTH) //needs 128 KB to store these bits for each thread
 
-#define  MAX_THREADS             (1<<BIT_MAP_OFFSET_LENGTH)
-
 #include <stdint.h>     //contains int32_t
 #include <map>
 #include <queue>
+#include <cstdlib>
 #include "oracle_wp.h"
 
 template<class ADDRESS, class FLAGS>
@@ -31,6 +30,7 @@ public:
 	
 	void     start_thread   (int32_t thread_id, Oracle<ADDRESS, FLAGS>* oracle_ptr_in);
 	void     end_thread     (int32_t thread_id);
+	void     reset          ();
 	
 	/*
 	 * this function tells all pages covered by this range is watched or not
@@ -58,11 +58,11 @@ public:
 	int   add_watchpoint (ADDRESS start_addr, ADDRESS end_addr, int32_t thread_id, FLAGS target_flags);
 	int   rm_watchpoint  (ADDRESS start_addr, ADDRESS end_addr, int32_t thread_id);
 	
-	void set_bit_map(int32_t thread_id, ADDRESS page_number);
-	void reset_bit_map(int32_t thread_id, ADDRESS page_number);
+	void set_bit(int32_t thread_id, ADDRESS page_number);
+	void reset_bit(int32_t thread_id, ADDRESS page_number);
 	
-	void get_bit(ADDRESS page_number);
-	void get_bit(ADDRESS page_number, int32_t thread_id);
+	unsigned int get_bit(ADDRESS page_number);
+	unsigned int get_bit(ADDRESS page_number, int32_t thread_id);
 
 //private:
 	/*

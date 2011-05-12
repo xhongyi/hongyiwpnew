@@ -109,7 +109,7 @@ private:
 	map<int32_t, statistics_t>                               statistics;          //	for storing all active threads and statistics
 	map<int32_t, statistics_t>                               statistics_inactive; //	for storing all inactive threads and statistics (no overlaps)
 	#ifdef PAGE_TABLE
-	map<int32_t, WatchPoint_PT<ADDRESS, FLAGS> >             page_table_wp;
+	WatchPoint_PT<ADDRESS, FLAGS>                            page_table_wp;
 	#endif
 
     bool                                                     emulate_hardware;
@@ -119,9 +119,6 @@ private:
 	typename map<int32_t, Oracle<ADDRESS, FLAGS> >::iterator oracle_wp_iter_2;
 	map<int32_t, statistics_t>::iterator                     statistics_iter;
 	map<int32_t, statistics_t>::iterator                     statistics_inactive_iter;
-	#ifdef PAGE_TABLE
-	typename map<int32_t, WatchPoint_PT<ADDRESS, FLAGS> >::iterator page_table_wp_iter;
-	#endif
 };
 
 #include "watchpoint.cpp"
