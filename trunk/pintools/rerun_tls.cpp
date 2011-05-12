@@ -97,7 +97,7 @@ VOID ReleaseAllLocks()
 VOID ThreadStart(THREADID threadid, CONTEXT *ctxt, INT32 flags, VOID *v)
 {
     // Allocate things inside the thread init lock.
-    GetAllLocks(threadid);
+    GetLock(&init_lock, threadid+1);
     thread_wp_data_t* this_thread = new thread_wp_data_t;
     this_thread->thread_local_lock = new PIN_LOCK;
     InitLock(this_thread->thread_local_lock);
@@ -120,7 +120,7 @@ VOID ThreadStart(THREADID threadid, CONTEXT *ctxt, INT32 flags, VOID *v)
     live_threads.push_back(threadid);
     all_threads.push_back(threadid);
 
-    ReleaseAllLocks();
+    ReleaseLock(&init_lock);
 }
 
 // Must be called while holding init_lock
@@ -137,7 +137,7 @@ VOID AddThreadDataToTotal(THREADID threadid)
 VOID ThreadFini(THREADID threadid, const CONTEXT *ctxt, INT32 code, VOID *v)
 {
     deque<THREADID>::iterator iter;
-    GetAllLocks(threadid);
+    GetLock(&init_lock, threadid+1);
     AddThreadDataToTotal(threadid);
     wp->end_thread(threadid);
     mem->end_thread(threadid);
@@ -147,7 +147,7 @@ VOID ThreadFini(THREADID threadid, const CONTEXT *ctxt, INT32 code, VOID *v)
             break;
         }
     }
-    ReleaseAllLocks();
+    ReleaseLock(&init_lock);
 }
 
 // This thread is attempting a memory read.
@@ -156,15 +156,12 @@ VOID RecordMemRead(VOID * ip, ADDRINT addr, UINT32 size, THREADID threadid)
     deque<THREADID>::iterator live_iter;
     
     // If more than one thread is running, we need to turn on the race detector.
+    GetLock(&init_lock, threadid+1);
     if (live_threads.size() > 1) {
         // Check if this thread read-owns this location. This is a real check.
         // This must be entirely locked, or we could enter a disgusting state when walking
         // the oracle internals and another thread updates us.
-        thread_wp_data_t* this_thread = static_cast<thread_wp_data_t *>(PIN_GetThreadData(tls_key, threadid));
-        GetLock(this_thread->thread_local_lock, threadid+1);
         if ( wp->read_fault(addr, (ADDRINT)(addr+size-1), threadid) ) {
-            ReleaseLock(this_thread->thread_local_lock);
-            GetAllLocks(threadid);
             /* Took a read fault. We must now see if this location was in the write-set of
              * someone else. If so, we need to remove their ownership and watchpoint. */
             for(live_iter = live_threads.begin(); live_iter != live_threads.end(); live_iter++) {
@@ -193,11 +190,9 @@ VOID RecordMemRead(VOID * ip, ADDRINT addr, UINT32 size, THREADID threadid)
 
             wp->rm_read((ADDRINT)addr, (ADDRINT)(addr+size-1), threadid);
             mem->update_set_read((ADDRINT)addr, (ADDRINT)(addr+size-1), threadid, IGNORE_STATS);
-            ReleaseAllLocks();
         }
-        else
-            ReleaseLock(this_thread->thread_local_lock);
     }
+    ReleaseLock(&init_lock);
     return;
 }
 
@@ -207,15 +202,12 @@ VOID RecordMemWrite(VOID * ip, ADDRINT addr, UINT32 size, THREADID threadid)
     deque<THREADID>::iterator live_iter;
 
     // If more than one thread is running, we need to turn on the race detector.
+    GetLock(&init_lock, threadid+1);
     if (live_threads.size() > 1) {
         // Check if this thread write-owns this location. This is a real check.
         // This must be entirely locked, or we could enter a disgusting state when walking
         // the oracle internals and another thread updates us.
-        thread_wp_data_t* this_thread = static_cast<thread_wp_data_t *>(PIN_GetThreadData(tls_key, threadid));
-        GetLock(this_thread->thread_local_lock, threadid+1);
         if ( wp->write_fault((ADDRINT)addr, (ADDRINT)(addr+size-1), threadid) ) {
-            ReleaseLock(this_thread->thread_local_lock);
-            GetAllLocks(threadid);
             /* Took a write fault. We must now see if this location was in the read or write sets of
              * someone else. If so, we need to remove their ownership and watchpoint. */
             for(live_iter = live_threads.begin(); live_iter != live_threads.end(); live_iter++) {
@@ -244,11 +236,9 @@ VOID RecordMemWrite(VOID * ip, ADDRINT addr, UINT32 size, THREADID threadid)
 
             wp->rm_write((ADDRINT)addr, (ADDRINT)(addr+size-1), threadid);
             mem->update_set_write((ADDRINT)addr, (ADDRINT)(addr+size-1), threadid, IGNORE_STATS);
-            ReleaseAllLocks();
         }
-        else
-            ReleaseLock(this_thread->thread_local_lock);
     }
+    ReleaseLock(&init_lock);
     return;
 }
 
@@ -344,7 +334,7 @@ VOID Fini(INT32 code, VOID *v)
 
 VOID DataInit() {
     wp = new WatchPoint<ADDRINT, UINT32>;
-    mem = new WatchPoint<ADDRINT, UINT32>;
+    mem = new WatchPoint<ADDRINT, UINT32>(false);
     instruction_total = 0;
     all_threads_stats = wp->clear_statistics();
     return;
