@@ -50,7 +50,7 @@ int main(int argc, char *argv[]) {
 			input.flags = 0;
 		if (input.flags) {
 			wp_test.add_watchpoint(input.start_addr, input.end_addr, input.flags);
-			count += pt_test.add_watchpoint(input.start_addr, input.end_addr, input.flags);
+			pt_test.add_watchpoint(input.start_addr, input.end_addr, input.flags);
 		}
 	}
 	wp_test.watch_print(*output_oracle);
@@ -77,7 +77,7 @@ int main(int argc, char *argv[]) {
 			input.flags = 0;
 		if (input.flags) {
 			wp_test.rm_watchpoint(input.start_addr, input.end_addr, input.flags);
-			count += pt_test.rm_watchpoint(input.start_addr, input.end_addr);
+			pt_test.rm_watchpoint(input.start_addr, input.end_addr, input.flags);
 		}
 	}
 	wp_test.watch_print(*output_oracle);
