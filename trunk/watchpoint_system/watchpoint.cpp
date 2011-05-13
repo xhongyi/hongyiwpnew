@@ -12,8 +12,11 @@ inline statistics_t& operator +=(statistics_t &a, const statistics_t &b) { // no
    a.oracle_faults += b.oracle_faults;
    a.sets += b.sets;
    a.updates += b.updates;
-	#ifdef PAGE_TABLE
+	#ifdef PAGE_TABLE_SINGLE
 	a.page_table_faults += b.page_table_faults;
+	#endif
+	#ifdef PAGE_TABLE_MULTI
+	a.multi_page_table_faults += b.multi_page_table_faults;
 	#endif
    return a;
 }
@@ -28,8 +31,11 @@ inline statistics_t operator +(const statistics_t &a, const statistics_t &b) {
    result.oracle_faults = a.oracle_faults + b.oracle_faults;
    result.sets = a.sets + b.sets;
    result.updates = a.updates + b.updates;
-	#ifdef PAGE_TABLE
+	#ifdef PAGE_TABLE_SINGLE
 	result.page_table_faults = a.page_table_faults + b.page_table_faults;
+	#endif
+	#ifdef PAGE_TABLE_MULTI
+	result.multi_page_table_faults = a.multi_page_table_faults + b.multi_page_table_faults;
 	#endif
    return result;
 }
@@ -85,9 +91,14 @@ int WatchPoint<ADDRESS, FLAGS>::start_thread(int32_t thread_id) {
        * Initiating Page Table
        */
       if (emulate_hardware) {
-#ifdef PAGE_TABLE
+#ifdef PAGE_TABLE_SINGLE
           WatchPoint_PT<ADDRESS, FLAGS> empty_page_table(oracle_wp.find(thread_id)->second);
           page_table_wp[thread_id] = empty_page_table;
+#else
+#ifdef PAGE_TABLE_MULTI
+          WatchPoint_PT<ADDRESS, FLAGS> empty_page_table(oracle_wp.find(thread_id)->second);
+          page_table_wp[thread_id] = empty_page_table;
+#endif
 #endif
       }
       return 0;                                                         // normal start: return 0
@@ -107,8 +118,12 @@ int WatchPoint<ADDRESS, FLAGS>::end_thread(int32_t thread_id) {
       statistics.erase(statistics_iter);                                // remove it from active statistics
       oracle_wp.erase(oracle_wp_iter);                                  // remove its Oracle watchpoint data
       if (emulate_hardware) {
-#ifdef PAGE_TABLE
+#ifdef PAGE_TABLE_SINGLE
           page_table_wp.erase(thread_id);
+#else
+#ifdef PAGE_TABLE_MULTI
+          page_table_wp.erase(thread_id);
+#endif
 #endif
       }
       return 0;                                                         // normal end: return 0
@@ -136,18 +151,28 @@ void WatchPoint<ADDRESS, FLAGS>::reset() {
    Oracle<ADDRESS, FLAGS> empty_oracle;
    statistics_t empty_statistics = clear_statistics();
    oracle_wp_iter = oracle_wp.begin();
-   #ifdef PAGE_TABLE
+   #ifdef PAGE_TABLE_SINGLE
    page_table_wp_iter = page_table_wp.begin();
+   #else
+   #ifdef PAGE_TABLE_MULTI
+   page_table_wp_iter = page_table_wp.begin();
+   #endif
    #endif
    for (statistics_iter = statistics.begin();statistics_iter != statistics.end();statistics_iter++) {
                                                             // for all active thread_id's
       statistics_iter->second = empty_statistics;           // clear statistics
       oracle_wp_iter->second = empty_oracle;                // clear Oracle watchpoints
       if (emulate_hardware) {
-#ifdef PAGE_TABLE
+#ifdef PAGE_TABLE_SINGLE
           WatchPoint_PT<ADDRESS, FLAGS> empty_page_table(oracle_wp_iter->second);
           page_table_wp_iter->second = empty_page_table;
           page_table_wp_iter++;
+#else
+#ifdef PAGE_TABLE_MULTI
+          WatchPoint_PT<ADDRESS, FLAGS> empty_page_table(oracle_wp_iter->second);
+          page_table_wp_iter->second = empty_page_table;
+          page_table_wp_iter++;
+#endif
 #endif
       }
       oracle_wp_iter++;                                     // Oracle should be of the same length as statistics
@@ -179,11 +204,14 @@ bool  WatchPoint<ADDRESS, FLAGS>::watch_fault(ADDRESS start, ADDRESS end, int32_
    oracle_wp_iter = oracle_wp.find(thread_id);
    if (oracle_wp_iter != oracle_wp.end()) {                                // if thread_id found active
       bool oracle_fault = oracle_wp_iter->second.watch_fault(start, end);  // check if Oracle fault
-#ifdef PAGE_TABLE
+#ifdef PAGE_TABLE_SINGLE
       bool page_table_fault = false;
 #endif
+#ifdef PAGE_TABLE_MULTI
+      bool multi_page_table_fault = page_table_wp[thread_id].watch_fault(start, end);
+#endif
       if (emulate_hardware) {
-#ifdef PAGE_TABLE
+#ifdef PAGE_TABLE_SINGLE
           for (page_table_wp_iter=page_table_wp.begin();page_table_wp_iter!=page_table_wp.end();page_table_wp_iter++) {
               if (page_table_wp_iter->second.watch_fault(start, end) ) {
                   page_table_fault = true;
@@ -198,9 +226,13 @@ bool  WatchPoint<ADDRESS, FLAGS>::watch_fault(ADDRESS start, ADDRESS end, int32_
           if (oracle_fault)                                                 // and if it is a Oracle fault
               statistics_iter->second.oracle_faults++;                       // oracle_fault++
           if (emulate_hardware) {
-#ifdef PAGE_TABLE
+#ifdef PAGE_TABLE_SINGLE
              if (page_table_fault)                                             // if it is a page_table fault
                  statistics_iter->second.page_table_faults++;                   // page_table_fault++
+#endif
+#ifdef PAGE_TABLE_MULTI
+             if (multi_page_table_fault)                                             // if it is a page_table fault
+                 statistics_iter->second.multi_page_table_faults++;                   // page_table_fault++
 #endif
          }
       }
@@ -217,11 +249,14 @@ bool  WatchPoint<ADDRESS, FLAGS>::read_fault(ADDRESS start, ADDRESS end, int32_t
    oracle_wp_iter = oracle_wp.find(thread_id);
    if (oracle_wp_iter != oracle_wp.end()) {
       bool oracle_fault = oracle_wp_iter->second.read_fault(start, end);   // check for Oracle read fault
-#ifdef PAGE_TABLE
+#ifdef PAGE_TABLE_SINGLE
       bool page_table_fault = false;
 #endif
+#ifdef PAGE_TABLE_MULTI
+         bool multi_page_table_fault = page_table_wp[thread_id].watch_fault(start, end);
+#endif
       if (emulate_hardware) {
-#ifdef PAGE_TABLE
+#ifdef PAGE_TABLE_SINGLE
           for (page_table_wp_iter=page_table_wp.begin();page_table_wp_iter!=page_table_wp.end();page_table_wp_iter++) {
               if (page_table_wp_iter->second.watch_fault(start, end) ) {
                   page_table_fault = true;
@@ -236,9 +271,13 @@ bool  WatchPoint<ADDRESS, FLAGS>::read_fault(ADDRESS start, ADDRESS end, int32_t
          if (oracle_fault)
             statistics_iter->second.oracle_faults++;
          if (emulate_hardware) {
-#ifdef PAGE_TABLE
+#ifdef PAGE_TABLE_SINGLE
              if (page_table_fault)
                  statistics_iter->second.page_table_faults++;
+#endif
+#ifdef PAGE_TABLE_MULTI
+             if (multi_page_table_fault)
+                 statistics_iter->second.multi_page_table_faults++;
 #endif
          }
       }
@@ -255,11 +294,14 @@ bool  WatchPoint<ADDRESS, FLAGS>::write_fault(ADDRESS start, ADDRESS end, int32_
    oracle_wp_iter = oracle_wp.find(thread_id);
    if (oracle_wp_iter != oracle_wp.end()) {
       bool oracle_fault = oracle_wp_iter->second.write_fault(start, end);  // check for Oracle write fault
-#ifdef PAGE_TABLE
+#ifdef PAGE_TABLE_SINGLE
       bool page_table_fault = false;
 #endif
+#ifdef PAGE_TABLE_MULTI
+         bool multi_page_table_fault = page_table_wp[thread_id].watch_fault(start, end);
+#endif
       if (emulate_hardware) {
-#ifdef PAGE_TABLE
+#ifdef PAGE_TABLE_SINGLE
           for (page_table_wp_iter=page_table_wp.begin();page_table_wp_iter!=page_table_wp.end();page_table_wp_iter++) {
               if (page_table_wp_iter->second.watch_fault(start, end) ) {
                   page_table_fault = true;
@@ -274,9 +316,13 @@ bool  WatchPoint<ADDRESS, FLAGS>::write_fault(ADDRESS start, ADDRESS end, int32_
          if (oracle_fault)
             statistics_iter->second.oracle_faults++;
          if (emulate_hardware) {
-#ifdef PAGE_TABLE
+#ifdef PAGE_TABLE_SINGLE
              if (page_table_fault)
                  statistics_iter->second.page_table_faults++;
+#endif
+#ifdef PAGE_TABLE_MULTI
+             if (multi_page_table_fault)
+                 statistics_iter->second.multi_page_table_faults++;
 #endif
          }
       }
@@ -305,8 +351,12 @@ int WatchPoint<ADDRESS, FLAGS>::set_watch(ADDRESS start, ADDRESS end, int32_t th
    if (oracle_wp_iter != oracle_wp.end()) {                                   // if thread_id found
       oracle_wp_iter->second.add_watchpoint(start, end, WA_READ | WA_WRITE);  // set    11   (r/w)
       if (emulate_hardware) {
-#ifdef PAGE_TABLE
+#ifdef PAGE_TABLE_SINGLE
           page_table_wp[thread_id].add_watchpoint(start, end, WA_READ | WA_WRITE);           // set page_table
+#else
+#ifdef PAGE_TABLE_MULTI
+          page_table_wp[thread_id].add_watchpoint(start, end, WA_READ | WA_WRITE);           // set page_table
+#endif
 #endif
       }
       if (!ignore_statistics) {                                               // if not ignored
@@ -326,9 +376,14 @@ int WatchPoint<ADDRESS, FLAGS>::set_read(ADDRESS start, ADDRESS end, int32_t thr
       oracle_wp_iter->second.add_watchpoint(start, end, WA_READ);             // set r
       oracle_wp_iter->second.rm_watchpoint(start, end, WA_WRITE);             // reset w
       if (emulate_hardware) {
-#ifdef PAGE_TABLE
+#ifdef PAGE_TABLE_SINGLE
           page_table_wp[thread_id].add_watchpoint(start, end, WA_READ);                      // set page_table
           page_table_wp[thread_id].rm_watchpoint(start, end);              // rm WA_WRITE from page_table by checking the conjunction
+#else
+#ifdef PAGE_TABLE_MULTI
+          page_table_wp[thread_id].add_watchpoint(start, end, WA_READ);                      // set page_table
+          page_table_wp[thread_id].rm_watchpoint(start, end);              // rm WA_WRITE from page_table by checking the conjunction
+#endif
 #endif
       }
       if (!ignore_statistics) {
@@ -348,9 +403,14 @@ int WatchPoint<ADDRESS, FLAGS>::set_write(ADDRESS start, ADDRESS end, int32_t th
       oracle_wp_iter->second.add_watchpoint(start, end, WA_WRITE);            // set w
       oracle_wp_iter->second.rm_watchpoint(start, end, WA_READ);              // reset r
       if (emulate_hardware) {
-#ifdef PAGE_TABLE
+#ifdef PAGE_TABLE_SINGLE
           page_table_wp[thread_id].add_watchpoint(start, end, WA_WRITE);                     // set page_table
           page_table_wp[thread_id].rm_watchpoint(start, end);              // rm WA_READ from page_table by checking the conjunction
+#else
+#ifdef PAGE_TABLE_MULTI
+          page_table_wp[thread_id].add_watchpoint(start, end, WA_WRITE);                     // set page_table
+          page_table_wp[thread_id].rm_watchpoint(start, end);              // rm WA_READ from page_table by checking the conjunction
+#endif
 #endif
       }
       if (!ignore_statistics) {
@@ -369,8 +429,12 @@ int WatchPoint<ADDRESS, FLAGS>::rm_watch(ADDRESS start, ADDRESS end, int32_t thr
    if (oracle_wp_iter != oracle_wp.end()) {
       oracle_wp_iter->second.rm_watchpoint(start, end, WA_READ | WA_WRITE);   // reset r/w
       if (emulate_hardware) {
-#ifdef PAGE_TABLE
+#ifdef PAGE_TABLE_SINGLE
           page_table_wp[thread_id].rm_watchpoint(start, end);              // rm WA_READ from page_table by checking the conjunction
+#else
+#ifdef PAGE_TABLE_MULTI
+          page_table_wp[thread_id].rm_watchpoint(start, end);              // rm WA_READ from page_table by checking the conjunction
+#endif
 #endif
       }
       if (!ignore_statistics) {
@@ -389,8 +453,12 @@ int WatchPoint<ADDRESS, FLAGS>::update_set_read(ADDRESS start, ADDRESS end, int3
    if (oracle_wp_iter != oracle_wp.end()) {
       oracle_wp_iter->second.add_watchpoint(start, end, WA_READ);             // set r
       if (emulate_hardware) {
-#ifdef PAGE_TABLE
+#ifdef PAGE_TABLE_SINGLE
           page_table_wp[thread_id].add_watchpoint(start, end, WA_READ);                     // set page_table
+#else
+#ifdef PAGE_TABLE_MULTI
+          page_table_wp[thread_id].add_watchpoint(start, end, WA_READ);                     // set page_table
+#endif
 #endif
       }
       if (!ignore_statistics) {
@@ -409,8 +477,12 @@ int WatchPoint<ADDRESS, FLAGS>::update_set_write(ADDRESS start, ADDRESS end, int
    if (oracle_wp_iter != oracle_wp.end()) {
       oracle_wp_iter->second.add_watchpoint(start, end, WA_WRITE);            // set w
       if (emulate_hardware) {
-#ifdef PAGE_TABLE
+#ifdef PAGE_TABLE_SINGLE
           page_table_wp[thread_id].add_watchpoint(start, end, WA_WRITE);                     // set page_table
+#else
+#ifdef PAGE_TABLE_MULTI
+          page_table_wp[thread_id].add_watchpoint(start, end, WA_WRITE);                     // set page_table
+#endif
 #endif
       }
       if (!ignore_statistics) {
@@ -429,8 +501,12 @@ int WatchPoint<ADDRESS, FLAGS>::rm_read(ADDRESS start, ADDRESS end, int32_t thre
    if (oracle_wp_iter != oracle_wp.end()) {
       oracle_wp_iter->second.rm_watchpoint(start, end, WA_READ);              // reset r
       if (emulate_hardware) {
-#ifdef PAGE_TABLE
+#ifdef PAGE_TABLE_SINGLE
           page_table_wp[thread_id].rm_watchpoint(start, end);              // rm WA_READ from page_table by checking the conjunction
+#else
+#ifdef PAGE_TABLE_MULTI
+          page_table_wp[thread_id].rm_watchpoint(start, end);              // rm WA_READ from page_table by checking the conjunction
+#endif
 #endif
       }
       if (!ignore_statistics) {
@@ -449,8 +525,12 @@ int WatchPoint<ADDRESS, FLAGS>::rm_write(ADDRESS start, ADDRESS end, int32_t thr
    if (oracle_wp_iter != oracle_wp.end()) {
       oracle_wp_iter->second.rm_watchpoint(start, end, WA_WRITE);             // reset w
       if (emulate_hardware) {
-#ifdef PAGE_TABLE
+#ifdef PAGE_TABLE_SINGLE
           page_table_wp[thread_id].rm_watchpoint(start, end);              // rm WA_READ from page_table by checking the conjunction
+#else
+#ifdef PAGE_TABLE_MULTI
+          page_table_wp[thread_id].rm_watchpoint(start, end);              // rm WA_READ from page_table by checking the conjunction
+#endif
 #endif
       }
       if (!ignore_statistics) {
@@ -570,8 +650,11 @@ statistics_t WatchPoint<ADDRESS, FLAGS>::clear_statistics() {
    empty.oracle_faults=0;
    empty.sets=0;
    empty.updates=0;
-   #ifdef PAGE_TABLE
+   #ifdef PAGE_TABLE_SINGLE
    empty.page_table_faults=0;
+   #endif
+   #ifdef PAGE_TABLE_MULTI
+   empty.multi_page_table_faults=0;
    #endif
    return empty;
 }
@@ -626,12 +709,15 @@ void WatchPoint<ADDRESS, FLAGS>::print_statistics(ostream &output, bool active) 
  */
 template<class ADDRESS, class FLAGS>
 void WatchPoint<ADDRESS, FLAGS>::print_statistics(const statistics_t& to_print, ostream &output) {
-   output << setw(35) << "Checks for watchpoint faults: " << to_print.checks << endl;
-   output << setw(35) << "Watchpoint faults taken: " << to_print.oracle_faults << endl;
-   output << setw(35) << "Watchpoint \'set\'s: " << to_print.sets << endl;
-   output << setw(35) << "Watchpoint \'update\'s: " << to_print.updates << endl;
-   #ifdef PAGE_TABLE
-   output << setw(35) << "Page table faults taken: " << to_print.page_table_faults <<endl;
+   output << setw(40) << "Checks for watchpoint faults: " << to_print.checks << endl;
+   output << setw(40) << "Watchpoint faults taken: " << to_print.oracle_faults << endl;
+   output << setw(40) << "Watchpoint \'set\'s: " << to_print.sets << endl;
+   output << setw(40) << "Watchpoint \'update\'s: " << to_print.updates << endl;
+   #ifdef PAGE_TABLE_SINGLE
+   output << setw(40) << "Page table (single) faults taken: " << to_print.page_table_faults <<endl;
+   #endif
+   #ifdef PAGE_TABLE_MULTI
+   output << setw(40) << "Page table (multi) faults taken: " << to_print.multi_page_table_faults <<endl;
    #endif
    output <<endl;
    return;

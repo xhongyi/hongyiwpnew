@@ -8,13 +8,19 @@
 #ifndef WATCHPOINT_H_
 #define WATCHPOINT_H_
 
-#define PAGE_TABLE
+#define PAGE_TABLE_SINGLE
+#define PAGE_TABLE_MULTI
 
 #include <stdint.h>     //contains int32_t
 #include <map>
 #include "oracle_wp.h"
-#ifdef PAGE_TABLE
+
+#ifdef PAGE_TABLE_SINGLE
 #include "page_table_wp.h"
+#else
+#ifdef PAGE_TABLE_MULTI
+#include "page_table_wp.h"
+#endif
 #endif
 
 #define IGNORE_STATS true
@@ -31,8 +37,11 @@ struct statistics_t {
 	long long oracle_faults;        //  total number of times that the Oracle get faults
 	long long sets;                 //	total number of times the API sets a watchpoint
 	long long updates;              //	total number of times the API updates a watchpoint
-	#ifdef PAGE_TABLE
+	#ifdef PAGE_TABLE_SINGLE
 	long long page_table_faults;    //  total number of times that the page_table get faults
+	#endif
+	#ifdef PAGE_TABLE_MULTI
+	long long multi_page_table_faults;    //  total number of times that the page_table get faults
 	#endif
 };
 
@@ -108,19 +117,27 @@ private:
 	map<int32_t, Oracle<ADDRESS, FLAGS> >                    oracle_wp;           //	for storing byte accurate emulation class
 	map<int32_t, statistics_t>                               statistics;          //	for storing all active threads and statistics
 	map<int32_t, statistics_t>                               statistics_inactive; //	for storing all inactive threads and statistics (no overlaps)
-	#ifdef PAGE_TABLE
+	#ifdef PAGE_TABLE_SINGLE
+	map<int32_t, WatchPoint_PT<ADDRESS, FLAGS> >             page_table_wp;
+	#else
+	#ifdef PAGE_TABLE_SINGLE
 	map<int32_t, WatchPoint_PT<ADDRESS, FLAGS> >             page_table_wp;
 	#endif
+	#endif
 
-    bool                                                     emulate_hardware;
+   bool                                                     emulate_hardware;
 	
 	//Useful iterators
 	typename map<int32_t, Oracle<ADDRESS, FLAGS> >::iterator oracle_wp_iter;
 	typename map<int32_t, Oracle<ADDRESS, FLAGS> >::iterator oracle_wp_iter_2;
 	map<int32_t, statistics_t>::iterator                     statistics_iter;
 	map<int32_t, statistics_t>::iterator                     statistics_inactive_iter;
-	#ifdef PAGE_TABLE
+	#ifdef PAGE_TABLE_SINGLE
 	typename map<int32_t, WatchPoint_PT<ADDRESS, FLAGS> >::iterator page_table_wp_iter;
+	#else
+	#ifdef PAGE_TABLE_SINGLE
+	typename map<int32_t, WatchPoint_PT<ADDRESS, FLAGS> >::iterator page_table_wp_iter;
+	#endif
 	#endif
 };
 
