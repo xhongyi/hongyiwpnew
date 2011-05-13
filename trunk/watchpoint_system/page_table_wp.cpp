@@ -57,6 +57,35 @@ bool WatchPoint_PT<ADDRESS, FLAGS>::watch_fault(ADDRESS start_addr, ADDRESS end_
 
 //	add_watchpoint
 template<class ADDRESS, class FLAGS>
+void WatchPoint_PT<ADDRESS, FLAGS>::add_watchpoint(ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags) {
+	if (target_flags) {                                               //	if the flag is not none, continue
+		//	calculating the starting V.P.N. and the ending V.P.N.
+		ADDRESS page_number_start = (start_addr>>PAGE_OFFSET_LENGTH);
+		ADDRESS page_number_end = (end_addr>>PAGE_OFFSET_LENGTH);
+		for (ADDRESS i=page_number_start;i<=page_number_end;i++) {     //	for each page, 
+			bit_map[i>>BIT_MAP_OFFSET_LENGTH] |= (1<<(i&0x7));          //	set the page watched.
+		}
+	}
+}
+
+//	rm_watchpoint
+template<class ADDRESS, class FLAGS>
+void WatchPoint_PT<ADDRESS, FLAGS>::rm_watchpoint(ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags) {
+	if (target_flags) {                                               //	if the flag is not none, continue
+	   //	calculating the starting V.P.N. and the ending V.P.N.
+	   ADDRESS page_number_start = (start_addr>>PAGE_OFFSET_LENGTH);
+	   ADDRESS page_number_end = (end_addr>>PAGE_OFFSET_LENGTH);
+	   for (ADDRESS i=page_number_start;i<=page_number_end;i++) {                          //	for each page, 
+		   if (!wp->watch_fault(i<<PAGE_OFFSET_LENGTH, ((i+1)<<PAGE_OFFSET_LENGTH)-1 ) ) {  //	if it should not throw a fault
+			   bit_map[i>>BIT_MAP_OFFSET_LENGTH] &= ~(1<<(i&0x7));                           //	set the page unwatched
+		   }
+	   }
+	}
+}
+
+/*
+//	add_watchpoint
+template<class ADDRESS, class FLAGS>
 unsigned int WatchPoint_PT<ADDRESS, FLAGS>::add_watchpoint(ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags) {
 	unsigned int num_changes = 0;                                     //	initializing the count
 	if (target_flags) {                                               //	if the flag is not none, continue
@@ -88,5 +117,5 @@ unsigned int WatchPoint_PT<ADDRESS, FLAGS>::rm_watchpoint(ADDRESS start_addr, AD
 	}
 	return num_changes;                                                                 //	return the count.
 }
-
+*/
 #endif

@@ -48,8 +48,12 @@ public:
 	 *
 	 * add_watchpoint needs target_flags just to check if it is none flag or not
 	 */
+	void     add_watchpoint (ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags);
+	void     rm_watchpoint  (ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags);
+	/*
 	unsigned int   add_watchpoint (ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags);
 	unsigned int   rm_watchpoint  (ADDRESS start_addr, ADDRESS end_addr);
+	*/
 
 //private:
 	/*

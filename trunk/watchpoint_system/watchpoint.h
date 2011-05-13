@@ -11,16 +11,22 @@
 #define PAGE_TABLE_SINGLE
 #define PAGE_TABLE_MULTI
 
+#ifdef PAGE_TABLE_SINGLE
+#define PAGE_TABLE
+#endif
+
+#ifdef PAGE_TABLE_MULTI
+#define PAGE_TABLE
+#endif
+
 #include <stdint.h>     //contains int32_t
+#include <cstdlib>
+#include <string>
 #include <map>
 #include "oracle_wp.h"
 
-#ifdef PAGE_TABLE_SINGLE
+#ifdef PAGE_TABLE
 #include "page_table_wp.h"
-#else
-#ifdef PAGE_TABLE_MULTI
-#include "page_table_wp.h"
-#endif
 #endif
 
 #define IGNORE_STATS true
@@ -39,9 +45,11 @@ struct statistics_t {
 	long long updates;              //	total number of times the API updates a watchpoint
 	#ifdef PAGE_TABLE_SINGLE
 	long long page_table_faults;    //  total number of times that the page_table get faults
+	long long fault_count;
 	#endif
 	#ifdef PAGE_TABLE_MULTI
 	long long multi_page_table_faults;    //  total number of times that the page_table get faults
+	long long fault_count_multi;
 	#endif
 };
 
@@ -77,12 +85,15 @@ public:
 	void reset(int32_t thread_id);         // resets thread #thread_id if found, whether active or inactive
 	
 	//Checking Watchpoints
-	bool watch_fault     (ADDRESS start, ADDRESS end, int32_t thread_id, bool ignore_statistics=false);   //	check for r/w faults
+	bool general_fault   (ADDRESS start, ADDRESS end, int32_t thread_id, FLAGS target_flags, bool ignore_statistics=false);   //	check for r/w faults
+	bool watch_fault     (ADDRESS start, ADDRESS end, int32_t thread_id, bool ignore_statistics=false);   //	check for r&w faults
 	bool read_fault      (ADDRESS start, ADDRESS end, int32_t thread_id, bool ignore_statistics=false);   //	only check r faults
 	bool write_fault     (ADDRESS start, ADDRESS end, int32_t thread_id, bool ignore_statistics=false);   //	only check w faults
 	void print_watchpoints(ostream &output = cout);
 	
 	//Changing Watchpoints
+	int general_change   (ADDRESS start, ADDRESS end, int32_t thread_id, string target_flags, bool ignore_statistics=false);
+	
 	int set_watch        (ADDRESS start, ADDRESS end, int32_t thread_id, bool ignore_statistics=false);   //set    11 (rw)
 	int set_read         (ADDRESS start, ADDRESS end, int32_t thread_id, bool ignore_statistics=false);   //set    10
 	int set_write        (ADDRESS start, ADDRESS end, int32_t thread_id, bool ignore_statistics=false);   //set    01
@@ -117,12 +128,8 @@ private:
 	map<int32_t, Oracle<ADDRESS, FLAGS> >                    oracle_wp;           //	for storing byte accurate emulation class
 	map<int32_t, statistics_t>                               statistics;          //	for storing all active threads and statistics
 	map<int32_t, statistics_t>                               statistics_inactive; //	for storing all inactive threads and statistics (no overlaps)
-	#ifdef PAGE_TABLE_SINGLE
+	#ifdef PAGE_TABLE
 	map<int32_t, WatchPoint_PT<ADDRESS, FLAGS> >             page_table_wp;
-	#else
-	#ifdef PAGE_TABLE_SINGLE
-	map<int32_t, WatchPoint_PT<ADDRESS, FLAGS> >             page_table_wp;
-	#endif
 	#endif
 
    bool                                                     emulate_hardware;
@@ -132,12 +139,15 @@ private:
 	typename map<int32_t, Oracle<ADDRESS, FLAGS> >::iterator oracle_wp_iter_2;
 	map<int32_t, statistics_t>::iterator                     statistics_iter;
 	map<int32_t, statistics_t>::iterator                     statistics_inactive_iter;
-	#ifdef PAGE_TABLE_SINGLE
-	typename map<int32_t, WatchPoint_PT<ADDRESS, FLAGS> >::iterator page_table_wp_iter;
-	#else
-	#ifdef PAGE_TABLE_SINGLE
+	#ifdef PAGE_TABLE
 	typename map<int32_t, WatchPoint_PT<ADDRESS, FLAGS> >::iterator page_table_wp_iter;
 	#endif
+	
+	#ifdef PAGE_TABLE_SINGLE
+	int count_faults(ADDRESS start, ADDRESS end);
+	#endif
+	#ifdef PAGE_TABLE_MULTI
+	int count_faults(ADDRESS start, ADDRESS end, int32_t thread_id);
 	#endif
 };
 
