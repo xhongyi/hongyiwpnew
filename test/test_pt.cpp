@@ -10,8 +10,7 @@ int main(int argc, char *argv[]) {
 	watchpoint_t<unsigned int, unsigned int> input;
 	string input_flags;
 	Oracle<unsigned int, unsigned int> wp_test;
-	WatchPoint_PT<unsigned int, unsigned int> pt_test;
-	pt_test.start_thread(0, &wp_test);
+	WatchPoint_PT<unsigned int, unsigned int> pt_test(wp_test);
 	deque<watchpoint_t<unsigned int, unsigned int> >::iterator test_iter;
 	unsigned int count = 0;
 //	unsigned int test_addr;
