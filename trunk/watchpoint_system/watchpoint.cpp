@@ -182,17 +182,26 @@ void WatchPoint<ADDRESS, FLAGS>::reset(int32_t thread_id) {
  */
 template<class ADDRESS, class FLAGS>
 bool  WatchPoint<ADDRESS, FLAGS>::general_fault(ADDRESS start, ADDRESS end, int32_t thread_id, FLAGS target_flags, bool ignore_statistics) {
+   /*
+    * check for faults
+    */
    oracle_wp_iter = oracle_wp.find(thread_id);
-   if (oracle_wp_iter != oracle_wp.end()) {                                // if thread_id found active
-      bool oracle_fault = oracle_wp_iter->second.general_fault(start, end, target_flags);  // check if Oracle fault
+   if (oracle_wp_iter != oracle_wp.end()) {                                               // if thread_id found active
+      bool oracle_fault = oracle_wp_iter->second.general_fault(start, end, target_flags); // check if Oracle fault
+      /*
+       * initializing variables
+       */
 #ifdef PAGE_TABLE_SINGLE
-      bool page_table_fault = false;
+      bool page_table_fault = false;                                                      // initialize variables here
 #endif
 #ifdef PAGE_TABLE_MULTI
-      bool multi_page_table_fault = page_table_wp[thread_id].watch_fault(start, end);
+      bool multi_page_table_fault = page_table_wp[thread_id].watch_fault(start, end);     // check if fault in thread_id page_table
 #endif
+      /*
+       * emulating hardware
+       */
       if (emulate_hardware) {
-#ifdef PAGE_TABLE_SINGLE
+#ifdef PAGE_TABLE_SINGLE                                                                  // check if fault if only one single_page_table
           for (page_table_wp_iter=page_table_wp.begin();page_table_wp_iter!=page_table_wp.end();page_table_wp_iter++) {
               if (page_table_wp_iter->second.watch_fault(start, end) ) {
                   page_table_fault = true;
@@ -201,25 +210,28 @@ bool  WatchPoint<ADDRESS, FLAGS>::general_fault(ADDRESS start, ADDRESS end, int3
           }
 #endif
       }
-      if (!ignore_statistics) {                                            // if not ignore statistics
+      /*
+       * update statistics
+       */
+      if (!ignore_statistics) {                                         // if not ignore statistics
           statistics_iter = statistics.find(thread_id);
-          statistics_iter->second.checks++;                                 // checks++
-          if (oracle_fault)                                                 // and if it is a Oracle fault
-              statistics_iter->second.oracle_faults++;                       // oracle_fault++
+          statistics_iter->second.checks++;                             // checks++
+          if (oracle_fault)                                             // and if it is a Oracle fault
+              statistics_iter->second.oracle_faults++;                  // oracle_fault++
           if (emulate_hardware) {
 #ifdef PAGE_TABLE_SINGLE
-             if (page_table_fault)                                             // if it is a page_table fault
-                 statistics_iter->second.page_table_faults++;                   // page_table_fault++
+             if (page_table_fault)                                      // if it is a page_table fault
+                 statistics_iter->second.page_table_faults++;           // page_table_fault++
 #endif
 #ifdef PAGE_TABLE_MULTI
-             if (multi_page_table_fault)                                             // if it is a page_table fault
-                 statistics_iter->second.multi_page_table_faults++;                   // page_table_fault++
+             if (multi_page_table_fault)                                // if it is a page_table fault
+                 statistics_iter->second.multi_page_table_faults++;     // page_table_fault++
 #endif
          }
       }
-      return oracle_fault;                                                 // return Oracle fault
+      return oracle_fault;                                              // return Oracle fault
    }
-   return false;                                                           // return false if not found or inactive
+   return false;                                                        // return false if not found or inactive
 }
 
 /*
@@ -261,6 +273,9 @@ void WatchPoint<ADDRESS, FLAGS>::print_watchpoints(ostream &output) {
 
 template<class ADDRESS, class FLAGS>
 int WatchPoint<ADDRESS, FLAGS>::general_change(ADDRESS start, ADDRESS end, int32_t thread_id, string target_flags, bool ignore_statistics) {
+   /*
+    * analyzing target_flags
+    */
    FLAGS add_flag = 0, rm_flag = 0;
    if (target_flags[0] == '1')
       add_flag |= WA_READ;
@@ -270,14 +285,19 @@ int WatchPoint<ADDRESS, FLAGS>::general_change(ADDRESS start, ADDRESS end, int32
       rm_flag |= WA_READ;
    if (target_flags[1] == '0')
       rm_flag |= WA_WRITE;
-   
+   /*
+    * handle watchpoints
+    */
    int fault_count = 0, fault_count_multi = 0;
    oracle_wp_iter = oracle_wp.find(thread_id);
    if (oracle_wp_iter != oracle_wp.end()) {                                   // if thread_id found
       if (add_flag)
-         oracle_wp_iter->second.add_watchpoint(start, end, add_flag);
+         oracle_wp_iter->second.add_watchpoint(start, end, add_flag);         // add watchpoints
       if (rm_flag)
-         oracle_wp_iter->second.rm_watchpoint(start, end, rm_flag);
+         oracle_wp_iter->second.rm_watchpoint(start, end, rm_flag);           // rm watchpoints
+      /*
+       * emulating hardware
+       */
       if (emulate_hardware) {
 #ifdef PAGE_TABLE_SINGLE
          fault_count = count_faults(start, end);
@@ -287,8 +307,8 @@ int WatchPoint<ADDRESS, FLAGS>::general_change(ADDRESS start, ADDRESS end, int32
 #endif
 
 #ifdef PAGE_TABLE
-         page_table_wp[thread_id].add_watchpoint(start, end, add_flag);         // set page_table
-         page_table_wp[thread_id].rm_watchpoint(start, end, rm_flag);           // set page_table
+         page_table_wp[thread_id].add_watchpoint(start, end, add_flag);      // set page_table
+         page_table_wp[thread_id].rm_watchpoint(start, end, rm_flag);        // set page_table
 #endif
 
 #ifdef PAGE_TABLE_SINGLE
@@ -298,12 +318,15 @@ int WatchPoint<ADDRESS, FLAGS>::general_change(ADDRESS start, ADDRESS end, int32
          fault_count_multi -= count_faults(start, end, thread_id);
 #endif
       }
+      /*
+       * update statistics
+       */
       if (!ignore_statistics) {                                               // if not ignored
          statistics_iter = statistics.find(thread_id);
          if (target_flags[0] != 'x' && target_flags[1] != 'x')
-            statistics_iter->second.sets++;                                      // sets++
+            statistics_iter->second.sets++;                                   // sets++
          else
-            statistics_iter->second.updates++;                                      // updates++
+            statistics_iter->second.updates++;                                // updates++
 #ifdef PAGE_TABLE_SINGLE
          statistics_iter->second.fault_count += abs(fault_count);
 #endif
@@ -378,7 +401,7 @@ bool WatchPoint<ADDRESS, FLAGS>::general_compare(int32_t thread_id1, int32_t thr
     * if both are found in oracle_wp
     */
    if (oracle_wp_iter != oracle_wp.end() && oracle_wp_iter_2 != oracle_wp.end() ) {
-      watchpoint_t<ADDRESS, FLAGS> temp = oracle_wp_iter->second.start_traverse();   // start traversing through thread #1
+      watchpoint_t<ADDRESS, FLAGS> temp = oracle_wp_iter->second.start_traverse();  // start traversing through thread #1
       do {
          if (temp.flags & flag_thread1) {                                           // check only for required flags in thread #1
             if (oracle_wp_iter_2->second.general_fault(temp.start_addr, 
@@ -547,6 +570,11 @@ void WatchPoint<ADDRESS, FLAGS>::print_statistics(const statistics_t& to_print, 
    return;
 }
 
+#ifdef PAGE_TABLE_SINGLE
+/*
+ * if we have only a single page_table for all threads, 
+ * we have to check for faults for all threads. 
+ */
 template<class ADDRESS, class FLAGS>
 int WatchPoint<ADDRESS, FLAGS>::count_faults(ADDRESS start, ADDRESS end) {
    ADDRESS page_number_start = ((start>>PAGE_OFFSET_LENGTH)<<PAGE_OFFSET_LENGTH);
@@ -561,7 +589,13 @@ int WatchPoint<ADDRESS, FLAGS>::count_faults(ADDRESS start, ADDRESS end) {
    }
    return fault_count;
 }
+#endif
 
+#ifdef PAGE_TABLE_MULTI
+/*
+ * if we have different page_table each threads, 
+ * we only check for faults in a certian thread. 
+ */
 template<class ADDRESS, class FLAGS>
 int WatchPoint<ADDRESS, FLAGS>::count_faults(ADDRESS start, ADDRESS end, int32_t thread_id) {
    ADDRESS page_number_start = ((start>>PAGE_OFFSET_LENGTH)<<PAGE_OFFSET_LENGTH);
@@ -574,5 +608,6 @@ int WatchPoint<ADDRESS, FLAGS>::count_faults(ADDRESS start, ADDRESS end, int32_t
    }
    return fault_count;
 }
+#endif
 
 #endif /* WATCHPOINT_CPP_ */
