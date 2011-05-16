@@ -579,7 +579,7 @@ template<class ADDRESS, class FLAGS>
 int WatchPoint<ADDRESS, FLAGS>::count_faults(ADDRESS start, ADDRESS end) {
    ADDRESS page_number_start = ((start>>PAGE_OFFSET_LENGTH)<<PAGE_OFFSET_LENGTH);
    int fault_count=0;
-   for (ADDRESS i=page_number_start;i<=end;i+=PAGE_OFFSET_LENGTH) {
+   for (ADDRESS i=page_number_start;i<=end;i+=(1<<PAGE_OFFSET_LENGTH)) {
       for (page_table_wp_iter=page_table_wp.begin();page_table_wp_iter!=page_table_wp.end();page_table_wp_iter++) {
          if (page_table_wp_iter->second.watch_fault(i, i)) {
             fault_count++;
@@ -601,7 +601,7 @@ int WatchPoint<ADDRESS, FLAGS>::count_faults(ADDRESS start, ADDRESS end, int32_t
    ADDRESS page_number_start = ((start>>PAGE_OFFSET_LENGTH)<<PAGE_OFFSET_LENGTH);
    int fault_count=0;
    page_table_wp_iter = page_table_wp.find(thread_id);
-   for (ADDRESS i=page_number_start;i<=end;i+=PAGE_OFFSET_LENGTH) {
+   for (ADDRESS i=page_number_start;i<=end;i+=(1<<PAGE_OFFSET_LENGTH)) {
       if (page_table_wp_iter->second.watch_fault(i, i)) {
          fault_count++;
       }
