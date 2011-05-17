@@ -10,6 +10,7 @@
 
 #define PAGE_TABLE_SINGLE
 #define PAGE_TABLE_MULTI
+#define PAGE_TABLE2_SINGLE
 
 #ifdef PAGE_TABLE_SINGLE
 #define PAGE_TABLE      // common part of page_table_single and page_table_multi
@@ -19,6 +20,10 @@
 #define PAGE_TABLE
 #endif
 
+#ifdef PAGE_TABLE2_SINGLE
+#define PAGE_TABLE      // common part of page_table_single and page_table_multi
+#endif
+
 #include <stdint.h>     // contains int32_t
 #include <cstdlib>
 #include <string>
@@ -26,7 +31,11 @@
 #include "oracle_wp.h"
 
 #ifdef PAGE_TABLE
-#include "page_table_wp.h"
+#include "page_table1_single.h"
+#endif
+
+#ifdef PAGE_TABLE2_SINGLE
+#include "page_table2_single.h"
 #endif
 
 #define IGNORE_STATS true
@@ -50,6 +59,14 @@ struct statistics_t {
 	#ifdef PAGE_TABLE_MULTI
 	long long multi_page_table_faults;  // total number of times that the page_table get faults
 	long long fault_count_multi;
+	#endif
+	#ifdef PAGE_TABLE2_SINGLE
+	long long superpage_miss;           // total number of times that we need to get to the bottom level
+	long long superpage_faults;         // total number of times that the superpage get faults
+	long long superpage_hits;           // total number of times that we get superpage hits
+	long long highest_faults;           // total number of times that we get faults immediately
+	long long highest_hits;             // total number of times that all memory are watched/unwatched
+	//long long fault_count;              // total number of page_table_watch_bit changes
 	#endif
 };
 
@@ -130,7 +147,10 @@ private:
 	map<int32_t, statistics_t>                               statistics;          //	for storing all active threads and statistics
 	map<int32_t, statistics_t>                               statistics_inactive; //	for storing all inactive threads and statistics (no overlaps)
 	#ifdef PAGE_TABLE
-	map<int32_t, WatchPoint_PT<ADDRESS, FLAGS> >             page_table_wp;       // for storing bitmaps of page_table watch_bits of each threads
+	map<int32_t, PageTable1_single<ADDRESS, FLAGS> >         page_table_wp;       // for storing bitmaps of page_table watch_bits of each threads
+	#endif                                                                        //    to fake a page_table watchpoint system
+	#ifdef PAGE_TABLE2_SINGLE
+	map<int32_t, PageTable2_single<ADDRESS, FLAGS> >         page_table2_wp;       // for storing bitmaps of page_table watch_bits of each threads
 	#endif                                                                        //    to fake a page_table watchpoint system
 
    bool                                                     emulate_hardware;
@@ -141,7 +161,10 @@ private:
 	map<int32_t, statistics_t>::iterator                     statistics_iter;
 	map<int32_t, statistics_t>::iterator                     statistics_inactive_iter;
 	#ifdef PAGE_TABLE
-	typename map<int32_t, WatchPoint_PT<ADDRESS, FLAGS> >::iterator page_table_wp_iter;
+	typename map<int32_t, PageTable1_single<ADDRESS, FLAGS> >::iterator page_table_wp_iter;
+	#endif
+	#ifdef PAGE_TABLE2_SINGLE
+	typename map<int32_t, PageTable2_single<ADDRESS, FLAGS> >::iterator page_table2_wp_iter;
 	#endif
 	
 	#ifdef PAGE_TABLE_SINGLE

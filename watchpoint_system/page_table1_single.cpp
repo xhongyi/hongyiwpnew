@@ -1,7 +1,7 @@
-#ifndef PAGE_TABLE_WP_CPP_
-#define PAGE_TABLE_WP_CPP_
+#ifndef PAGE_TABLE1_SINGLE_CPP_
+#define PAGE_TABLE1_SINGLE_CPP_
 
-#include "page_table_wp.h"
+#include "page_table1_single.h"
 #include <ostream>
 #include <fstream>
 
@@ -14,26 +14,27 @@ using namespace std;
  *	And also initialize all pages to unwatched.
  */
 template<class ADDRESS, class FLAGS>
-WatchPoint_PT<ADDRESS, FLAGS>::WatchPoint_PT(Oracle<ADDRESS, FLAGS> &wp_ref) {
+PageTable1_single<ADDRESS, FLAGS>::PageTable1_single(Oracle<ADDRESS, FLAGS> &wp_ref) {
 	wp = &wp_ref;
 	for (int i=0;i<BIT_MAP_NUMBER;i++)
 		bit_map[i] = 0;
 }
 
 template<class ADDRESS, class FLAGS>
-WatchPoint_PT<ADDRESS, FLAGS>::WatchPoint_PT() {
+PageTable1_single<ADDRESS, FLAGS>::PageTable1_single() {
+   wp = NULL;
 	for (int i=0;i<BIT_MAP_NUMBER;i++)
 		bit_map[i] = 0;
 }
 
 //	Desctructor
 template<class ADDRESS, class FLAGS>
-WatchPoint_PT<ADDRESS, FLAGS>::~WatchPoint_PT() {
+PageTable1_single<ADDRESS, FLAGS>::~PageTable1_single() {
 }
 
 //	print only pages being watched, used for debugging
 template<class ADDRESS, class FLAGS>
-void WatchPoint_PT<ADDRESS, FLAGS>::watch_print(ostream &output) {
+void PageTable1_single<ADDRESS, FLAGS>::watch_print(ostream &output) {
 	output <<"Start printing watchpoints..."<<endl;
 	for (ADDRESS i=0;i<PAGE_NUMBER;i++) {
 		if (bit_map[i>>3] & (1<<(i&0x7)) )
@@ -44,7 +45,7 @@ void WatchPoint_PT<ADDRESS, FLAGS>::watch_print(ostream &output) {
 
 //	watch_fault
 template<class ADDRESS, class FLAGS>
-bool WatchPoint_PT<ADDRESS, FLAGS>::watch_fault(ADDRESS start_addr, ADDRESS end_addr) {
+bool PageTable1_single<ADDRESS, FLAGS>::watch_fault(ADDRESS start_addr, ADDRESS end_addr) {
 	//	calculating the starting V.P.N. and the ending V.P.N.
 	ADDRESS page_number_start = (start_addr>>PAGE_OFFSET_LENGTH);
 	ADDRESS page_number_end = (end_addr>>PAGE_OFFSET_LENGTH);
@@ -57,7 +58,7 @@ bool WatchPoint_PT<ADDRESS, FLAGS>::watch_fault(ADDRESS start_addr, ADDRESS end_
 
 //	add_watchpoint
 template<class ADDRESS, class FLAGS>
-void WatchPoint_PT<ADDRESS, FLAGS>::add_watchpoint(ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags) {
+void PageTable1_single<ADDRESS, FLAGS>::add_watchpoint(ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags) {
 	if (target_flags) {                                               //	if the flag is not none, continue
 		//	calculating the starting V.P.N. and the ending V.P.N.
 		ADDRESS page_number_start = (start_addr>>PAGE_OFFSET_LENGTH);
@@ -70,7 +71,7 @@ void WatchPoint_PT<ADDRESS, FLAGS>::add_watchpoint(ADDRESS start_addr, ADDRESS e
 
 //	rm_watchpoint
 template<class ADDRESS, class FLAGS>
-void WatchPoint_PT<ADDRESS, FLAGS>::rm_watchpoint(ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags) {
+void PageTable1_single<ADDRESS, FLAGS>::rm_watchpoint(ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags) {
 	if (target_flags) {                                               //	if the flag is not none, continue
 	   //	calculating the starting V.P.N. and the ending V.P.N.
 	   ADDRESS page_number_start = (start_addr>>PAGE_OFFSET_LENGTH);
@@ -86,7 +87,7 @@ void WatchPoint_PT<ADDRESS, FLAGS>::rm_watchpoint(ADDRESS start_addr, ADDRESS en
 /*
 //	add_watchpoint
 template<class ADDRESS, class FLAGS>
-unsigned int WatchPoint_PT<ADDRESS, FLAGS>::add_watchpoint(ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags) {
+unsigned int PageTable1_single<ADDRESS, FLAGS>::add_watchpoint(ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags) {
 	unsigned int num_changes = 0;                                     //	initializing the count
 	if (target_flags) {                                               //	if the flag is not none, continue
 		//	calculating the starting V.P.N. and the ending V.P.N.
@@ -103,7 +104,7 @@ unsigned int WatchPoint_PT<ADDRESS, FLAGS>::add_watchpoint(ADDRESS start_addr, A
 
 //	rm_watchpoint
 template<class ADDRESS, class FLAGS>
-unsigned int WatchPoint_PT<ADDRESS, FLAGS>::rm_watchpoint(ADDRESS start_addr, ADDRESS end_addr) {
+unsigned int PageTable1_single<ADDRESS, FLAGS>::rm_watchpoint(ADDRESS start_addr, ADDRESS end_addr) {
 	unsigned int num_changes = 0;                                                       //	initializing the count
 	//	calculating the starting V.P.N. and the ending V.P.N.
 	ADDRESS page_number_start = (start_addr>>PAGE_OFFSET_LENGTH);
