@@ -144,22 +144,22 @@ void Oracle<ADDRESS, FLAGS>::wp_operation(ADDRESS start_addr, ADDRESS end_addr,
 			 * Then we check for the end.
 			 * Also merge or split as we did for front.
 			 */
-			aft_iter = wp_iter + 1;
 			if (wp_iter->end_addr == end_addr) {
 				/*
 				 * If end_addr == -1 then won't merge
 				 */
 				if (end_addr != (ADDRESS)-1) {
+					aft_iter = wp_iter + 1;
 					/*
 					 * Merge
 					 */
-					if (aft_iter->flags == flag_op(wp_iter->flags, target_flags) ) {
+					if (aft_iter->flags == wp_iter->flags ) {
 						wp_iter->end_addr = aft_iter->end_addr;
-						wp.erase(aft_iter); //No need to restore wp_iter as we gonna return.
+						wp_iter = wp.erase(aft_iter);
 					}
 				}
 				// Whether merge or not, change the flags.
-				wp_iter->flags = flag_op (wp_iter->flags, target_flags);
+				wp_iter->flags = flag_op(wp_iter->flags, target_flags);
 			}
 			/*
 			 * Split
@@ -258,9 +258,9 @@ void Oracle<ADDRESS, FLAGS>::wp_operation(ADDRESS start_addr, ADDRESS end_addr,
 			wp_iter->flags = flag_op(wp_iter->flags, target_flags);
 			if (wp_iter->flags == pre_iter->flags) {
 				pre_iter->end_addr = wp_iter->end_addr;
-				wp.erase(wp_iter);
-				wp_iter = pre_iter; //restore wp_iter
-				aft_iter = wp_iter + 1; //restore aft_iter
+				aft_iter = wp.erase(wp_iter); // restores aft_iter
+				wp_iter = aft_iter - 1; //restore wp_iter
+				// pre_iter is now dead.
 			}
 			/*
 			 * If end_addr = -1 then we won't merge.
