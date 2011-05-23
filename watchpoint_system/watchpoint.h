@@ -54,11 +54,11 @@ struct statistics_t {
 	long long updates;                  // total number of times the API updates a watchpoint
 	#ifdef PAGE_TABLE_SINGLE
 	long long page_table_faults;        // total number of times that the page_table get faults
-	long long fault_count;              // total number of page_table_watch_bit changes
+	long long change_count;             // total number of page_table_watch_bit changes
 	#endif
 	#ifdef PAGE_TABLE_MULTI
 	long long multi_page_table_faults;  // total number of times that the page_table get faults
-	long long fault_count_multi;
+	long long change_count_multi;
 	#endif
 	#ifdef PAGE_TABLE2_SINGLE
 	long long superpage_miss;           // total number of times that we need to get to the bottom level
@@ -66,7 +66,7 @@ struct statistics_t {
 	long long superpage_hits;           // total number of times that we get superpage hits
 	long long highest_faults;           // total number of times that we get faults immediately
 	long long highest_hits;             // total number of times that all memory are watched/unwatched
-	//long long fault_count;              // total number of page_table_watch_bit changes
+	long long change_count2;            // total number of page_table_watch_bit changes
 	#endif
 };
 

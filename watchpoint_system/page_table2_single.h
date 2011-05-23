@@ -30,8 +30,8 @@ public:
    
    int   watch_fault    (ADDRESS start_addr, ADDRESS end_addr);
    
-   void  add_watchpoint (ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags);
-	void  rm_watchpoint  (ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags);
+   int   add_watchpoint (ADDRESS start_addr, ADDRESS end_addr);
+	int   rm_watchpoint  (ADDRESS start_addr, ADDRESS end_addr);
 	
 	bool  check_unity    (ADDRESS superpage_number, bool watched);
 private:
