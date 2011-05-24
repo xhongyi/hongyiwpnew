@@ -21,6 +21,7 @@ inline statistics_t& operator +=(statistics_t &a, const statistics_t &b) { // no
 	a.change_count_multi += b.change_count_multi;
 	#endif
 	#ifdef PAGE_TABLE2_SINGLE
+   a.superpage_miss += b.superpage_miss_faults;
    a.superpage_miss += b.superpage_miss;
    a.superpage_faults += b.superpage_faults;
    a.superpage_hits += b.superpage_hits;
@@ -43,19 +44,20 @@ inline statistics_t operator +(const statistics_t &a, const statistics_t &b) {
    result.updates = a.updates + b.updates;
 	#ifdef PAGE_TABLE_SINGLE
 	result.page_table_faults = a.page_table_faults + b.page_table_faults;
-	result.change_count = a.page_table_faults + b.change_count;
+	result.change_count = a.change_count + b.change_count;
 	#endif
 	#ifdef PAGE_TABLE_MULTI
 	result.multi_page_table_faults = a.multi_page_table_faults + b.multi_page_table_faults;
-	result.change_count_multi = a.page_table_faults + b.change_count_multi;
+	result.change_count_multi = a.change_count_multi + b.change_count_multi;
 	#endif
 	#ifdef PAGE_TABLE2_SINGLE
+	result.superpage_miss_faults = a.superpage_miss_faults + b.superpage_miss_faults;
 	result.superpage_miss = a.superpage_miss + b.superpage_miss;
 	result.superpage_faults = a.superpage_faults + b.superpage_faults;
 	result.superpage_hits = a.superpage_hits + b.superpage_hits;
 	result.highest_faults = a.highest_faults + b.highest_faults;
 	result.highest_hits = a.highest_hits + b.highest_hits;
-	result.change_count2 = a.page_table_faults + b.change_count2;
+	result.change_count2 = a.change_count2 + b.change_count2;
 	#endif
    return result;
 }
@@ -116,7 +118,7 @@ int WatchPoint<ADDRESS, FLAGS>::start_thread(int32_t thread_id) {
           page_table_wp[thread_id] = empty_page_table;
 #endif
 #ifdef PAGE_TABLE2_SINGLE
-          PageTable2_single<ADDRESS, FLAGS> empty_page_table2(page_table_wp[thread_id]);
+          PageTable2_single<ADDRESS, FLAGS> empty_page_table2(page_table_wp.find(thread_id)->second);
           page_table2_wp[thread_id] = empty_page_table2;
 #endif
       }
@@ -156,7 +158,7 @@ template<class ADDRESS, class FLAGS>
 void WatchPoint<ADDRESS, FLAGS>::print_threads(ostream &output) {
    output <<"Printing active threads: "<<endl;
    for (statistics_iter = statistics.begin();statistics_iter != statistics.end();statistics_iter++) { // for all active thread_id's
-      output <<"Thread #"<<statistics_iter->first<<" is active."<<endl;                                 // print to std::output
+      output <<"Thread #"<<statistics_iter->first<<" is active."<<endl;                               // print to std::output
    }
    return;
 }
@@ -186,8 +188,10 @@ void WatchPoint<ADDRESS, FLAGS>::reset() {
           page_table_wp_iter++;
 #endif
 #ifdef PAGE_TABLE2_SINGLE
+          page_table_wp_iter--;
           PageTable2_single<ADDRESS, FLAGS> empty_page_table2(page_table_wp_iter->second);
           page_table2_wp_iter->second = empty_page_table2;
+          page_table_wp_iter++;
           page_table2_wp_iter++;
 #endif
       }
@@ -266,8 +270,12 @@ bool  WatchPoint<ADDRESS, FLAGS>::general_fault(ADDRESS start, ADDRESS end, int3
                statistics_iter->second.multi_page_table_faults++;       // page_table_fault++
 #endif
 #ifdef PAGE_TABLE2_SINGLE
-            if (page_table2_fault == MISSED)
+            if (page_table2_fault == PAGETABLE_UNWATCHED)
                statistics_iter->second.superpage_miss++;
+            else if (page_table2_fault == PAGETABLE_FAULT) {
+               statistics_iter->second.superpage_miss++;
+               statistics_iter->second.superpage_miss_faults++;
+            }
             else if (page_table2_fault == SUPERPAGE_UNWATCHED)
                statistics_iter->second.superpage_hits++;
             else if (page_table2_fault == SUPERPAGE_WATCHED) {
@@ -355,18 +363,26 @@ int WatchPoint<ADDRESS, FLAGS>::general_change(ADDRESS start, ADDRESS end, int32
       if (emulate_hardware) {
          if (add_flag) {
 #ifdef PAGE_TABLE
-            change_count += page_table_wp[thread_id].add_watchpoint(start, end);      // set page_table
+            change_count = page_table_wp[thread_id].add_watchpoint(start, end);      // set page_table
 #endif
 #ifdef PAGE_TABLE2_SINGLE
-            change_count2 += page_table2_wp[thread_id].add_watchpoint(start, end);    // set page_table
+            change_count2 = page_table2_wp[thread_id].add_watchpoint(start, end);    // set page_table
 #endif
-         }
-         if (rm_flag) {
+            if (rm_flag) {
 #ifdef PAGE_TABLE
-            change_count += page_table_wp[thread_id].rm_watchpoint(start, end);        // set page_table
+               page_table_wp[thread_id].rm_watchpoint(start, end);                  // set page_table
 #endif
 #ifdef PAGE_TABLE2_SINGLE
-            change_count2 += page_table2_wp[thread_id].rm_watchpoint(start, end);     // set page_table
+               page_table2_wp[thread_id].rm_watchpoint(start, end);                 // set page_table
+#endif
+            }
+         }
+         else if (rm_flag) {
+#ifdef PAGE_TABLE
+            change_count = page_table_wp[thread_id].rm_watchpoint(start, end);       // set page_table
+#endif
+#ifdef PAGE_TABLE2_SINGLE
+            change_count2 = page_table2_wp[thread_id].rm_watchpoint(start, end);     // set page_table
 #endif
          }
       }
@@ -560,6 +576,7 @@ statistics_t WatchPoint<ADDRESS, FLAGS>::clear_statistics() {
    #endif
 	#ifdef PAGE_TABLE2_SINGLE
 	empty.superpage_miss=0;
+	empty.superpage_miss_faults=0;
 	empty.superpage_faults=0;
 	empty.superpage_hits=0;
 	empty.highest_faults=0;
@@ -637,6 +654,7 @@ void WatchPoint<ADDRESS, FLAGS>::print_statistics(const statistics_t& to_print, 
    output << setw(45) << "superpage hit: " << to_print.superpage_hits <<endl;
    output << setw(45) << "superpage fault: " << to_print.superpage_faults <<endl;
    output << setw(45) << "superpage miss: " << to_print.superpage_miss <<endl;
+   output << setw(45) << "low level page fault: " << to_print.superpage_miss_faults <<endl;
    output << setw(45) << "bit changes: " << to_print.change_count2 <<endl;
    #endif
    output <<endl;

@@ -61,6 +61,7 @@ struct statistics_t {
 	long long change_count_multi;
 	#endif
 	#ifdef PAGE_TABLE2_SINGLE
+	long long superpage_miss_faults;    // total number of times that we get lowest level faults
 	long long superpage_miss;           // total number of times that we need to get to the bottom level
 	long long superpage_faults;         // total number of times that the superpage get faults
 	long long superpage_hits;           // total number of times that we get superpage hits

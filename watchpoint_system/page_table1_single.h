@@ -43,11 +43,7 @@ public:
 	
 	/*
 	 * returns the number of changes it does on bit_map
-	 * for set watchpoint: just call add_watchpoint
-	 * for update watchpoint: needs to call rm_watchpoint on all ranges and then add_watchpoint to overwrite
-	 * for counting the number of changes: update = abs(add - rm);
-	 *
-	 * add_watchpoint needs target_flags just to check if it is none flag or not
+	 * for counting the number of changes: changes = add + rm;
 	 */
 	int      add_watchpoint (ADDRESS start_addr, ADDRESS end_addr);
 	int      rm_watchpoint  (ADDRESS start_addr, ADDRESS end_addr);
