@@ -4,8 +4,8 @@
 #include "page_table2_single.h"
 
 template<class ADDRESS, class FLAGS>
-PageTable2_single<ADDRESS, FLAGS>::PageTable2_single(PageTable1_single<ADDRESS, FLAGS> &pt1_ref) {
-   pt1 = &pt1_ref;
+PageTable2_single<ADDRESS, FLAGS>::PageTable2_single(PageTable1_single<ADDRESS, FLAGS> *pt1_ref) {
+   pt1 = pt1_ref;
    all_watched = false;
    all_unwatched = true;
    for (int i=0;i<SUPER_PAGE_BIT_MAP_NUMBER;i++) {

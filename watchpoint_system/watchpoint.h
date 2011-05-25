@@ -144,28 +144,28 @@ public:
 	
 private:
 	//Data Structures (mainly maps from thread_id's to the thread's data)
-	map<int32_t, Oracle<ADDRESS, FLAGS> >                    oracle_wp;           //	for storing byte accurate emulation class
+	map<int32_t, Oracle<ADDRESS, FLAGS>* >                    oracle_wp;           //	for storing byte accurate emulation class
 	map<int32_t, statistics_t>                               statistics;          //	for storing all active threads and statistics
 	map<int32_t, statistics_t>                               statistics_inactive; //	for storing all inactive threads and statistics (no overlaps)
 	#ifdef PAGE_TABLE
-	map<int32_t, PageTable1_single<ADDRESS, FLAGS> >         page_table_wp;       // for storing bitmaps of page_table watch_bits of each threads
+	map<int32_t, PageTable1_single<ADDRESS, FLAGS>* >         page_table_wp;       // for storing bitmaps of page_table watch_bits of each threads
 	#endif                                                                        //    to fake a page_table watchpoint system
 	#ifdef PAGE_TABLE2_SINGLE
-	map<int32_t, PageTable2_single<ADDRESS, FLAGS> >         page_table2_wp;       // for storing bitmaps of page_table watch_bits of each threads
+	map<int32_t, PageTable2_single<ADDRESS, FLAGS>* >         page_table2_wp;       // for storing bitmaps of page_table watch_bits of each threads
 	#endif                                                                        //    to fake a page_table watchpoint system
 
    bool                                                     emulate_hardware;
 	
 	//Useful iterators
-	typename map<int32_t, Oracle<ADDRESS, FLAGS> >::iterator oracle_wp_iter;
-	typename map<int32_t, Oracle<ADDRESS, FLAGS> >::iterator oracle_wp_iter_2;
+	typename map<int32_t, Oracle<ADDRESS, FLAGS>* >::iterator oracle_wp_iter;
+	typename map<int32_t, Oracle<ADDRESS, FLAGS>* >::iterator oracle_wp_iter_2;
 	map<int32_t, statistics_t>::iterator                     statistics_iter;
 	map<int32_t, statistics_t>::iterator                     statistics_inactive_iter;
 	#ifdef PAGE_TABLE
-	typename map<int32_t, PageTable1_single<ADDRESS, FLAGS> >::iterator page_table_wp_iter;
+	typename map<int32_t, PageTable1_single<ADDRESS, FLAGS>* >::iterator page_table_wp_iter;
 	#endif
 	#ifdef PAGE_TABLE2_SINGLE
-	typename map<int32_t, PageTable2_single<ADDRESS, FLAGS> >::iterator page_table2_wp_iter;
+	typename map<int32_t, PageTable2_single<ADDRESS, FLAGS>* >::iterator page_table2_wp_iter;
 	#endif
 	
 	#ifdef PAGE_TABLE_SINGLE

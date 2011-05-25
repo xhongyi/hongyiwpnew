@@ -92,7 +92,6 @@ template<class ADDRESS, class FLAGS>
 int WatchPoint<ADDRESS, FLAGS>::start_thread(int32_t thread_id) {
    statistics_iter = statistics.find(thread_id);
    if (statistics_iter == statistics.end()) {                           // if thread_id is not active
-      Oracle<ADDRESS, FLAGS> empty_oracle;
       /*
        * Initiating statistics
        */
@@ -108,18 +107,16 @@ int WatchPoint<ADDRESS, FLAGS>::start_thread(int32_t thread_id) {
       /*
        * Initiating Oracle
        */
-      oracle_wp[thread_id] = empty_oracle;
+      oracle_wp[thread_id] = new Oracle<ADDRESS, FLAGS>;
       /*
        * Initiating Page Table
        */
       if (emulate_hardware) {
 #ifdef PAGE_TABLE
-          PageTable1_single<ADDRESS, FLAGS> empty_page_table(oracle_wp.find(thread_id)->second);
-          page_table_wp[thread_id] = empty_page_table;
+          page_table_wp[thread_id] = new PageTable1_single<ADDRESS, FLAGS>((oracle_wp.find(thread_id)->second));
 #endif
 #ifdef PAGE_TABLE2_SINGLE
-          PageTable2_single<ADDRESS, FLAGS> empty_page_table2(page_table_wp.find(thread_id)->second);
-          page_table2_wp[thread_id] = empty_page_table2;
+          page_table2_wp[thread_id] = new PageTable2_single<ADDRESS, FLAGS>((page_table_wp.find(thread_id)->second));
 #endif
       }
       return 0;                                                         // normal start: return 0
@@ -168,7 +165,6 @@ void WatchPoint<ADDRESS, FLAGS>::print_threads(ostream &output) {
  */
 template<class ADDRESS, class FLAGS>
 void WatchPoint<ADDRESS, FLAGS>::reset() {
-   Oracle<ADDRESS, FLAGS> empty_oracle;
    statistics_t empty_statistics = clear_statistics();
    oracle_wp_iter = oracle_wp.begin();
    #ifdef PAGE_TABLE
@@ -180,17 +176,15 @@ void WatchPoint<ADDRESS, FLAGS>::reset() {
    for (statistics_iter = statistics.begin();statistics_iter != statistics.end();statistics_iter++) {
                                                             // for all active thread_id's
       statistics_iter->second = empty_statistics;           // clear statistics
-      oracle_wp_iter->second = empty_oracle;                // clear Oracle watchpoints
+      oracle_wp_iter->second = new Oracle<ADDRESS, FLAGS>;                // clear Oracle watchpoints
       if (emulate_hardware) {
 #ifdef PAGE_TABLE
-          PageTable1_single<ADDRESS, FLAGS> empty_page_table(oracle_wp_iter->second);
-          page_table_wp_iter->second = empty_page_table;
+          page_table_wp_iter->second = new PageTable1_single<ADDRESS, FLAGS>((oracle_wp_iter->second));
           page_table_wp_iter++;
 #endif
 #ifdef PAGE_TABLE2_SINGLE
           page_table_wp_iter--;
-          PageTable2_single<ADDRESS, FLAGS> empty_page_table2(page_table_wp_iter->second);
-          page_table2_wp_iter->second = empty_page_table2;
+          page_table2_wp_iter->second = new PageTable2_single<ADDRESS, FLAGS>((page_table_wp_iter->second));
           page_table_wp_iter++;
           page_table2_wp_iter++;
 #endif
@@ -226,26 +220,36 @@ bool  WatchPoint<ADDRESS, FLAGS>::general_fault(ADDRESS start, ADDRESS end, int3
     */
    oracle_wp_iter = oracle_wp.find(thread_id);
    if (oracle_wp_iter != oracle_wp.end()) {                                               // if thread_id found active
-      bool oracle_fault = oracle_wp_iter->second.general_fault(start, end, target_flags); // check if Oracle fault
+      bool oracle_fault = oracle_wp_iter->second->general_fault(start, end, target_flags); // check if Oracle fault
       /*
-       * initializing variables
+       * declaring variables
        */
 #ifdef PAGE_TABLE_SINGLE
-      bool page_table_fault = false;                                                      // initialize variables here
+      bool page_table_fault = false;
 #endif
 #ifdef PAGE_TABLE_MULTI
-      bool multi_page_table_fault = page_table_wp[thread_id].watch_fault(start, end);     // check if fault in thread_id page_table
+      bool multi_page_table_fault = false;
 #endif
-#ifdef PAGE_TABLE2_SINGLE
-      int page_table2_fault = page_table2_wp[thread_id].watch_fault(start, end);
+#ifdef PAGE_TABLE_SINGLE
+      int page_table2_fault = 0;
 #endif
       /*
        * emulating hardware
        */
       if (emulate_hardware) {
+          /*
+           * initializing variables
+           */
+#ifdef PAGE_TABLE_MULTI
+          multi_page_table_fault = page_table_wp[thread_id]->watch_fault(start, end);     // check if fault in thread_id page_table
+#endif
+#ifdef PAGE_TABLE2_SINGLE
+          page_table2_fault = page_table2_wp[thread_id]->watch_fault(start, end);
+#endif
+
 #ifdef PAGE_TABLE_SINGLE                                                                  // check if fault if only one single_page_table
          for (page_table_wp_iter=page_table_wp.begin();page_table_wp_iter!=page_table_wp.end();page_table_wp_iter++) {
-            if (page_table_wp_iter->second.watch_fault(start, end) ) {
+            if (page_table_wp_iter->second->watch_fault(start, end) ) {
                page_table_fault = true;
                break;
             }
@@ -328,7 +332,7 @@ void WatchPoint<ADDRESS, FLAGS>::print_watchpoints(ostream &output) {
    output <<"Printing all existing watchpoints: "<<endl;
    for (oracle_wp_iter = oracle_wp.begin();oracle_wp_iter != oracle_wp.end();oracle_wp_iter++) {
       output <<"Watchpoints in thread #"<<oracle_wp_iter->first<<":"<<endl;
-      oracle_wp_iter->second.watch_print(output);
+      oracle_wp_iter->second->watch_print(output);
    }
    output <<"Watchpoint print ends."<<endl;
 }
@@ -350,39 +354,47 @@ int WatchPoint<ADDRESS, FLAGS>::general_change(ADDRESS start, ADDRESS end, int32
    /*
     * handle watchpoints
     */
-   int change_count = 0, change_count_multi = 0, change_count2 = 0;
+#ifdef PAGE_TABLE
+   int change_count = 0;
+#endif
+#ifdef PAGE_TABLE_MULTI
+   int change_count_multi = 0;
+#endif
+#ifdef PAGE_TABLE2_SINGLE
+   int change_count2 = 0;
+#endif
    oracle_wp_iter = oracle_wp.find(thread_id);
    if (oracle_wp_iter != oracle_wp.end()) {                                   // if thread_id found
       if (add_flag)
-         oracle_wp_iter->second.add_watchpoint(start, end, add_flag);         // add watchpoints
+         oracle_wp_iter->second->add_watchpoint(start, end, add_flag);         // add watchpoints
       if (rm_flag)
-         oracle_wp_iter->second.rm_watchpoint(start, end, rm_flag);           // rm watchpoints
+         oracle_wp_iter->second->rm_watchpoint(start, end, rm_flag);           // rm watchpoints
       /*
        * emulating hardware
        */
       if (emulate_hardware) {
          if (add_flag) {
 #ifdef PAGE_TABLE
-            change_count = page_table_wp[thread_id].add_watchpoint(start, end);      // set page_table
+            change_count = page_table_wp[thread_id]->add_watchpoint(start, end);      // set page_table
 #endif
 #ifdef PAGE_TABLE2_SINGLE
-            change_count2 = page_table2_wp[thread_id].add_watchpoint(start, end);    // set page_table
+            change_count2 = page_table2_wp[thread_id]->add_watchpoint(start, end);    // set page_table
 #endif
             if (rm_flag) {
 #ifdef PAGE_TABLE
-               page_table_wp[thread_id].rm_watchpoint(start, end);                  // set page_table
+               page_table_wp[thread_id]->rm_watchpoint(start, end);                  // set page_table
 #endif
 #ifdef PAGE_TABLE2_SINGLE
-               page_table2_wp[thread_id].rm_watchpoint(start, end);                 // set page_table
+               page_table2_wp[thread_id]->rm_watchpoint(start, end);                 // set page_table
 #endif
             }
          }
          else if (rm_flag) {
 #ifdef PAGE_TABLE
-            change_count = page_table_wp[thread_id].rm_watchpoint(start, end);       // set page_table
+            change_count = page_table_wp[thread_id]->rm_watchpoint(start, end);       // set page_table
 #endif
 #ifdef PAGE_TABLE2_SINGLE
-            change_count2 = page_table2_wp[thread_id].rm_watchpoint(start, end);     // set page_table
+            change_count2 = page_table2_wp[thread_id]->rm_watchpoint(start, end);     // set page_table
 #endif
          }
       }
@@ -472,15 +484,15 @@ bool WatchPoint<ADDRESS, FLAGS>::general_compare(int32_t thread_id1, int32_t thr
     * if both are found in oracle_wp
     */
    if (oracle_wp_iter != oracle_wp.end() && oracle_wp_iter_2 != oracle_wp.end() ) {
-      watchpoint_t<ADDRESS, FLAGS> temp = oracle_wp_iter->second.start_traverse();  // start traversing through thread #1
+      watchpoint_t<ADDRESS, FLAGS> temp = oracle_wp_iter->second->start_traverse();  // start traversing through thread #1
       do {
          if (temp.flags & flag_thread1) {                                           // check only for required flags in thread #1
-            if (oracle_wp_iter_2->second.general_fault(temp.start_addr, 
+            if (oracle_wp_iter_2->second->general_fault(temp.start_addr, 
                                                        temp.end_addr, 
                                                        flag_thread2) )              // check for faults for required flags in thread #2
                return true;
          }
-      } while (oracle_wp_iter->second.continue_traverse(temp) );
+      } while (oracle_wp_iter->second->continue_traverse(temp) );
       /*
       for (oracle_wp_iter->second.wp_iter = oracle_wp_iter->second.wp.begin();
             oracle_wp_iter->second.wp_iter != oracle_wp_iter->second.wp.end();
@@ -672,7 +684,7 @@ int WatchPoint<ADDRESS, FLAGS>::count_faults(ADDRESS start, ADDRESS end) {
    int change_count=0;
    for (ADDRESS i=page_number_start;i<=end;i+=(1<<PAGE_OFFSET_LENGTH)) {
       for (page_table_wp_iter=page_table_wp.begin();page_table_wp_iter!=page_table_wp.end();page_table_wp_iter++) {
-         if (page_table_wp_iter->second.watch_fault(i, i)) {
+         if (page_table_wp_iter->second->watch_fault(i, i)) {
             change_count++;
             break;
          }
@@ -693,7 +705,7 @@ int WatchPoint<ADDRESS, FLAGS>::count_faults(ADDRESS start, ADDRESS end, int32_t
    int change_count=0;
    page_table_wp_iter = page_table_wp.find(thread_id);
    for (ADDRESS i=page_number_start;i<=end;i+=(1<<PAGE_OFFSET_LENGTH)) {
-      if (page_table_wp_iter->second.watch_fault(i, i)) {
+      if (page_table_wp_iter->second->watch_fault(i, i)) {
          change_count++;
       }
    }

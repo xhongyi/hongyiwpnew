@@ -25,7 +25,7 @@
 template<class ADDRESS, class FLAGS>
 class PageTable2_single {
 public:
-   PageTable2_single(PageTable1_single<ADDRESS, FLAGS> &pt1_ref);
+   PageTable2_single(PageTable1_single<ADDRESS, FLAGS> *pt1_ref);
    PageTable2_single();
    ~PageTable2_single();
    
