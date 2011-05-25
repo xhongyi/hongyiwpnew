@@ -8,11 +8,11 @@
 #ifndef PAGE_TABLE1_SINGLE_H_
 #define PAGE_TABLE1_SINGLE_H_
 
-#define  VIRTUAL_ADDRESS_LENGTH  32
-#define  PAGE_OFFSET_LENGTH      12
+#define  VIRTUAL_ADDRESS_LENGTH  32UL
+#define  PAGE_OFFSET_LENGTH      12UL
 #define  PAGE_SIZE               (1<<PAGE_OFFSET_LENGTH)       //page size is 4 KB
 #define  PAGE_NUMBER             (1<<(VIRTUAL_ADDRESS_LENGTH-PAGE_OFFSET_LENGTH))
-#define  BIT_MAP_OFFSET_LENGTH   3        //we store one bit for each page in a bit map, 
+#define  BIT_MAP_OFFSET_LENGTH   3UL        //we store one bit for each page in a bit map, 
                                           //which is byte addressable
 #define  BIT_MAP_NUMBER_LENGTH   (VIRTUAL_ADDRESS_LENGTH - PAGE_OFFSET_LENGTH - BIT_MAP_OFFSET_LENGTH)
 #define  BIT_MAP_NUMBER          (1<<BIT_MAP_NUMBER_LENGTH) //needs 128 KB to store these bits
@@ -22,7 +22,7 @@
 template<class ADDRESS, class FLAGS>
 class PageTable1_single {
 public:
-	PageTable1_single(Oracle<ADDRESS, FLAGS> &wp_ref);
+	PageTable1_single(Oracle<ADDRESS, FLAGS> *wp_ref);
 	PageTable1_single();
 	~PageTable1_single();
 	
