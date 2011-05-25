@@ -134,13 +134,18 @@ int WatchPoint<ADDRESS, FLAGS>::end_thread(int32_t thread_id) {
       oracle_wp_iter = oracle_wp.find(thread_id);
       statistics_inactive[thread_id] = statistics_iter->second;         // move its statistics to inactive
       statistics.erase(statistics_iter);                                // remove it from active statistics
+      delete oracle_wp_iter->second;
       oracle_wp.erase(oracle_wp_iter);                                  // remove its Oracle watchpoint data
       if (emulate_hardware) {
 #ifdef PAGE_TABLE
-          page_table_wp.erase(thread_id);
+         page_table_wp_iter = page_table_wp.find(thread_id);
+         delete page_table_wp_iter->second;
+         page_table_wp.erase(page_table_wp_iter);
 #endif
 #ifdef PAGE_TABLE2_SINGLE
-          page_table2_wp.erase(thread_id);
+         page_table2_wp_iter = page_table2_wp.find(thread_id);
+         delete page_table2_wp_iter->second;
+         page_table2_wp.erase(page_table2_wp_iter);
 #endif
       }
       return 0;                                                         // normal end: return 0
@@ -176,17 +181,20 @@ void WatchPoint<ADDRESS, FLAGS>::reset() {
    for (statistics_iter = statistics.begin();statistics_iter != statistics.end();statistics_iter++) {
                                                             // for all active thread_id's
       statistics_iter->second = empty_statistics;           // clear statistics
+      delete oracle_wp_iter->second;
       oracle_wp_iter->second = new Oracle<ADDRESS, FLAGS>;                // clear Oracle watchpoints
       if (emulate_hardware) {
 #ifdef PAGE_TABLE
-          page_table_wp_iter->second = new PageTable1_single<ADDRESS, FLAGS>((oracle_wp_iter->second));
-          page_table_wp_iter++;
+         delete page_table_wp_iter->second;
+         page_table_wp_iter->second = new PageTable1_single<ADDRESS, FLAGS>((oracle_wp_iter->second));
+         page_table_wp_iter++;
 #endif
 #ifdef PAGE_TABLE2_SINGLE
-          page_table_wp_iter--;
-          page_table2_wp_iter->second = new PageTable2_single<ADDRESS, FLAGS>((page_table_wp_iter->second));
-          page_table_wp_iter++;
-          page_table2_wp_iter++;
+         page_table_wp_iter--;
+         delete page_table2_wp_iter->second;
+         page_table2_wp_iter->second = new PageTable2_single<ADDRESS, FLAGS>((page_table_wp_iter->second));
+         page_table_wp_iter++;
+         page_table2_wp_iter++;
 #endif
       }
       oracle_wp_iter++;                                     // Oracle should be of the same length as statistics

@@ -50,7 +50,7 @@ public:
    watchpoint_t<ADDRESS, FLAGS>& start_traverse();
    bool continue_traverse(watchpoint_t<ADDRESS, FLAGS>& watchpoint);
 
-//private:
+private:
    /*
     * wp       is the container to hold all the ranges for watchpoint structure.
     * wp_iter  is the iterator used in both add_watchpoint and rm_watchpoint.
