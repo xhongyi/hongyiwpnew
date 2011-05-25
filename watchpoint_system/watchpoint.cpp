@@ -240,17 +240,17 @@ bool  WatchPoint<ADDRESS, FLAGS>::general_fault(ADDRESS start, ADDRESS end, int3
           /*
            * initializing variables
            */
-#ifdef PAGE_TABLE_MULTI
-          multi_page_table_fault = page_table_wp[thread_id]->watch_fault(start, end);     // check if fault in thread_id page_table
+#ifdef PAGE_TABLE_SINGLE
+          page_table_fault = page_table_wp[thread_id]->watch_fault(start, end);        // check if fault in thread_id page_table
 #endif
 #ifdef PAGE_TABLE2_SINGLE
           page_table2_fault = page_table2_wp[thread_id]->watch_fault(start, end);
 #endif
 
-#ifdef PAGE_TABLE_SINGLE                                                                  // check if fault if only one single_page_table
+#ifdef PAGE_TABLE_MULTI                                                                // check if fault if only one single_page_table
          for (page_table_wp_iter=page_table_wp.begin();page_table_wp_iter!=page_table_wp.end();page_table_wp_iter++) {
             if (page_table_wp_iter->second->watch_fault(start, end) ) {
-               page_table_fault = true;
+               multi_page_table_fault = true;
                break;
             }
          }
