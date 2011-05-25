@@ -23,6 +23,7 @@ Oracle<ADDRESS, FLAGS>::Oracle() {
 
 template<class ADDRESS, class FLAGS>
 Oracle<ADDRESS, FLAGS>::~Oracle() {
+   wp.clear();
 }
 
 /*
