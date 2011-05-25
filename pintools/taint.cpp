@@ -40,7 +40,7 @@ static char    global_regs[REGS_AVAIL]; //each register used (what's the max?)
 
 #define PAGE_MASK 0xFFF
 #define PAGE_SHIFT 12
-#define PAGE_SIZE 4096
+#define TAINT_PAGE_SIZE 4096
 #define MAX_PAGES 1048576
 #define ONE_BYTE_TAINTED  0xFF
 #define TWO_BYTE_TAINTED  0xFFFF
@@ -49,7 +49,7 @@ static char    global_regs[REGS_AVAIL]; //each register used (what's the max?)
 #define IMMEDIATE_VAL 0
 
 static void*   pages[MAX_PAGES];    //number of 4 KB pages in a 32 bit address space
-static char ZERO_PAGE[PAGE_SIZE];
+static char ZERO_PAGE[TAINT_PAGE_SIZE];
 static void* ZERO_PAGE_LOC = ZERO_PAGE;
 
 #define REG_TAINTED 1;
@@ -219,7 +219,7 @@ static inline char* get_real_page(UINT32 pageindex)
     if(pages[pageindex] == ZERO_PAGE_LOC) {
 	DPRINT(logfd, "allocing new page for pageindex %u\n", pageindex);
 	pages[pageindex] = new char[4096];
-	memset(pages[pageindex], 0, PAGE_SIZE);
+	memset(pages[pageindex], 0, TAINT_PAGE_SIZE);
     }
     return (char*) pages[pageindex];
 }
@@ -228,7 +228,7 @@ void taint_addr_generic(u_int memloc, u_int written)
 {
     UINT32 pageindex = (memloc >> PAGE_SHIFT);
     UINT32 loc = memloc & PAGE_MASK;
-    UINT32 space = PAGE_SIZE - loc;
+    UINT32 space = TAINT_PAGE_SIZE - loc;
     char* page;
     UINT32 len;
 
@@ -240,7 +240,7 @@ void taint_addr_generic(u_int memloc, u_int written)
 	page = get_real_page(pageindex);
 
 	loc = memloc & PAGE_MASK;
-	space = PAGE_SIZE - loc;
+	space = TAINT_PAGE_SIZE - loc;
 	DPRINT(stderr, "loc within page is %u space is %u written is %u\n", loc, space, written);
 	if(written > space) {
 	    len = space;
@@ -880,7 +880,7 @@ void cp_taint_reg2mem_generic(u_int reg, u_int addr, u_int numbytes)
 {
     u_int pageindex = (addr >> PAGE_SHIFT);
     u_int loc = addr & PAGE_MASK;
-    u_int space = PAGE_SIZE - loc;
+    u_int space = TAINT_PAGE_SIZE - loc;
     char* page;
     u_int len;
     int regval;
@@ -897,7 +897,7 @@ void cp_taint_reg2mem_generic(u_int reg, u_int addr, u_int numbytes)
 
     while(numbytes) {
 	loc = addr & PAGE_MASK;
-	space = PAGE_SIZE - loc;
+	space = TAINT_PAGE_SIZE - loc;
 	DPRINT(stderr, "loc within page is %u space is %u written is %u\n", loc, space, numbytes);
 	if(numbytes > space) {
 	    len = space;
@@ -1019,10 +1019,10 @@ void cp_taint_mem2mem_generic(u_int srcaddr, u_int destaddr, u_int numbytes)
     char* p;
 
     loc = srcaddr & PAGE_MASK;
-    space = PAGE_SIZE - loc;
+    space = TAINT_PAGE_SIZE - loc;
     if((pages[pi1] == ZERO_PAGE_LOC) && (space >= numbytes)) {
 	loc = destaddr & PAGE_MASK;
-	space = PAGE_SIZE - loc;
+	space = TAINT_PAGE_SIZE - loc;
 	if((pages[pi2] == ZERO_PAGE_LOC) && (space >=numbytes)) {
 	    return;
 	}
@@ -1035,7 +1035,7 @@ void cp_taint_mem2mem_generic(u_int srcaddr, u_int destaddr, u_int numbytes)
 	page1 = get_real_page(pi1);
 
 	loc = srcaddr & PAGE_MASK;
-	space = PAGE_SIZE - loc;
+	space = TAINT_PAGE_SIZE - loc;
 
 	if(toread > space) {
 	    len = space;
@@ -1055,7 +1055,7 @@ void cp_taint_mem2mem_generic(u_int srcaddr, u_int destaddr, u_int numbytes)
 	page2 = get_real_page(pi2);
 
 	loc = destaddr & PAGE_MASK;
-	space = PAGE_SIZE - loc;
+	space = TAINT_PAGE_SIZE - loc;
 
 	if(towrite > space) {
 	    len = space;
@@ -1206,7 +1206,7 @@ BOOL is_addr_tainted_generic(UINT32 addr,  UINT32 numbytes)
     UINT32 pageindex = (addr >> PAGE_SHIFT);
     char* page = (char*) pages[pageindex];
     UINT32 byte = (addr & PAGE_MASK);
-    UINT32 space = PAGE_SIZE - byte;
+    UINT32 space = TAINT_PAGE_SIZE - byte;
     char* p;
     UINT32 i;
     wp.read_fault(addr, addr+numbytes-1, 0);
