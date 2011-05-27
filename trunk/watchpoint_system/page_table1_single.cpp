@@ -43,9 +43,8 @@ void PageTable1_single<ADDRESS, FLAGS>::watch_print(ostream &output) {
 	return;
 }
 
-//	watch_fault
 template<class ADDRESS, class FLAGS>
-bool PageTable1_single<ADDRESS, FLAGS>::watch_fault(ADDRESS start_addr, ADDRESS end_addr) {
+int PageTable1_single<ADDRESS, FLAGS>::general_fault(ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags) {
 	//	calculating the starting V.P.N. and the ending V.P.N.
 	ADDRESS page_number_start = (start_addr>>PAGE_OFFSET_LENGTH);
 	ADDRESS page_number_end = (end_addr>>PAGE_OFFSET_LENGTH);
@@ -56,10 +55,25 @@ bool PageTable1_single<ADDRESS, FLAGS>::watch_fault(ADDRESS start_addr, ADDRESS 
 	return false;                                               //	else return false.
 }
 
+template<class ADDRESS, class FLAGS>
+int PageTable1_single<ADDRESS, FLAGS>::watch_fault(ADDRESS start_addr, ADDRESS end_addr) {
+   return general_fault(start_addr, end_addr);
+}
+
+template<class ADDRESS, class FLAGS>
+int PageTable1_single<ADDRESS, FLAGS>::read_fault(ADDRESS start_addr, ADDRESS end_addr) {
+   return general_fault(start_addr, end_addr);
+}
+
+template<class ADDRESS, class FLAGS>
+int PageTable1_single<ADDRESS, FLAGS>::write_fault(ADDRESS start_addr, ADDRESS end_addr) {
+   return general_fault(start_addr, end_addr);
+}
+
 // version 2: count all related pages  (faster)  (do not add them up---change WatchPoint.general_change() )
 //	add_watchpoint
 template<class ADDRESS, class FLAGS>
-int PageTable1_single<ADDRESS, FLAGS>::add_watchpoint(ADDRESS start_addr, ADDRESS end_addr) {
+int PageTable1_single<ADDRESS, FLAGS>::add_watchpoint(ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags) {
 	//	calculating the starting V.P.N. and the ending V.P.N.
 	ADDRESS page_number_start = (start_addr>>PAGE_OFFSET_LENGTH);
 	ADDRESS page_number_end = (end_addr>>PAGE_OFFSET_LENGTH);
@@ -70,7 +84,7 @@ int PageTable1_single<ADDRESS, FLAGS>::add_watchpoint(ADDRESS start_addr, ADDRES
 
 //	rm_watchpoint
 template<class ADDRESS, class FLAGS>
-int PageTable1_single<ADDRESS, FLAGS>::rm_watchpoint(ADDRESS start_addr, ADDRESS end_addr) {
+int PageTable1_single<ADDRESS, FLAGS>::rm_watchpoint(ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags) {
    int changes = 0;
    //	calculating the starting V.P.N. and the ending V.P.N.
    ADDRESS page_number_start = (start_addr>>PAGE_OFFSET_LENGTH);

@@ -4,7 +4,7 @@
 #include "page_table2_single.h"
 
 template<class ADDRESS, class FLAGS>
-PageTable2_single<ADDRESS, FLAGS>::PageTable2_single(PageTable1_single<ADDRESS, FLAGS> *pt1_ref) {
+PageTable2_single<ADDRESS, FLAGS>::PageTable2_single(Virtual_wp<ADDRESS, FLAGS> *pt1_ref) {
    pt1 = pt1_ref;
    all_watched = false;
    all_unwatched = true;
@@ -36,7 +36,7 @@ PageTable2_single<ADDRESS, FLAGS>::~PageTable2_single() {
 }
 
 template<class ADDRESS, class FLAGS>
-int PageTable2_single<ADDRESS, FLAGS>::watch_fault(ADDRESS start_addr, ADDRESS end_addr) {
+int PageTable2_single<ADDRESS, FLAGS>::general_fault(ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags) {
    // checking the highest level hits
    if (all_watched)
       return ALL_WATCHED;
@@ -67,9 +67,24 @@ int PageTable2_single<ADDRESS, FLAGS>::watch_fault(ADDRESS start_addr, ADDRESS e
    return PAGETABLE_UNWATCHED;                                 //   else return false.
 }
 
+template<class ADDRESS, class FLAGS>
+int PageTable2_single<ADDRESS, FLAGS>::watch_fault(ADDRESS start_addr, ADDRESS end_addr) {
+   return general_fault(start_addr, end_addr);
+}
+
+template<class ADDRESS, class FLAGS>
+int PageTable2_single<ADDRESS, FLAGS>::read_fault(ADDRESS start_addr, ADDRESS end_addr) {
+   return general_fault(start_addr, end_addr);
+}
+
+template<class ADDRESS, class FLAGS>
+int PageTable2_single<ADDRESS, FLAGS>::write_fault(ADDRESS start_addr, ADDRESS end_addr) {
+   return general_fault(start_addr, end_addr);
+}
+
 // version 2: count all related pages
 template<class ADDRESS, class FLAGS>
-int PageTable2_single<ADDRESS, FLAGS>::add_watchpoint(ADDRESS start_addr, ADDRESS end_addr) {
+int PageTable2_single<ADDRESS, FLAGS>::add_watchpoint(ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags) {
    int changes = 0;
    ADDRESS superpage_number_start = (start_addr>>SUPERPAGE_OFFSET_LENGTH);
    ADDRESS superpage_number_end = (end_addr>>SUPERPAGE_OFFSET_LENGTH);
@@ -145,7 +160,7 @@ int PageTable2_single<ADDRESS, FLAGS>::add_watchpoint(ADDRESS start_addr, ADDRES
 }
 
 template<class ADDRESS, class FLAGS>
-int PageTable2_single<ADDRESS, FLAGS>::rm_watchpoint(ADDRESS start_addr, ADDRESS end_addr) {
+int PageTable2_single<ADDRESS, FLAGS>::rm_watchpoint(ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags) {
    int changes = 0;
    ADDRESS superpage_number_start = (start_addr>>SUPERPAGE_OFFSET_LENGTH);
    ADDRESS superpage_number_end = (end_addr>>SUPERPAGE_OFFSET_LENGTH);

@@ -46,7 +46,7 @@ int main (int argc, char *argv[]) {
 			input.flags = WA_READ | WA_WRITE;
 		else
 			input.flags = 0;
-		wp_test.wp.push_back(input);
+		//wp_test.wp.push_back(input);
 	}
 	wp_test.watch_print(*output);
 	cout << "The search start_addr = ";
