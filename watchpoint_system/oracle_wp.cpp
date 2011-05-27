@@ -31,17 +31,17 @@ Oracle<ADDRESS, FLAGS>::~Oracle() {
  * with different detection flags
  */
 template<class ADDRESS, class FLAGS>
-bool Oracle<ADDRESS, FLAGS>::watch_fault(ADDRESS start_addr, ADDRESS end_addr) {
+int Oracle<ADDRESS, FLAGS>::watch_fault(ADDRESS start_addr, ADDRESS end_addr) {
 	return general_fault(start_addr, end_addr, WA_READ|WA_WRITE);
 }
 
 template<class ADDRESS, class FLAGS>
-bool Oracle<ADDRESS, FLAGS>::read_fault(ADDRESS start_addr, ADDRESS end_addr) {
+int Oracle<ADDRESS, FLAGS>::read_fault(ADDRESS start_addr, ADDRESS end_addr) {
 	return general_fault(start_addr, end_addr, WA_READ);
 }
 
 template<class ADDRESS, class FLAGS>
-bool Oracle<ADDRESS, FLAGS>::write_fault(ADDRESS start_addr, ADDRESS end_addr) {
+int Oracle<ADDRESS, FLAGS>::write_fault(ADDRESS start_addr, ADDRESS end_addr) {
 	return general_fault(start_addr, end_addr, WA_WRITE);
 }
 
@@ -65,14 +65,16 @@ void Oracle<ADDRESS, FLAGS>::watch_print(ostream &output) {
 }
 
 template<class ADDRESS, class FLAGS>
-void Oracle<ADDRESS, FLAGS>::add_watchpoint(ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags) {
+int Oracle<ADDRESS, FLAGS>::add_watchpoint(ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags) {
 	wp_operation(start_addr, end_addr, target_flags, &flag_include, &flag_union);
+	return 0;
 }
 
 
 template<class ADDRESS, class FLAGS>
-void Oracle<ADDRESS, FLAGS>::rm_watchpoint(ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags) {
+int Oracle<ADDRESS, FLAGS>::rm_watchpoint(ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags) {
 	wp_operation(start_addr, end_addr, target_flags, &flag_exclude, &flag_diff);
+	return 0;
 }
 
 /*
@@ -315,7 +317,7 @@ void Oracle<ADDRESS, FLAGS>::wp_operation(ADDRESS start_addr, ADDRESS end_addr,
 }
 
 template<class ADDRESS, class FLAGS>
-bool Oracle<ADDRESS, FLAGS>::general_fault(ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags) {
+int Oracle<ADDRESS, FLAGS>::general_fault(ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags) {
 	wp_iter = search_address (start_addr, wp);
 	while (wp_iter != wp.end() && end_addr > wp_iter->end_addr) {
 		if (wp_iter->flags & target_flags)

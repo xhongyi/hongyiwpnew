@@ -13,12 +13,13 @@
 #include <iomanip>
 #include <ostream>
 #include <fstream>
+#include "virtual_wp.h"
 #include "wp_data_struct.h"
 
 using namespace std;
 
 template<class ADDRESS, class FLAGS>
-class Oracle {
+class Oracle : public Virtual_wp<ADDRESS, FLAGS> {
 public:
    Oracle();
    ~Oracle();
@@ -31,9 +32,9 @@ public:
    void  rm_read  (ADDRESS start_addr, ADDRESS end_addr);
    void  rm_write (ADDRESS start_addr, ADDRESS end_addr);
 */
-   bool  watch_fault (ADDRESS start_addr, ADDRESS end_addr);
-   bool  read_fault  (ADDRESS start_addr, ADDRESS end_addr);
-   bool  write_fault (ADDRESS start_addr, ADDRESS end_addr);
+   int  watch_fault (ADDRESS start_addr, ADDRESS end_addr);
+   int  read_fault  (ADDRESS start_addr, ADDRESS end_addr);
+   int  write_fault (ADDRESS start_addr, ADDRESS end_addr);
    
    typename deque<watchpoint_t<ADDRESS, FLAGS> >::iterator
       search_address    (ADDRESS start_addr, deque<watchpoint_t<ADDRESS, FLAGS> > &wp);
@@ -42,9 +43,9 @@ public:
 
    void  wp_operation   (ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags,
                          bool (*flag_test)(FLAGS &x, FLAGS &y), FLAGS (*flag_op)(FLAGS &x, FLAGS &y) );
-   void  add_watchpoint (ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags);
-   void  rm_watchpoint  (ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags);
-   bool  general_fault  (ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags);
+   int  add_watchpoint (ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags);
+   int  rm_watchpoint  (ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags);
+   int  general_fault  (ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags);
    
    //traverse functions
    watchpoint_t<ADDRESS, FLAGS>& start_traverse();

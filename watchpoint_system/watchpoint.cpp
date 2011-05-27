@@ -17,7 +17,7 @@ inline statistics_t& operator +=(statistics_t &a, const statistics_t &b) { // no
 	a.change_count += b.change_count;
 	#endif
 	#ifdef PAGE_TABLE_MULTI
-	a.multi_page_table_faults += b.multi_page_table_faults;
+	a.page_table_multi_faults += b.page_table_multi_faults;
 	a.change_count_multi += b.change_count_multi;
 	#endif
 	#ifdef PAGE_TABLE2_SINGLE
@@ -28,6 +28,15 @@ inline statistics_t& operator +=(statistics_t &a, const statistics_t &b) { // no
    a.highest_faults += b.highest_faults;
    a.highest_hits += b.highest_hits;
 	a.change_count2 += b.change_count2;
+	#endif
+	#ifdef PAGE_TABLE2_MULTI
+   a.superpage_miss_multi += b.superpage_miss_faults_multi;
+   a.superpage_miss_multi += b.superpage_miss_multi;
+   a.superpage_faults_multi += b.superpage_faults_multi;
+   a.superpage_hits_multi += b.superpage_hits_multi;
+   a.highest_faults_multi += b.highest_faults_multi;
+   a.highest_hits_multi += b.highest_hits_multi;
+	a.change_count2_multi += b.change_count2_multi;
 	#endif
    return a;
 }
@@ -47,7 +56,7 @@ inline statistics_t operator +(const statistics_t &a, const statistics_t &b) {
 	result.change_count = a.change_count + b.change_count;
 	#endif
 	#ifdef PAGE_TABLE_MULTI
-	result.multi_page_table_faults = a.multi_page_table_faults + b.multi_page_table_faults;
+	result.page_table_multi_faults = a.page_table_multi_faults + b.page_table_multi_faults;
 	result.change_count_multi = a.change_count_multi + b.change_count_multi;
 	#endif
 	#ifdef PAGE_TABLE2_SINGLE
@@ -59,6 +68,15 @@ inline statistics_t operator +(const statistics_t &a, const statistics_t &b) {
 	result.highest_hits = a.highest_hits + b.highest_hits;
 	result.change_count2 = a.change_count2 + b.change_count2;
 	#endif
+	#ifdef PAGE_TABLE2_MULTI
+	result.superpage_miss_faults_multi = a.superpage_miss_faults_multi + b.superpage_miss_faults_multi;
+	result.superpage_miss_multi = a.superpage_miss_multi + b.superpage_miss_multi;
+	result.superpage_faults_multi = a.superpage_faults_multi + b.superpage_faults_multi;
+	result.superpage_hits_multi = a.superpage_hits_multi + b.superpage_hits_multi;
+	result.highest_faults_multi = a.highest_faults_multi + b.highest_faults_multi;
+	result.highest_hits_multi = a.highest_hits_multi + b.highest_hits_multi;
+	result.change_count2_multi = a.change_count2_multi + b.change_count2_multi;
+	#endif
    return result;
 }
 
@@ -68,6 +86,9 @@ inline statistics_t operator +(const statistics_t &a, const statistics_t &b) {
 template<class ADDRESS, class FLAGS>
 WatchPoint<ADDRESS, FLAGS>::WatchPoint() {
     emulate_hardware = true;
+#ifdef PAGE_TABLE2_MULTI
+   page_table2_multi = PageTable2_single<ADDRESS, FLAGS>(&page_table_multi);
+#endif
 }
 
 /*
@@ -76,6 +97,10 @@ WatchPoint<ADDRESS, FLAGS>::WatchPoint() {
 template<class ADDRESS, class FLAGS>
 WatchPoint<ADDRESS, FLAGS>::WatchPoint(bool do_emulate_hardware) {
     emulate_hardware = do_emulate_hardware;
+#ifdef PAGE_TABLE2_MULTI
+   if (emulate_hardware)
+      page_table2_multi = PageTable2_single<ADDRESS, FLAGS>(&page_table_multi);
+#endif
 }
 
 /*
@@ -83,6 +108,7 @@ WatchPoint<ADDRESS, FLAGS>::WatchPoint(bool do_emulate_hardware) {
  */
 template<class ADDRESS, class FLAGS>
 WatchPoint<ADDRESS, FLAGS>::~WatchPoint() {
+   
 }
 
 /*
@@ -113,10 +139,13 @@ int WatchPoint<ADDRESS, FLAGS>::start_thread(int32_t thread_id) {
        */
       if (emulate_hardware) {
 #ifdef PAGE_TABLE
-          page_table_wp[thread_id] = new PageTable1_single<ADDRESS, FLAGS>((oracle_wp.find(thread_id)->second));
+         page_table_wp[thread_id] = new PageTable1_single<ADDRESS, FLAGS>(oracle_wp.find(thread_id)->second);
+#endif
+#ifdef PAGE_TABLE_MULTI
+         page_table_multi.start_thread(thread_id, page_table_wp[thread_id]);
 #endif
 #ifdef PAGE_TABLE2_SINGLE
-          page_table2_wp[thread_id] = new PageTable2_single<ADDRESS, FLAGS>((page_table_wp.find(thread_id)->second));
+         page_table2_wp[thread_id] = new PageTable2_single<ADDRESS, FLAGS>(page_table_wp.find(thread_id)->second);
 #endif
       }
       return 0;                                                         // normal start: return 0
@@ -142,10 +171,16 @@ int WatchPoint<ADDRESS, FLAGS>::end_thread(int32_t thread_id) {
          delete page_table_wp_iter->second;
          page_table_wp.erase(page_table_wp_iter);
 #endif
+#ifdef PAGE_TABLE_MULTI
+         page_table_multi.end_thread(thread_id);
+#endif
 #ifdef PAGE_TABLE2_SINGLE
          page_table2_wp_iter = page_table2_wp.find(thread_id);
          delete page_table2_wp_iter->second;
          page_table2_wp.erase(page_table2_wp_iter);
+#endif
+#ifdef PAGE_TABLE2_MULTI
+         page_table2_multi.rm_watchpoint(0, -1);                     // check all pages
 #endif
       }
       return 0;                                                         // normal end: return 0
@@ -170,38 +205,12 @@ void WatchPoint<ADDRESS, FLAGS>::print_threads(ostream &output) {
  */
 template<class ADDRESS, class FLAGS>
 void WatchPoint<ADDRESS, FLAGS>::reset() {
-   statistics_t empty_statistics = clear_statistics();
-   oracle_wp_iter = oracle_wp.begin();
-   #ifdef PAGE_TABLE
-   page_table_wp_iter = page_table_wp.begin();
-   #endif
-   #ifdef PAGE_TABLE2_SINGLE
-   page_table2_wp_iter = page_table2_wp.begin();
-   #endif
-   for (statistics_iter = statistics.begin();statistics_iter != statistics.end();statistics_iter++) {
+   for (statistics_iter = statistics.begin();statistics_iter != statistics.end();statistics_iter++)
                                                             // for all active thread_id's
-      statistics_iter->second = empty_statistics;           // clear statistics
-      delete oracle_wp_iter->second;
-      oracle_wp_iter->second = new Oracle<ADDRESS, FLAGS>;                // clear Oracle watchpoints
-      if (emulate_hardware) {
-#ifdef PAGE_TABLE
-         delete page_table_wp_iter->second;
-         page_table_wp_iter->second = new PageTable1_single<ADDRESS, FLAGS>((oracle_wp_iter->second));
-         page_table_wp_iter++;
-#endif
-#ifdef PAGE_TABLE2_SINGLE
-         page_table_wp_iter--;
-         delete page_table2_wp_iter->second;
-         page_table2_wp_iter->second = new PageTable2_single<ADDRESS, FLAGS>((page_table_wp_iter->second));
-         page_table_wp_iter++;
-         page_table2_wp_iter++;
-#endif
-      }
-      oracle_wp_iter++;                                     // Oracle should be of the same length as statistics
-   }
+      reset(statistics_iter->first);                        // call reset
    for (statistics_inactive_iter = statistics_inactive.begin();statistics_inactive_iter != statistics_inactive.end();statistics_inactive_iter++)
                                                             // for all inactive thread_id's
-      statistics_inactive_iter->second = empty_statistics;  // clear inactive statistics
+      statistics_inactive_iter->second = clear_statistics();  // clear inactive statistics
    return;
 }
 
@@ -236,10 +245,13 @@ bool  WatchPoint<ADDRESS, FLAGS>::general_fault(ADDRESS start, ADDRESS end, int3
       bool page_table_fault = false;
 #endif
 #ifdef PAGE_TABLE_MULTI
-      bool multi_page_table_fault = false;
+      bool page_table_multi_fault = false;
 #endif
 #ifdef PAGE_TABLE_SINGLE
       int page_table2_fault = 0;
+#endif
+#ifdef PAGE_TABLE2_MULTI
+      int page_table2_multi_fault = 0;
 #endif
       /*
        * emulating hardware
@@ -249,19 +261,16 @@ bool  WatchPoint<ADDRESS, FLAGS>::general_fault(ADDRESS start, ADDRESS end, int3
            * initializing variables
            */
 #ifdef PAGE_TABLE_SINGLE
-          page_table_fault = page_table_wp[thread_id]->watch_fault(start, end);        // check if fault in thread_id page_table
+         page_table_fault = page_table_wp[thread_id]->watch_fault(start, end);        // check if fault in thread_id page_table
+#endif
+#ifdef PAGE_TABLE_MULTI
+         page_table_multi_fault = page_table_multi.watch_fault(start, end);
 #endif
 #ifdef PAGE_TABLE2_SINGLE
-          page_table2_fault = page_table2_wp[thread_id]->watch_fault(start, end);
+         page_table2_fault = page_table2_wp[thread_id]->watch_fault(start, end);
 #endif
-
-#ifdef PAGE_TABLE_MULTI                                                                // check if fault if only one single_page_table
-         for (page_table_wp_iter=page_table_wp.begin();page_table_wp_iter!=page_table_wp.end();page_table_wp_iter++) {
-            if (page_table_wp_iter->second->watch_fault(start, end) ) {
-               multi_page_table_fault = true;
-               break;
-            }
-         }
+#ifdef PAGE_TABLE2_MULTI
+         page_table2_multi_fault = page_table2_multi.watch_fault(start, end);
 #endif
       }
       /*
@@ -278,8 +287,8 @@ bool  WatchPoint<ADDRESS, FLAGS>::general_fault(ADDRESS start, ADDRESS end, int3
                statistics_iter->second.page_table_faults++;             // page_table_fault++
 #endif
 #ifdef PAGE_TABLE_MULTI
-            if (multi_page_table_fault)                                 // if it is a page_table fault
-               statistics_iter->second.multi_page_table_faults++;       // page_table_fault++
+            if (page_table_multi_fault)                                 // if it is a page_table fault
+               statistics_iter->second.page_table_multi_faults++;       // page_table_fault++
 #endif
 #ifdef PAGE_TABLE2_SINGLE
             if (page_table2_fault == PAGETABLE_UNWATCHED)
@@ -299,6 +308,26 @@ bool  WatchPoint<ADDRESS, FLAGS>::general_fault(ADDRESS start, ADDRESS end, int3
             else if (page_table2_fault == ALL_WATCHED) {
                statistics_iter->second.highest_hits++;
                statistics_iter->second.highest_faults++;
+            }
+#endif
+#ifdef PAGE_TABLE2_MULTI
+            if (page_table2_multi_fault == PAGETABLE_UNWATCHED)
+               statistics_iter->second.superpage_miss_multi++;
+            else if (page_table2_multi_fault == PAGETABLE_FAULT) {
+               statistics_iter->second.superpage_miss_multi++;
+               statistics_iter->second.superpage_miss_faults_multi++;
+            }
+            else if (page_table2_multi_fault == SUPERPAGE_UNWATCHED)
+               statistics_iter->second.superpage_hits_multi++;
+            else if (page_table2_multi_fault == SUPERPAGE_WATCHED) {
+               statistics_iter->second.superpage_hits_multi++;
+               statistics_iter->second.superpage_faults_multi++;
+            }
+            else if (page_table2_multi_fault == ALL_UNWATCHED)
+               statistics_iter->second.highest_hits_multi++;
+            else if (page_table2_multi_fault == ALL_WATCHED) {
+               statistics_iter->second.highest_hits_multi++;
+               statistics_iter->second.highest_faults_multi++;
             }
 #endif
          }
@@ -371,6 +400,9 @@ int WatchPoint<ADDRESS, FLAGS>::general_change(ADDRESS start, ADDRESS end, int32
 #ifdef PAGE_TABLE2_SINGLE
    int change_count2 = 0;
 #endif
+#ifdef PAGE_TABLE2_MULTI
+   int change_count2_multi = 0;
+#endif
    oracle_wp_iter = oracle_wp.find(thread_id);
    if (oracle_wp_iter != oracle_wp.end()) {                                   // if thread_id found
       if (add_flag)
@@ -385,15 +417,27 @@ int WatchPoint<ADDRESS, FLAGS>::general_change(ADDRESS start, ADDRESS end, int32
 #ifdef PAGE_TABLE
             change_count = page_table_wp[thread_id]->add_watchpoint(start, end);      // set page_table
 #endif
+#ifdef PAGE_TABLE_MULTI
+            change_count_multi = page_table_multi.add_watchpoint(start, end);
+#endif
 #ifdef PAGE_TABLE2_SINGLE
             change_count2 = page_table2_wp[thread_id]->add_watchpoint(start, end);    // set page_table
+#endif
+#ifdef PAGE_TABLE2_MULTI
+            change_count2_multi = page_table2_multi.add_watchpoint(start, end);    // set page_table
 #endif
             if (rm_flag) {
 #ifdef PAGE_TABLE
                page_table_wp[thread_id]->rm_watchpoint(start, end);                  // set page_table
 #endif
+#ifdef PAGE_TABLE_MULTI
+               page_table_multi.rm_watchpoint(start, end);
+#endif
 #ifdef PAGE_TABLE2_SINGLE
                page_table2_wp[thread_id]->rm_watchpoint(start, end);                 // set page_table
+#endif
+#ifdef PAGE_TABLE2_MULTI
+               page_table2_multi.rm_watchpoint(start, end);
 #endif
             }
          }
@@ -401,8 +445,14 @@ int WatchPoint<ADDRESS, FLAGS>::general_change(ADDRESS start, ADDRESS end, int32
 #ifdef PAGE_TABLE
             change_count = page_table_wp[thread_id]->rm_watchpoint(start, end);       // set page_table
 #endif
+#ifdef PAGE_TABLE_MULTI
+            change_count_multi = page_table_multi.rm_watchpoint(start, end);
+#endif
 #ifdef PAGE_TABLE2_SINGLE
             change_count2 = page_table2_wp[thread_id]->rm_watchpoint(start, end);     // set page_table
+#endif
+#ifdef PAGE_TABLE2_MULTI
+            change_count2_multi = page_table2_multi.rm_watchpoint(start, end);    // set page_table
 #endif
          }
       }
@@ -423,6 +473,9 @@ int WatchPoint<ADDRESS, FLAGS>::general_change(ADDRESS start, ADDRESS end, int32
 #endif
 #ifdef PAGE_TABLE2_SINGLE
          statistics_iter->second.change_count2 += change_count2;
+#endif
+#ifdef PAGE_TABLE2_MULTI
+         statistics_iter->second.change_count2_multi += change_count2_multi;
 #endif
       }
       return 0;                                                               // normal set: return 0
@@ -591,7 +644,7 @@ statistics_t WatchPoint<ADDRESS, FLAGS>::clear_statistics() {
    empty.change_count=0;
    #endif
    #ifdef PAGE_TABLE_MULTI
-   empty.multi_page_table_faults=0;
+   empty.page_table_multi_faults=0;
    empty.change_count_multi=0;
    #endif
 	#ifdef PAGE_TABLE2_SINGLE
@@ -602,6 +655,15 @@ statistics_t WatchPoint<ADDRESS, FLAGS>::clear_statistics() {
 	empty.highest_faults=0;
 	empty.highest_hits=0;
 	empty.change_count2=0;
+	#endif
+	#ifdef PAGE_TABLE2_MULTI
+	empty.superpage_miss_multi=0;
+	empty.superpage_miss_faults_multi=0;
+	empty.superpage_faults_multi=0;
+	empty.superpage_hits_multi=0;
+	empty.highest_faults_multi=0;
+	empty.highest_hits_multi=0;
+	empty.change_count2_multi=0;
 	#endif
    return empty;
 }
@@ -665,7 +727,7 @@ void WatchPoint<ADDRESS, FLAGS>::print_statistics(const statistics_t& to_print, 
    output << setw(45) << "Page table bitmap changes: " << to_print.change_count <<endl;
    #endif
    #ifdef PAGE_TABLE_MULTI
-   output << setw(45) << "Page table (multi) faults taken: " << to_print.multi_page_table_faults <<endl;
+   output << setw(45) << "Page table (multi) faults taken: " << to_print.page_table_multi_faults <<endl;
    output << setw(45) << "Page table bitmap changes: " << to_print.change_count_multi <<endl;
    #endif
    #ifdef PAGE_TABLE2_SINGLE
@@ -677,6 +739,15 @@ void WatchPoint<ADDRESS, FLAGS>::print_statistics(const statistics_t& to_print, 
    output << setw(45) << "low level page fault: " << to_print.superpage_miss_faults <<endl;
    output << setw(45) << "bit changes: " << to_print.change_count2 <<endl;
    #endif
+   #ifdef PAGE_TABLE2_MULTI
+   output << setw(45) << "2_level Page table (multi) quick hit: " << to_print.highest_hits_multi <<endl;
+   output << setw(45) << "quick fault: " << to_print.highest_faults_multi <<endl;
+   output << setw(45) << "superpage hit: " << to_print.superpage_hits_multi <<endl;
+   output << setw(45) << "superpage fault: " << to_print.superpage_faults_multi <<endl;
+   output << setw(45) << "superpage miss: " << to_print.superpage_miss_multi <<endl;
+   output << setw(45) << "low level page fault: " << to_print.superpage_miss_faults_multi <<endl;
+   output << setw(45) << "bit changes: " << to_print.change_count2_multi <<endl;
+   #endif
    output <<endl;
    return;
 }
@@ -685,7 +756,7 @@ void WatchPoint<ADDRESS, FLAGS>::print_statistics(const statistics_t& to_print, 
 /*
  * if we have only a single page_table for all threads, 
  * we have to check for faults for all threads. 
- */
+ *//*
 template<class ADDRESS, class FLAGS>
 int WatchPoint<ADDRESS, FLAGS>::count_faults(ADDRESS start, ADDRESS end) {
    ADDRESS page_number_start = ((start>>PAGE_OFFSET_LENGTH)<<PAGE_OFFSET_LENGTH);
@@ -699,14 +770,14 @@ int WatchPoint<ADDRESS, FLAGS>::count_faults(ADDRESS start, ADDRESS end) {
       }
    }
    return change_count;
-}
+}*/
 #endif
 
 #ifdef PAGE_TABLE_MULTI
 /*
  * if we have different page_table each threads, 
  * we only check for faults in a certian thread. 
- */
+ *//*
 template<class ADDRESS, class FLAGS>
 int WatchPoint<ADDRESS, FLAGS>::count_faults(ADDRESS start, ADDRESS end, int32_t thread_id) {
    ADDRESS page_number_start = ((start>>PAGE_OFFSET_LENGTH)<<PAGE_OFFSET_LENGTH);
@@ -718,7 +789,7 @@ int WatchPoint<ADDRESS, FLAGS>::count_faults(ADDRESS start, ADDRESS end, int32_t
       }
    }
    return change_count;
-}
+}*/
 #endif
 
 #endif /* WATCHPOINT_CPP_ */

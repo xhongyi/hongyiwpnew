@@ -15,6 +15,7 @@
 #define ALL_UNWATCHED         4
 #define ALL_WATCHED           5
 
+#include "virtual_wp.h"
 #include "page_table1_single.h"
 
 #define SUPERPAGE_NUM_LENGTH              10UL
@@ -23,16 +24,19 @@
 #define SUPER_PAGE_BIT_MAP_NUMBER         (1<<(SUPERPAGE_NUM_LENGTH-BIT_MAP_OFFSET_LENGTH))
 
 template<class ADDRESS, class FLAGS>
-class PageTable2_single {
+class PageTable2_single : public Virtual_wp<ADDRESS, FLAGS> {
 public:
-   PageTable2_single(PageTable1_single<ADDRESS, FLAGS> *pt1_ref);
+   PageTable2_single(Virtual_wp<ADDRESS, FLAGS> *pt1_ref);
    PageTable2_single();
    ~PageTable2_single();
    
-   int   watch_fault    (ADDRESS start_addr, ADDRESS end_addr);
+	int   general_fault  (ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags = 0);
+	int   watch_fault    (ADDRESS start_addr, ADDRESS end_addr);
+	int   read_fault     (ADDRESS start_addr, ADDRESS end_addr);
+	int   write_fault    (ADDRESS start_addr, ADDRESS end_addr);
    
-   int   add_watchpoint (ADDRESS start_addr, ADDRESS end_addr);
-	int   rm_watchpoint  (ADDRESS start_addr, ADDRESS end_addr);
+   int   add_watchpoint (ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags = 0);
+	int   rm_watchpoint  (ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags = 0);
 	
 	bool  check_unity    (ADDRESS superpage_number, bool watched);
 private:
@@ -40,7 +44,7 @@ private:
 	 * initialized when constructing
 	 * used for checking each page's state
 	 */
-	PageTable1_single<ADDRESS, FLAGS> *pt1;
+	Virtual_wp<ADDRESS, FLAGS> *pt1;
    /*
 	 * two bits for all pages
 	 * watched(10), unwatched(01) or missed(00)
