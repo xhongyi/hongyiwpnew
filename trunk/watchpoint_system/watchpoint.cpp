@@ -293,7 +293,7 @@ bool  WatchPoint<ADDRESS, FLAGS>::general_fault(ADDRESS start, ADDRESS end, int3
 #ifdef PAGE_TABLE2_SINGLE
             if (page_table2_fault == PAGETABLE_UNWATCHED)
                statistics_iter->second.superpage_miss++;
-            else if (page_table2_fault == PAGETABLE_FAULT) {
+            else if (page_table2_fault == PAGETABLE_WATCHED) {
                statistics_iter->second.superpage_miss++;
                statistics_iter->second.superpage_miss_faults++;
             }
@@ -313,7 +313,7 @@ bool  WatchPoint<ADDRESS, FLAGS>::general_fault(ADDRESS start, ADDRESS end, int3
 #ifdef PAGE_TABLE2_MULTI
             if (page_table2_multi_fault == PAGETABLE_UNWATCHED)
                statistics_iter->second.superpage_miss_multi++;
-            else if (page_table2_multi_fault == PAGETABLE_FAULT) {
+            else if (page_table2_multi_fault == PAGETABLE_WATCHED) {
                statistics_iter->second.superpage_miss_multi++;
                statistics_iter->second.superpage_miss_faults_multi++;
             }

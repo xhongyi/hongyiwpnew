@@ -8,12 +8,12 @@
 #ifndef PAGE_TABLE2_SINGLE_H_
 #define PAGE_TABLE2_SINGLE_H_
 
-#define PAGETABLE_UNWATCHED   0
-#define PAGETABLE_FAULT       1
-#define SUPERPAGE_UNWATCHED   2
-#define SUPERPAGE_WATCHED     3
-#define ALL_UNWATCHED         4
-#define ALL_WATCHED           5
+#define ALL_WATCHED           0
+#define ALL_UNWATCHED         1
+#define SUPERPAGE_WATCHED     2
+#define SUPERPAGE_UNWATCHED   3
+#define PAGETABLE_WATCHED     4
+#define PAGETABLE_UNWATCHED   5
 
 #include "virtual_wp.h"
 #include "page_table1_single.h"
