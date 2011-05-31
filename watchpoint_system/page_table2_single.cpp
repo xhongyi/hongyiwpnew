@@ -62,7 +62,7 @@ int PageTable2_single<ADDRESS, FLAGS>::general_fault(ADDRESS start_addr, ADDRESS
    ADDRESS page_number_end = (end_addr>>PAGE_OFFSET_LENGTH);
    for (ADDRESS i=page_number_start;i<=page_number_end;i++) {  //   for each page, 
       if (bit_map[i>>BIT_MAP_OFFSET_LENGTH] & (1<<(i&0x7)) )   //   if it is watched, 
-         return PAGETABLE_FAULT;                               //   then return true.
+         return PAGETABLE_WATCHED;                               //   then return true.
    }
    return PAGETABLE_UNWATCHED;                                 //   else return false.
 }
