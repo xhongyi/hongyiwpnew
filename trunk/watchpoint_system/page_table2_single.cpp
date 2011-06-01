@@ -142,7 +142,7 @@ int PageTable2_single<ADDRESS, FLAGS>::add_watchpoint(ADDRESS start_addr, ADDRES
          superpage_unwatched[superpage_number_start>>BIT_MAP_OFFSET_LENGTH] &= ~(1<<(superpage_number_start&0x7));   // unwatched = 0
       }
    }
-   // all_watched/all_unwatched
+   // all_watched/all_unwatched (check superpage unity)
    all_watched = true;
    all_unwatched = true;
    for (int i=0;i<SUPER_PAGE_BIT_MAP_NUMBER;i++) {
@@ -163,10 +163,10 @@ template<class ADDRESS, class FLAGS>
 int PageTable2_single<ADDRESS, FLAGS>::rm_watchpoint(ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags) {
    int changes = 0;
    ADDRESS superpage_number_start = (start_addr>>SUPERPAGE_OFFSET_LENGTH);
-   ADDRESS superpage_number_end = (end_addr>>SUPERPAGE_OFFSET_LENGTH);
+   ADDRESS superpage_number_end = (end_addr>>SUPERPAGE_OFFSET_LENGTH)+1;
    // superpages
-   ADDRESS page_number = (start_addr>>PAGE_OFFSET_LENGTH)>>PAGE_OFFSET_LENGTH;
-   for (ADDRESS i=superpage_number_start;i<=superpage_number_end;i++) {
+   ADDRESS page_number = ((start_addr>>PAGE_OFFSET_LENGTH)<<PAGE_OFFSET_LENGTH);
+   for (ADDRESS i=superpage_number_start;i!=superpage_number_end;i++) {
       if (check_unity(i, false)) {                                         // if set to unwatched
          changes++;
          superpage_watched[i>>BIT_MAP_OFFSET_LENGTH] &= ~(1<<(i&0x7));     // watched = 0
@@ -174,12 +174,12 @@ int PageTable2_single<ADDRESS, FLAGS>::rm_watchpoint(ADDRESS start_addr, ADDRESS
          page_number = ((i+1)<<SUPERPAGE_OFFSET_LENGTH);
       }
       else {
-         while ((page_number < (i>>SUPERPAGE_OFFSET_LENGTH)) && (page_number <= end_addr)) { // for all pages within the range and this superpage
+         while ((page_number != ((i+1)<<SUPERPAGE_OFFSET_LENGTH)) && (page_number <= end_addr)) { // for all pages within the range and this superpage
             if (!(pt1->watch_fault(page_number, page_number)) ) {
                if (bit_map[i>>BIT_MAP_OFFSET_LENGTH] & (1<<(i&0x7)))                         // count the changes
                   changes++;
             }
-            page_number += (1<<PAGE_OFFSET_LENGTH);
+            page_number += PAGE_SIZE;
          }
          changes++;
          superpage_watched[i>>BIT_MAP_OFFSET_LENGTH] &= ~(1<<(i&0x7));     // watched = 0
@@ -199,8 +199,8 @@ int PageTable2_single<ADDRESS, FLAGS>::rm_watchpoint(ADDRESS start_addr, ADDRESS
    // managing its own bitmap
    //   calculating the starting V.P.N. and the ending V.P.N.
    ADDRESS page_number_start = (start_addr>>PAGE_OFFSET_LENGTH);
-   ADDRESS page_number_end = (end_addr>>PAGE_OFFSET_LENGTH);
-   for (ADDRESS i=page_number_start;i<=page_number_end;i++) {                       //   for each page, 
+   ADDRESS page_number_end = (end_addr>>PAGE_OFFSET_LENGTH)+1;
+   for (ADDRESS i=page_number_start;i!=page_number_end;i++) {                       //   for each page, 
       if (!(pt1->watch_fault((i<<PAGE_OFFSET_LENGTH), (i<<PAGE_OFFSET_LENGTH) ) ) ) //   if it should not throw a fault
          bit_map[i>>BIT_MAP_OFFSET_LENGTH] &= ~(1<<(i&0x7));                        //   set the page unwatched (overwrite)
    }
@@ -211,7 +211,7 @@ template<class ADDRESS, class FLAGS>
 bool PageTable2_single<ADDRESS, FLAGS>::check_unity(ADDRESS superpage_number, bool watched) {
    ADDRESS start = (superpage_number<<SUPERPAGE_OFFSET_LENGTH);
    ADDRESS end = ((superpage_number+1)<<SUPERPAGE_OFFSET_LENGTH);
-   for (ADDRESS i=start;i<end;i+=PAGE_SIZE) {
+   for (ADDRESS i=start;i!=end;i+=PAGE_SIZE) {
       if (pt1->watch_fault(i, i) != watched)
          return false;
    }
