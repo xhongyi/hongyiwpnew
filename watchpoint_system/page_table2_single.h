@@ -57,12 +57,8 @@ private:
 	 */
 	unsigned char superpage_watched[SUPER_PAGE_BIT_MAP_NUMBER];
 	unsigned char superpage_unwatched[SUPER_PAGE_BIT_MAP_NUMBER];
-	/*
-	 * one bit for each page
-	 * keeping track of whether this page is watched or not
-	 * the software will keep what kind of watchpoint it is
-	 */
-	unsigned char bit_map[BIT_MAP_NUMBER];
+	
+	//unsigned char bit_map[BIT_MAP_NUMBER];
 };
 
 #include "page_table2_single.cpp"
