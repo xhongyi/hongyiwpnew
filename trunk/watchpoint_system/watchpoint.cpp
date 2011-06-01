@@ -424,24 +424,11 @@ int WatchPoint<ADDRESS, FLAGS>::general_change(ADDRESS start, ADDRESS end, int32
             change_count2 = page_table2_wp[thread_id]->add_watchpoint(start, end);    // set page_table
 #endif
 #ifdef PAGE_TABLE2_MULTI
-            change_count2_multi = page_table2_multi.add_watchpoint(start, end);    // set page_table
+            change_count2_multi = page_table2_multi.add_watchpoint(start, end);     // set page_table
 #endif
-            if (rm_flag) {
-#ifdef PAGE_TABLE
-               page_table_wp[thread_id]->rm_watchpoint(start, end);                  // set page_table
-#endif
-#ifdef PAGE_TABLE_MULTI
-               page_table_multi.rm_watchpoint(start, end);
-#endif
-#ifdef PAGE_TABLE2_SINGLE
-               page_table2_wp[thread_id]->rm_watchpoint(start, end);                 // set page_table
-#endif
-#ifdef PAGE_TABLE2_MULTI
-               page_table2_multi.rm_watchpoint(start, end);
-#endif
-            }
          }
-         else if (rm_flag) {
+         else if (rm_flag) {                                                     // For pagetables only: if (add_flag) => no need to consider rm_flag
+                                                                                 //    (because they do not consider flag type)
 #ifdef PAGE_TABLE
             change_count = page_table_wp[thread_id]->rm_watchpoint(start, end);       // set page_table
 #endif
@@ -473,6 +460,8 @@ int WatchPoint<ADDRESS, FLAGS>::general_change(ADDRESS start, ADDRESS end, int32
 #endif
 #ifdef PAGE_TABLE2_SINGLE
          statistics_iter->second.change_count2 += change_count2;
+         if (change_count2 != 1)
+            cout <<"@@@ "<<start<<" "<<end<<" "<<target_flags<<" "<<change_count2<<endl;
 #endif
 #ifdef PAGE_TABLE2_MULTI
          statistics_iter->second.change_count2_multi += change_count2_multi;

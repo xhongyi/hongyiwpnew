@@ -7,15 +7,10 @@
 #ifdef PT2_BYTE_ACU_SINGLE_H_
 #define PT2_BYTE_ACU_SINGLE_H_
 
-#define ALL_WATCHED           0
-#define ALL_UNWATCHED         1
-#define SUPERPAGE_WATCHED     2
-#define SUPERPAGE_UNWATCHED   3
-#define PAGETABLE_WATCHED     4
-#define PAGETABLE_UNWATCHED   5
 #define TRIE                  6
 
 #include "oracle_wp.h"
+#include "page_table2_single.h"
 
 template<class ADDRESS, class FLAGS>
 class PT2_byte_acu_single : public Virtual_wp<ADDRESS, FLAGS> {
@@ -32,7 +27,7 @@ public:
 	int     write_fault    (ADDRESS start_addr, ADDRESS end_addr);
 	/*
 	 * returns the number of changes it does on bit_map
-	 * for counting the number of changes: changes = add + rm;
+	 * for counting the number of changes: changes = add or rm;
 	 */
 	int      add_watchpoint (ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags = 0);
 	int      rm_watchpoint  (ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags = 0);
@@ -60,7 +55,7 @@ private:
 	/*
 	 * two bit for each page
 	 * keeping track of whether this page is watched(10) or 
-	 * unwatched(01) or trie(00)
+	 * unwatched(01) or bitmap(00)
 	 */
 	unsigned char pt_watched[BIT_MAP_NUMBER];
 	unsigned char pt_unwatched[BIT_MAP_NUMBER];

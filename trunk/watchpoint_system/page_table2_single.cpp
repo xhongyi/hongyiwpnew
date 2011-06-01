@@ -12,8 +12,6 @@ PageTable2_single<ADDRESS, FLAGS>::PageTable2_single(Virtual_wp<ADDRESS, FLAGS> 
       superpage_watched[i] = 0x00;
       superpage_unwatched[i] = 0xff;
    }
-   for (int i=0;i<BIT_MAP_NUMBER;i++)
-      bit_map[i] = 0;
 }
 
 template<class ADDRESS, class FLAGS>
@@ -26,8 +24,6 @@ PageTable2_single<ADDRESS, FLAGS>::PageTable2_single() {
       superpage_watched[i] = 0x00;
       superpage_unwatched[i] = 0xff;
    }
-   for (int i=0;i<BIT_MAP_NUMBER;i++)
-      bit_map[i] = 0;
    */
 }
 
@@ -56,15 +52,9 @@ int PageTable2_single<ADDRESS, FLAGS>::general_fault(ADDRESS start_addr, ADDRESS
       if (unwatched)
          return SUPERPAGE_UNWATCHED;
    }
-   // checking in its bit_map
-   //   calculating the starting V.P.N. and the ending V.P.N.
-   ADDRESS page_number_start = (start_addr>>PAGE_OFFSET_LENGTH);
-   ADDRESS page_number_end = (end_addr>>PAGE_OFFSET_LENGTH);
-   for (ADDRESS i=page_number_start;i<=page_number_end;i++) {  //   for each page, 
-      if (bit_map[i>>BIT_MAP_OFFSET_LENGTH] & (1<<(i&0x7)) )   //   if it is watched, 
-         return PAGETABLE_WATCHED;                               //   then return true.
-   }
-   return PAGETABLE_UNWATCHED;                                 //   else return false.
+   if (pt1->general_fault(start_addr, end_addr, target_flags))
+      return PAGETABLE_WATCHED;
+   return PAGETABLE_UNWATCHED;
 }
 
 template<class ADDRESS, class FLAGS>
@@ -153,9 +143,6 @@ int PageTable2_single<ADDRESS, FLAGS>::add_watchpoint(ADDRESS start_addr, ADDRES
    }
    if (all_watched || all_unwatched)
       changes = 1;
-   // managing its own bitmap
-   for (ADDRESS i=page_number_start;i<=page_number_end;i++)       //   for each page, 
-      bit_map[i>>BIT_MAP_OFFSET_LENGTH] |= (1<<(i&0x7));          //   set the page watched. (overwrite)
    return changes;
 }
 
@@ -176,8 +163,7 @@ int PageTable2_single<ADDRESS, FLAGS>::rm_watchpoint(ADDRESS start_addr, ADDRESS
       else {
          while ((page_number != ((i+1)<<SUPERPAGE_OFFSET_LENGTH)) && (page_number <= end_addr)) { // for all pages within the range and this superpage
             if (!(pt1->watch_fault(page_number, page_number)) ) {
-               if (bit_map[i>>BIT_MAP_OFFSET_LENGTH] & (1<<(i&0x7)))                         // count the changes
-                  changes++;
+               changes++;
             }
             page_number += PAGE_SIZE;
          }
@@ -196,14 +182,6 @@ int PageTable2_single<ADDRESS, FLAGS>::rm_watchpoint(ADDRESS start_addr, ADDRESS
    }
    if (all_watched || all_unwatched)
       changes = 1;
-   // managing its own bitmap
-   //   calculating the starting V.P.N. and the ending V.P.N.
-   ADDRESS page_number_start = (start_addr>>PAGE_OFFSET_LENGTH);
-   ADDRESS page_number_end = (end_addr>>PAGE_OFFSET_LENGTH)+1;
-   for (ADDRESS i=page_number_start;i!=page_number_end;i++) {                       //   for each page, 
-      if (!(pt1->watch_fault((i<<PAGE_OFFSET_LENGTH), (i<<PAGE_OFFSET_LENGTH) ) ) ) //   if it should not throw a fault
-         bit_map[i>>BIT_MAP_OFFSET_LENGTH] &= ~(1<<(i&0x7));                        //   set the page unwatched (overwrite)
-   }
    return changes;
 }
 
