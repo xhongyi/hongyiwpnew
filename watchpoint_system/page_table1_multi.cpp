@@ -21,8 +21,9 @@ void PageTable1_multi<ADDRESS, FLAGS>::start_thread(int32_t thread_id, PageTable
 template<class ADDRESS, class FLAGS>
 void PageTable1_multi<ADDRESS, FLAGS>::end_thread(int32_t thread_id) {
    page_table_wp.erase(thread_id);
+   bool multi_page_table_fault;
    for (ADDRESS i=0;i<PAGE_NUMBER;i++) {
-      bool multi_page_table_fault = false;
+      multi_page_table_fault = false;
       for (page_table_wp_iter=page_table_wp.begin();page_table_wp_iter!=page_table_wp.end();page_table_wp_iter++) {
          if (page_table_wp_iter->second->watch_fault(i<<PAGE_OFFSET_LENGTH, i<<PAGE_OFFSET_LENGTH) ) {
             multi_page_table_fault = true;
@@ -38,8 +39,8 @@ template<class ADDRESS, class FLAGS>
 int PageTable1_multi<ADDRESS, FLAGS>::general_fault(ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags) {
 	//	calculating the starting V.P.N. and the ending V.P.N.
 	ADDRESS page_number_start = (start_addr>>PAGE_OFFSET_LENGTH);
-	ADDRESS page_number_end = (end_addr>>PAGE_OFFSET_LENGTH);
-	for (ADDRESS i=page_number_start;i<=page_number_end;i++) {  //	for each page, 
+	ADDRESS page_number_end = (end_addr>>PAGE_OFFSET_LENGTH)+1;
+	for (ADDRESS i=page_number_start;i!=page_number_end;i++) {  //	for each page, 
 		if (bit_map[i>>BIT_MAP_OFFSET_LENGTH] & (1<<(i&0x7)) )   //	if it is watched, 
 			return true;                                          //	then return true.
 	}
@@ -67,10 +68,10 @@ template<class ADDRESS, class FLAGS>
 int PageTable1_multi<ADDRESS, FLAGS>::add_watchpoint(ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags) {
 	//	calculating the starting V.P.N. and the ending V.P.N.
 	ADDRESS page_number_start = (start_addr>>PAGE_OFFSET_LENGTH);
-	ADDRESS page_number_end = (end_addr>>PAGE_OFFSET_LENGTH);
-	for (ADDRESS i=page_number_start;i<=page_number_end;i++)       //	for each page, 
+	ADDRESS page_number_end = (end_addr>>PAGE_OFFSET_LENGTH)+1;
+	for (ADDRESS i=page_number_start;i!=page_number_end;i++)       //	for each page, 
 		bit_map[i>>BIT_MAP_OFFSET_LENGTH] |= (1<<(i&0x7));          //	set the page watched. (overwrite)
-	return page_number_end - page_number_start + 1;
+	return page_number_end - page_number_start;
 }
 
 //	rm_watchpoint
@@ -79,9 +80,10 @@ int PageTable1_multi<ADDRESS, FLAGS>::rm_watchpoint(ADDRESS start_addr, ADDRESS 
    int changes = 0;
    //	calculating the starting V.P.N. and the ending V.P.N.
    ADDRESS page_number_start = (start_addr>>PAGE_OFFSET_LENGTH);
-   ADDRESS page_number_end = (end_addr>>PAGE_OFFSET_LENGTH);
-   for (ADDRESS i=page_number_start;i<=page_number_end;i++) {                          //	for each page, 
-      bool multi_page_table_fault = false;
+   ADDRESS page_number_end = (end_addr>>PAGE_OFFSET_LENGTH)+1;
+   bool multi_page_table_fault;
+   for (ADDRESS i=page_number_start;i!=page_number_end;i++) {                          //	for each page, 
+      multi_page_table_fault = false;
       for (page_table_wp_iter=page_table_wp.begin();page_table_wp_iter!=page_table_wp.end();page_table_wp_iter++) {
          if (page_table_wp_iter->second->watch_fault(i<<PAGE_OFFSET_LENGTH, i<<PAGE_OFFSET_LENGTH) ) {
             multi_page_table_fault = true;
@@ -95,8 +97,5 @@ int PageTable1_multi<ADDRESS, FLAGS>::rm_watchpoint(ADDRESS start_addr, ADDRESS 
    }
    return changes;
 }
-
-
-
 
 #endif
