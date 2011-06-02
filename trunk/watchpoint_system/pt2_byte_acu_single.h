@@ -32,7 +32,9 @@ public:
 	int      add_watchpoint (ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags = 0);
 	int      rm_watchpoint  (ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags = 0);
 	
-	bool     check_unity    (ADDRESS start_addr, ADDRESS end_addr);
+	bool     check_page_level_unity        (ADDRESS page_number,      bool watched);
+	bool     check_superpage_level_unity   (ADDRESS superpage_number, bool watched);
+	bool     check_seg_reg_level_unity     (bool watched);
 	
 private:
 	/*

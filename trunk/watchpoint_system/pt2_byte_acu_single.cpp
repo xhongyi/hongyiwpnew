@@ -79,7 +79,7 @@ int PT2_byte_acu_single<ADDRESS, FLAGS>::write_fault(ADDRESS start_addr, ADDRESS
 }
 
 template<class ADDRESS, class FLAGS>
-int add_watchpoint (ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags = 0) {
+int PT2_byte_acu_single<ADDRESS, FLAGS>::add_watchpoint(ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags = 0) {
 	//	calculating the starting V.P.N. and the ending V.P.N.
 	ADDRESS page_number_start = (start_addr>>PAGE_OFFSET_LENGTH);
 	ADDRESS page_number_end = (end_addr>>PAGE_OFFSET_LENGTH);
@@ -169,6 +169,123 @@ int add_watchpoint (ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags = 0
               + superpage_number_end - superpage_number_start - 1;
       }
    }
+}
+
+template<class ADDRESS, class FLAGS>
+int PT2_byte_acu_single<ADDRESS, FLAGS>::rm_watchpoint(ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags = 0) {
+   unsigned int page_change = 0, superpage_change = 0, total_change = 0;
+   ADDRESS page_number = (start_addr>>PAGE_OFFSET_LENGTH);
+   ADDRESS superpage_number = (start_addr>>SUPERPAGE_OFFSET_LENGTH);
+   for (ADDRESS i=start_addr;i<=end_addr;i++) {
+      if (!wp->watch_fault(i, i))      // if unwatched
+         page_change++;
+      if ( (i & (PAGE_SIZE-1)) == (PAGE_SIZE-1) ) {   // if page_end
+         if ((page_change == PAGE_SIZE) || check_page_level_unity(page_number, false)) {     // if all unwatched in a page
+            pt_unwatched[page_number>>BIT_MAP_OFFSET_LENGTH] |= (1<<(page_number&0x7));      //	unwatched = 1
+            pt_watched[page_number>>BIT_MAP_OFFSET_LENGTH] &= ~(1<<(page_number&0x7));       // watched = 0
+            superpage_change++;
+         }
+         else if (page_change) {
+            pt_watched[page_number>>BIT_MAP_OFFSET_LENGTH] &= ~(1<<(page_number&0x7));       // watched = 0
+            superpage_change++;
+            superpage_change += page_change;
+         }
+         page_change = 0;
+         page_number++;
+      }
+      if ( (i & ((1<<SUPERPAGE_OFFSET_LENGTH)-1)) == ((1<<SUPERPAGE_OFFSET_LENGTH)-1) ) {    // if superpage_end
+         if (check_superpage_level_unity(superpage_number, false)) {
+            superpage_unwatched[superpage_number>>BIT_MAP_OFFSET_LENGTH] |= (1<<(superpage_number&0x7));    // unwatched = 1
+            superpage_watched[superpage_number>>BIT_MAP_OFFSET_LENGTH] &= ~(1<<(superpage_number&0x7));     // watched = 0
+            total_change++;
+         }
+         else if (superpage_change) {
+            superpage_watched[superpage_number>>BIT_MAP_OFFSET_LENGTH] &= ~(1<<(superpage_number&0x7));     // watched = 0
+            total_change++;
+            total_change += superpage_change;
+         }
+         superpage_change = 0;
+         superpage_number++;
+      }
+   }
+   if (page_change) {
+      if (check_page_level_unity(page_number, false)) {
+         pt_unwatched[page_number>>BIT_MAP_OFFSET_LENGTH] |= (1<<(page_number&0x7));      //	unwatched = 1
+         pt_watched[page_number>>BIT_MAP_OFFSET_LENGTH] &= ~(1<<(page_number&0x7));       // watched = 0
+         superpage_change++;
+      }
+      else {
+         pt_watched[page_number>>BIT_MAP_OFFSET_LENGTH] &= ~(1<<(page_number&0x7));       // watched = 0
+         superpage_change += page_change;
+      }
+   }
+   if (superpage_change) {
+      if (check_superpage_level_unity(superpage_number, false)) {
+         superpage_unwatched[superpage_number>>BIT_MAP_OFFSET_LENGTH] |= (1<<(superpage_number&0x7));    // unwatched = 1
+         superpage_watched[superpage_number>>BIT_MAP_OFFSET_LENGTH] &= ~(1<<(superpage_number&0x7));     // watched = 0
+         total_change++;
+      }
+      else {
+         superpage_watched[superpage_number>>BIT_MAP_OFFSET_LENGTH] &= ~(1<<(superpage_number&0x7));     // watched = 0
+         total_change += superpage_change;
+       }
+   }
+   if (total_change) {
+      if (check_seg_reg_level_unity(false)) {
+         seg_reg_unwatched = true;
+         seg_reg_watched = false;
+         return 1;
+      }
+      seg_reg_watched = false;
+   }
+   return total_change;
+}
+
+template<class ADDRESS, class FLAGS>
+bool PT2_byte_acu_single<ADDRESS, FLAGS>::check_page_level_unity(ADDRESS page_number, bool watched) {
+   ADDRESS start = (page_number<<PAGE_OFFSET_LENGTH);
+   ADDRESS end   = ((page_number+1)<<PAGE_OFFSET_LENGTH);
+   for (ADDRESS i=start;i!=end;i++) {
+      if (wp->watch_fault(i, i) != watched)
+         return false;
+   }
+   return true;
+}
+
+template<class ADDRESS, class FLAGS>
+bool PT2_byte_acu_single<ADDRESS, FLAGS>::check_superpage_level_unity(ADDRESS superpage_number, bool watched) {
+   ADDRESS page_number_start = (superpage_number<<SECOND_LEVEL_PAGE_NUM_LENGTH);
+   ADDRESS page_number_end   = ((superpage_number+1)<<SECOND_LEVEL_PAGE_NUM_LENGTH);
+   if (watched) {
+      for (ADDRESS i=page_number_start;i!=page_number_end;i++) {
+         if (!(pt_watched[i>>BIT_MAP_OFFSET_LENGTH] & (1<<(i&0x7)) ))
+            return false;
+      }
+   }
+   else {
+      for (ADDRESS i=page_number_start;i!=page_number_end;i++) {
+         if (!(pt_unwatched[i>>BIT_MAP_OFFSET_LENGTH] & (1<<(i&0x7)) ))
+            return false;
+      }
+   }
+   return true;
+}
+
+template<class ADDRESS, class FLAGS>
+bool PT2_byte_acu_single<ADDRESS, FLAGS>::check_seg_reg_level_unity(bool watched) {
+   if (watched) {
+      for (int i=0;i<SUPER_PAGE_BIT_MAP_NUMBER;i++) {
+         if (superpage_watched[i] != 0xff)
+            return false;
+      }
+   }
+   else {
+      for (int i=0;i<SUPER_PAGE_BIT_MAP_NUMBER;i++) {
+         if (superpage_unwatched[i] != 0xff)
+            return false;
+      }
+   }
+   return true;
 }
 
 #endif
