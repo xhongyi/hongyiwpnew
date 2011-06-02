@@ -140,9 +140,33 @@ int add_watchpoint (ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags = 0
       }
       else {   // if not in the same superpage
          // set start and end superpage
-         
+         if (check_superpage_level_unity(superpage_number_start, true)) {
+            superpage_watched[superpage_number_start>>BIT_MAP_OFFSET_LENGTH] |= (1<<(superpage_number_start&0x7));      // watched = 1
+            superpage_unwatched[superpage_number_start>>BIT_MAP_OFFSET_LENGTH] &= ~(1<<(superpage_number_start&0x7));   // unwatched = 0
+            first_superpage_bitmap_change = 1;
+         }
+         else
+            first_superpage_bitmap_change = ((superpage_number_start+1)<<SECOND_LEVEL_PAGE_NUM_LENGTH) - page_number_start;
+         if (check_superpage_level_unity(superpage_number_end, true)) {
+            superpage_watched[superpage_number_end>>BIT_MAP_OFFSET_LENGTH] |= (1<<(superpage_number_end&0x7));          // watched = 1
+            superpage_unwatched[superpage_number_end>>BIT_MAP_OFFSET_LENGTH] &= ~(1<<(superpage_number_end&0x7));       // unwatched = 0
+            last_superpage_bitmap_change = 1;
+         }
+         else
+            last_superpage_bitmap_change = page_number_end - (superpage_number_end<<SECOND_LEVEL_PAGE_NUM_LENGTH) + 1;
          // set all superpages in the middle
-         
+         for (ADDRESS i=superpage_number_start+1;i!=superpage_number_end;i++) {
+            superpage_watched[i>>BIT_MAP_OFFSET_LENGTH] |= (1<<(i&0x7));                                                // watched = 1
+            superpage_unwatched[i>>BIT_MAP_OFFSET_LENGTH] &= ~(1<<(i&0x7));                                             // unwatched = 0
+         }
+         seg_reg_unwatched = false;
+         if (check_seg_reg_level_unity(true)) {
+            seg_reg_watched = true;
+            return 1;
+         }
+         return firstpage_bitmap_change + lastpage_bitmap_change 
+              + first_superpage_bitmap_change + last_superpage_bitmap_change 
+              + superpage_number_end - superpage_number_start - 1;
       }
    }
 }
