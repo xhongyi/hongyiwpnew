@@ -1,4 +1,4 @@
-#ifdef PT2_BYTE_ACU_SINGLE_CPP_
+#ifndef PT2_BYTE_ACU_SINGLE_CPP_
 #define PT2_BYTE_ACU_SINGLE_CPP_
 
 #include "pt2_byte_acu_single.h"
@@ -6,8 +6,8 @@
 template<class ADDRESS, class FLAGS>
 PT2_byte_acu_single<ADDRESS, FLAGS>::PT2_byte_acu_single(Oracle<ADDRESS, FLAGS> *wp_ref) {
 	wp = wp_ref;
-   all_watched = false;
-   all_unwatched = true;
+   seg_reg_watched = false;
+   seg_reg_unwatched = true;
    for (int i=0;i<SUPER_PAGE_BIT_MAP_NUMBER;i++) {
       superpage_watched[i] = 0x00;
       superpage_unwatched[i] = 0xff;
@@ -31,9 +31,9 @@ template<class ADDRESS, class FLAGS>
 int PT2_byte_acu_single<ADDRESS, FLAGS>::general_fault(ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags) {
    bool unwatched = true;
    // checking the highest level hits
-   if (all_watched)
+   if (seg_reg_watched)
       return ALL_WATCHED;
-   else if (all_unwatched)
+   else if (seg_reg_unwatched)
       return ALL_UNWATCHED;
    // checking superpage hits
    else {
@@ -60,7 +60,9 @@ int PT2_byte_acu_single<ADDRESS, FLAGS>::general_fault(ADDRESS start_addr, ADDRE
 	}
 	if (unwatched)
 	   return PAGETABLE_WATCHED;
-	return TRIE;
+	if (wp->watch_fault(start_addr, end_addr))
+	   return BITMAP_WATCHED;
+	return BITMAP_UNWATCHED;
 }
 
 template<class ADDRESS, class FLAGS>
@@ -79,7 +81,7 @@ int PT2_byte_acu_single<ADDRESS, FLAGS>::write_fault(ADDRESS start_addr, ADDRESS
 }
 
 template<class ADDRESS, class FLAGS>
-int PT2_byte_acu_single<ADDRESS, FLAGS>::add_watchpoint(ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags = 0) {
+int PT2_byte_acu_single<ADDRESS, FLAGS>::add_watchpoint(ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags) {
 	//	calculating the starting V.P.N. and the ending V.P.N.
 	ADDRESS page_number_start = (start_addr>>PAGE_OFFSET_LENGTH);
 	ADDRESS page_number_end = (end_addr>>PAGE_OFFSET_LENGTH);
@@ -172,7 +174,7 @@ int PT2_byte_acu_single<ADDRESS, FLAGS>::add_watchpoint(ADDRESS start_addr, ADDR
 }
 
 template<class ADDRESS, class FLAGS>
-int PT2_byte_acu_single<ADDRESS, FLAGS>::rm_watchpoint(ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags = 0) {
+int PT2_byte_acu_single<ADDRESS, FLAGS>::rm_watchpoint(ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags) {
    unsigned int page_change = 0, superpage_change = 0, total_change = 0;
    ADDRESS page_number = (start_addr>>PAGE_OFFSET_LENGTH);
    ADDRESS superpage_number = (start_addr>>SUPERPAGE_OFFSET_LENGTH);

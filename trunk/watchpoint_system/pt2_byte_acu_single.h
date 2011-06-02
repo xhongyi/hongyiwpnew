@@ -4,10 +4,11 @@
  *  Created on: May 27, 2011
  *      Author: luoyixin
  */
-#ifdef PT2_BYTE_ACU_SINGLE_H_
+#ifndef PT2_BYTE_ACU_SINGLE_H_
 #define PT2_BYTE_ACU_SINGLE_H_
 
-#define TRIE                  6
+#define BITMAP_WATCHED     6
+#define BITMAP_UNWATCHED   7
 
 #include "oracle_wp.h"
 #include "page_table2_single.h"
