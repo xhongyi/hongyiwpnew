@@ -1,15 +1,18 @@
 CXX=g++
 CFLAGS=-Wall -Werror -O3
 EXECS=test_add test_rm test_cache_algo test_print test_pt test_wp pintools	#add executes here
-OBJS=$(WP_FOLDER)$(WATCHPOINT).o $(WP_FOLDER)$(ORACLE).o $(WP_FOLDER)$(PT).o $(WP_FOLDER)$(PT2).o $(WP_FOLDER)$(CACHE_ALGO).o #$(WP_FOLDER)$(RC).o	#add objects here
+OBJS=$(WP_FOLDER)$(WATCHPOINT).o $(WP_FOLDER)$(ORACLE).o $(WP_FOLDER)$(PT).o $(WP_FOLDER)$(PT_MULTI).o $(WP_FOLDER)$(PT2).o $(WP_FOLDER)$(PT2_BYTE_ACU).o $(WP_FOLDER)$(CACHE_ALGO).o #$(WP_FOLDER)$(RC).o	#add objects here
 
 WP_FOLDER=watchpoint_system/
 WP_DATA=wp_data_struct
 ORACLE=oracle_wp
 PT=page_table1_single
+PT_MULTI=page_table1_multi
 PT2=page_table2_single
+PT2_BYTE_ACU=pt2_byte_acu_single
 CACHE_ALGO=cache_algo
 #RC=range_cache
+#add objects here
 WATCHPOINT=watchpoint
 PINTOOLS=pintools
 .PHONY : pintools clean
@@ -48,14 +51,22 @@ $(ORACLE).o: $(ORACLE).cpp $(ORACLE).h
 $(PT).o: $(PT).cpp $(PT).h
 	cd $(WP_FOLDER) & $(CXX) $(CFLAGS) -c $(PT).cpp
 
+$(PT_MULTI).o: $(PT_MULTI).cpp $(PT_MULTI).h
+	cd $(WP_FOLDER) & $(CXX) $(CFLAGS) -c $(PT_MULTI).cpp
+
 $(PT2).o: $(PT2).cpp $(PT2).h
 	cd $(WP_FOLDER) & $(CXX) $(CFLAGS) -c $(PT2).cpp
+
+$(PT2_BYTE_ACU).o: $(PT2_BYTE_ACU).cpp $(PT2_BYTE_ACU).h
+	cd $(WP_FOLDER) & $(CXX) $(CFLAGS) -c $(PT2_BYTE_ACU).cpp
 
 $(CACHE_ALGO).o: $(CACHE_ALGO).cpp $(CACHE_ALGO).h
 	cd $(WP_FOLDER) & $(CXX) $(CFLAGS) -c $(CACHE_ALGO).cpp
 
 $(WATCHPOINT).o: $(WATCHPOINT).cpp $(WATCHPOINT).h
 	cd $(WP_FOLDER) & $(CXX) $(CFLAGS) -c $(WATCHPOINT).cpp
+
+#add objects here
 
 $(PINTOOLS):
 	cd pintools; $(MAKE)

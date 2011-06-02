@@ -38,6 +38,16 @@ inline statistics_t& operator +=(statistics_t &a, const statistics_t &b) { // no
    a.highest_hits_multi += b.highest_hits_multi;
 	a.change_count2_multi += b.change_count2_multi;
 	#endif
+   #ifdef PT2_BYTE_ACU
+   a.pt2_byte_acu_seg_reg_hits += b.pt2_byte_acu_seg_reg_hits;
+   a.pt2_byte_acu_seg_reg_faults += b.pt2_byte_acu_seg_reg_faults;
+   a.pt2_byte_acu_superpage_hits += b.pt2_byte_acu_superpage_hits;
+   a.pt2_byte_acu_superpage_faults += b.pt2_byte_acu_superpage_faults;
+   a.pt2_byte_acu_page_hits += b.pt2_byte_acu_page_hits;
+   a.pt2_byte_acu_page_faults += b.pt2_byte_acu_page_faults;
+   a.pt2_byte_acu_bitmap_faults += b.pt2_byte_acu_bitmap_faults;
+   a.pt2_byte_acu_changes += b.pt2_byte_acu_changes;
+   #endif
    return a;
 }
 
@@ -77,6 +87,16 @@ inline statistics_t operator +(const statistics_t &a, const statistics_t &b) {
 	result.highest_hits_multi = a.highest_hits_multi + b.highest_hits_multi;
 	result.change_count2_multi = a.change_count2_multi + b.change_count2_multi;
 	#endif
+   #ifdef PT2_BYTE_ACU
+   result.pt2_byte_acu_seg_reg_hits = a.pt2_byte_acu_seg_reg_hits + b.pt2_byte_acu_seg_reg_hits;
+   result.pt2_byte_acu_seg_reg_faults = a.pt2_byte_acu_seg_reg_faults + b.pt2_byte_acu_seg_reg_faults;
+   result.pt2_byte_acu_superpage_hits = a.pt2_byte_acu_superpage_hits + b.pt2_byte_acu_superpage_hits;
+   result.pt2_byte_acu_superpage_faults = a.pt2_byte_acu_superpage_faults + b.pt2_byte_acu_superpage_faults;
+   result.pt2_byte_acu_page_hits = a.pt2_byte_acu_page_hits + b.pt2_byte_acu_page_hits;
+   result.pt2_byte_acu_page_faults = a.pt2_byte_acu_page_faults + b.pt2_byte_acu_page_faults;
+   result.pt2_byte_acu_bitmap_faults = a.pt2_byte_acu_bitmap_faults + b.pt2_byte_acu_bitmap_faults;
+   result.pt2_byte_acu_changes = a.pt2_byte_acu_changes + b.pt2_byte_acu_changes;
+   #endif
    return result;
 }
 
@@ -147,6 +167,9 @@ int WatchPoint<ADDRESS, FLAGS>::start_thread(int32_t thread_id) {
 #ifdef PAGE_TABLE2_SINGLE
          page_table2_wp[thread_id] = new PageTable2_single<ADDRESS, FLAGS>(page_table_wp.find(thread_id)->second);
 #endif
+#ifdef PT2_BYTE_ACU
+         pt2_byte_acu[thread_id] = new PT2_byte_acu_single<ADDRESS, FLAGS>(oracle_wp.find(thread_id)->second);
+#endif
       }
       return 0;                                                         // normal start: return 0
    }
@@ -181,6 +204,11 @@ int WatchPoint<ADDRESS, FLAGS>::end_thread(int32_t thread_id) {
 #endif
 #ifdef PAGE_TABLE2_MULTI
          page_table2_multi.rm_watchpoint(0, -1);                     // check all pages
+#endif
+#ifdef PT2_BYTE_ACU
+         pt2_byte_acu_iter = pt2_byte_acu.find(thread_id);
+         delete pt2_byte_acu_iter->second;
+         pt2_byte_acu.erase(pt2_byte_acu_iter);
 #endif
       }
       return 0;                                                         // normal end: return 0
@@ -253,6 +281,9 @@ bool  WatchPoint<ADDRESS, FLAGS>::general_fault(ADDRESS start, ADDRESS end, int3
 #ifdef PAGE_TABLE2_MULTI
       int page_table2_multi_fault = 0;
 #endif
+#ifdef PT2_BYTE_ACU
+      int pt2_byte_acu_fault = 0;
+#endif
       /*
        * emulating hardware
        */
@@ -271,6 +302,9 @@ bool  WatchPoint<ADDRESS, FLAGS>::general_fault(ADDRESS start, ADDRESS end, int3
 #endif
 #ifdef PAGE_TABLE2_MULTI
          page_table2_multi_fault = page_table2_multi.watch_fault(start, end);
+#endif
+#ifdef PT2_BYTE_ACU
+         pt2_byte_acu_fault = pt2_byte_acu[thread_id]->watch_fault(start, end);
 #endif
       }
       /*
@@ -328,6 +362,28 @@ bool  WatchPoint<ADDRESS, FLAGS>::general_fault(ADDRESS start, ADDRESS end, int3
             else if (page_table2_multi_fault == ALL_WATCHED) {
                statistics_iter->second.highest_hits_multi++;
                statistics_iter->second.highest_faults_multi++;
+            }
+#endif
+#ifdef PT2_BYTE_ACU
+            if (pt2_byte_acu_fault == BITMAP_UNWATCHED)
+               statistics_iter->second.pt2_byte_acu_bitmap_faults++;
+            else if (pt2_byte_acu_fault == PAGETABLE_UNWATCHED)
+               statistics_iter->second.pt2_byte_acu_page_hits++;
+            else if (pt2_byte_acu_fault == PAGETABLE_WATCHED) {
+               statistics_iter->second.pt2_byte_acu_page_hits++;
+               statistics_iter->second.pt2_byte_acu_page_faults++;
+            }
+            else if (pt2_byte_acu_fault == SUPERPAGE_UNWATCHED)
+               statistics_iter->second.pt2_byte_acu_superpage_hits++;
+            else if (pt2_byte_acu_fault == SUPERPAGE_WATCHED) {
+               statistics_iter->second.pt2_byte_acu_superpage_hits++;
+               statistics_iter->second.pt2_byte_acu_superpage_faults++;
+            }
+            else if (pt2_byte_acu_fault == ALL_UNWATCHED)
+               statistics_iter->second.pt2_byte_acu_seg_reg_hits++;
+            else if (pt2_byte_acu_fault == ALL_WATCHED) {
+               statistics_iter->second.pt2_byte_acu_seg_reg_hits++;
+               statistics_iter->second.pt2_byte_acu_seg_reg_faults++;
             }
 #endif
          }

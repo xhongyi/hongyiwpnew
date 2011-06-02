@@ -8,6 +8,8 @@
 #ifndef PAGE_TABLE1_MULTI_H_
 #define PAGE_TABLE1_MULTI_H_
 
+#include <stdint.h>
+#include <map>
 #include "virtual_wp.h"
 #include "page_table1_single.h"
 

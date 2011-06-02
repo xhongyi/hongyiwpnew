@@ -8,10 +8,11 @@
 #ifndef WATCHPOINT_H_
 #define WATCHPOINT_H_
 
-#define PAGE_TABLE_SINGLE
-#define PAGE_TABLE_MULTI
-#define PAGE_TABLE2_SINGLE
-#define PAGE_TABLE2_MULTI
+//#define PAGE_TABLE_SINGLE
+//#define PAGE_TABLE_MULTI
+//#define PAGE_TABLE2_SINGLE
+//#define PAGE_TABLE2_MULTI
+#define PT2_BYTE_ACU
 
 #ifdef PAGE_TABLE2_MULTI
 #define PAGE_TABLE_MULTI
@@ -45,6 +46,10 @@
 
 #ifdef PAGE_TABLE2_SINGLE
 #include "page_table2_single.h"
+#endif
+
+#ifdef PT2_BYTE_ACU
+#include "pt2_byte_acu_single.h"
 #endif
 
 #define IGNORE_STATS true
@@ -87,6 +92,16 @@ struct statistics_t {
 	long long highest_hits_multi;             // total number of times that all memory are watched/unwatched
 	long long change_count2_multi;            // total number of page_table_watch_bit changes
 	#endif
+   #ifdef PT2_BYTE_ACU
+   long long pt2_byte_acu_seg_reg_hits;
+   long long pt2_byte_acu_seg_reg_faults;
+   long long pt2_byte_acu_superpage_hits;
+   long long pt2_byte_acu_superpage_faults;
+   long long pt2_byte_acu_page_hits;
+   long long pt2_byte_acu_page_faults;
+   long long pt2_byte_acu_bitmap_faults;
+   long long pt2_byte_acu_changes;
+   #endif
 };
 
 /*
@@ -177,6 +192,9 @@ private:
 	#ifdef PAGE_TABLE2_MULTI
 	PageTable2_single<ADDRESS, FLAGS>                        page_table2_multi;
 	#endif
+   #ifdef PT2_BYTE_ACU
+   map<int32_t, PT2_byte_acu_single<ADDRESS, FLAGS>* >      pt2_byte_acu;
+   #endif
 
    bool                                                     emulate_hardware;
 	
@@ -191,6 +209,9 @@ private:
 	#ifdef PAGE_TABLE2_SINGLE
 	typename map<int32_t, PageTable2_single<ADDRESS, FLAGS>* >::iterator page_table2_wp_iter;
 	#endif
+   #ifdef PT2_BYTE_ACU
+   typename map<int32_t, PT2_byte_acu_single<ADDRESS, FLAGS>* >::iterator pt2_byte_acu_iter;
+   #endif
 	/*
 	#ifdef PAGE_TABLE_SINGLE
 	int count_faults(ADDRESS start, ADDRESS end);                     // counting the number of pages that get a fault
