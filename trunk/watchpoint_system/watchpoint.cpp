@@ -260,12 +260,14 @@ void WatchPoint<ADDRESS, FLAGS>::reset(int32_t thread_id) {
  */
 template<class ADDRESS, class FLAGS>
 bool  WatchPoint<ADDRESS, FLAGS>::general_fault(ADDRESS start, ADDRESS end, int32_t thread_id, FLAGS target_flags, bool ignore_statistics) {
+   //cout <<thread_id<<" "<<start<<" "<<end<<" "<<target_flags<<endl;
    /*
     * check for faults
     */
    oracle_wp_iter = oracle_wp.find(thread_id);
    if (oracle_wp_iter != oracle_wp.end()) {                                               // if thread_id found active
       bool oracle_fault = oracle_wp_iter->second->general_fault(start, end, target_flags); // check if Oracle fault
+      //bool oracle_fault = oracle_wp_iter->second->watch_fault(start, end);
       /*
        * declaring variables
        */
@@ -275,7 +277,7 @@ bool  WatchPoint<ADDRESS, FLAGS>::general_fault(ADDRESS start, ADDRESS end, int3
 #ifdef PAGE_TABLE_MULTI
       bool page_table_multi_fault = false;
 #endif
-#ifdef PAGE_TABLE_SINGLE
+#ifdef PAGE_TABLE2_SINGLE
       int page_table2_fault = 0;
 #endif
 #ifdef PAGE_TABLE2_MULTI
@@ -305,6 +307,8 @@ bool  WatchPoint<ADDRESS, FLAGS>::general_fault(ADDRESS start, ADDRESS end, int3
 #endif
 #ifdef PT2_BYTE_ACU
          pt2_byte_acu_fault = pt2_byte_acu[thread_id]->watch_fault(start, end);
+         if (!oracle_fault && !(pt2_byte_acu_fault == PAGETABLE_UNWATCHED || pt2_byte_acu_fault == BITMAP_UNWATCHED))
+            cout <<"@@@ error..."<<thread_id<<" "<<start<<" "<<end<<" "<<target_flags<<endl;
 #endif
       }
       /*
@@ -365,7 +369,7 @@ bool  WatchPoint<ADDRESS, FLAGS>::general_fault(ADDRESS start, ADDRESS end, int3
             }
 #endif
 #ifdef PT2_BYTE_ACU
-            if (pt2_byte_acu_fault == BITMAP_UNWATCHED)
+            if (pt2_byte_acu_fault == BITMAP_WATCHED)
                statistics_iter->second.pt2_byte_acu_bitmap_faults++;
             else if (pt2_byte_acu_fault == PAGETABLE_UNWATCHED)
                statistics_iter->second.pt2_byte_acu_page_hits++;
@@ -432,6 +436,7 @@ void WatchPoint<ADDRESS, FLAGS>::print_watchpoints(ostream &output) {
 
 template<class ADDRESS, class FLAGS>
 int WatchPoint<ADDRESS, FLAGS>::general_change(ADDRESS start, ADDRESS end, int32_t thread_id, string target_flags, bool ignore_statistics) {
+   //cout <<thread_id<<" "<<start<<" "<<end<<" "<<target_flags<<endl;
    /*
     * analyzing target_flags
     */
@@ -459,6 +464,9 @@ int WatchPoint<ADDRESS, FLAGS>::general_change(ADDRESS start, ADDRESS end, int32
 #ifdef PAGE_TABLE2_MULTI
    int change_count2_multi = 0;
 #endif
+#ifdef PT2_BYTE_ACU
+   int change_count2_byte_acu = 0;
+#endif
    oracle_wp_iter = oracle_wp.find(thread_id);
    if (oracle_wp_iter != oracle_wp.end()) {                                   // if thread_id found
       if (add_flag)
@@ -482,6 +490,9 @@ int WatchPoint<ADDRESS, FLAGS>::general_change(ADDRESS start, ADDRESS end, int32
 #ifdef PAGE_TABLE2_MULTI
             change_count2_multi = page_table2_multi.add_watchpoint(start, end);     // set page_table
 #endif
+#ifdef PT2_BYTE_ACU
+            change_count2_byte_acu = pt2_byte_acu[thread_id]->add_watchpoint(start, end);
+#endif
          }
          else if (rm_flag) {                                                     // For pagetables only: if (add_flag) => no need to consider rm_flag
                                                                                  //    (because they do not consider flag type)
@@ -496,6 +507,9 @@ int WatchPoint<ADDRESS, FLAGS>::general_change(ADDRESS start, ADDRESS end, int32
 #endif
 #ifdef PAGE_TABLE2_MULTI
             change_count2_multi = page_table2_multi.rm_watchpoint(start, end);    // set page_table
+#endif
+#ifdef PT2_BYTE_ACU
+            change_count2_byte_acu = pt2_byte_acu[thread_id]->rm_watchpoint(start, end);
 #endif
          }
       }
@@ -516,11 +530,12 @@ int WatchPoint<ADDRESS, FLAGS>::general_change(ADDRESS start, ADDRESS end, int32
 #endif
 #ifdef PAGE_TABLE2_SINGLE
          statistics_iter->second.change_count2 += change_count2;
-         if (change_count2 != 1)
-            cout <<"@@@ "<<start<<" "<<end<<" "<<target_flags<<" "<<change_count2<<endl;
 #endif
 #ifdef PAGE_TABLE2_MULTI
          statistics_iter->second.change_count2_multi += change_count2_multi;
+#endif
+#ifdef PT2_BYTE_ACU
+         statistics_iter->second.pt2_byte_acu_changes += change_count2_byte_acu;
 #endif
       }
       return 0;                                                               // normal set: return 0
@@ -710,6 +725,16 @@ statistics_t WatchPoint<ADDRESS, FLAGS>::clear_statistics() {
 	empty.highest_hits_multi=0;
 	empty.change_count2_multi=0;
 	#endif
+   #ifdef PT2_BYTE_ACU
+   empty.pt2_byte_acu_seg_reg_hits=0;
+	empty.pt2_byte_acu_seg_reg_faults=0;
+	empty.pt2_byte_acu_superpage_hits=0;
+	empty.pt2_byte_acu_superpage_faults=0;
+	empty.pt2_byte_acu_page_hits=0;
+	empty.pt2_byte_acu_page_faults=0;
+	empty.pt2_byte_acu_bitmap_faults=0;
+	empty.pt2_byte_acu_changes=0;
+   #endif
    return empty;
 }
 
@@ -792,6 +817,17 @@ void WatchPoint<ADDRESS, FLAGS>::print_statistics(const statistics_t& to_print, 
    output << setw(45) << "superpage miss: " << to_print.superpage_miss_multi <<endl;
    output << setw(45) << "low level page fault: " << to_print.superpage_miss_faults_multi <<endl;
    output << setw(45) << "bit changes: " << to_print.change_count2_multi <<endl;
+   #endif
+   #ifdef PT2_BYTE_ACU
+   output << setw(45) << "2_level Page table trie quick hit: " << to_print.pt2_byte_acu_seg_reg_hits <<endl;
+   output << setw(45) << "quick fault: " << to_print.pt2_byte_acu_seg_reg_faults <<endl;
+   output << setw(45) << "superpage hit: " << to_print.pt2_byte_acu_superpage_hits <<endl;
+   output << setw(45) << "superpage fault: " << to_print.pt2_byte_acu_superpage_faults <<endl;
+   output << setw(45) << "pagetable hit: " << to_print.pt2_byte_acu_page_hits <<endl;
+   output << setw(45) << "pagetable fault: " << to_print.pt2_byte_acu_page_faults <<endl;
+   output << setw(45) << "bitmap fault: " << to_print.pt2_byte_acu_bitmap_faults <<endl;
+   output << setw(45) << "total fault: " << to_print.pt2_byte_acu_bitmap_faults+to_print.pt2_byte_acu_page_faults+to_print.pt2_byte_acu_superpage_faults+to_print.pt2_byte_acu_seg_reg_faults <<endl;
+   output << setw(45) << "bit changes: " << to_print.pt2_byte_acu_changes <<endl;
    #endif
    output <<endl;
    return;
