@@ -169,7 +169,7 @@ int PT2_byte_acu_single<ADDRESS, FLAGS>::add_watchpoint(ADDRESS start_addr, ADDR
 
 template<class ADDRESS, class FLAGS>
 int PT2_byte_acu_single<ADDRESS, FLAGS>::rm_watchpoint(ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags) {
-   unsigned int page_change = 0, superpage_change = 0, total_change = 0;
+   int page_change = 0, superpage_change = 0, total_change = 0;
    ADDRESS page_number = (start_addr>>PAGE_OFFSET_LENGTH);
    ADDRESS superpage_number = (start_addr>>SUPERPAGE_OFFSET_LENGTH);
    for (ADDRESS i=start_addr;i<=end_addr;i++) {
@@ -222,7 +222,7 @@ int PT2_byte_acu_single<ADDRESS, FLAGS>::rm_watchpoint(ADDRESS start_addr, ADDRE
       }
       else {
          total_change += superpage_change;
-       }
+      }
    }
    if (total_change) {
       seg_reg_watched = false;

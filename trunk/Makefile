@@ -69,7 +69,7 @@ $(WATCHPOINT).o: $(WATCHPOINT).cpp $(WATCHPOINT).h
 #add objects here
 
 $(PINTOOLS):
-	cd pintools; $(MAKE)
+	cd pintools; $(MAKE) clean; $(MAKE)
 
 #$(RC).o: $(RC).cpp $(RC).h
 #	cd $(WP_FOLDER) & $(CXX) $(CFLAGS) -c $(RC).cpp

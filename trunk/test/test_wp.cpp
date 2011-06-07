@@ -62,6 +62,7 @@ int main(int argc, char *argv[]) {
 			cout <<"Succeeded!"<<endl;
 		else
 			cout <<"Failed!"<<endl;
+	   wp_test.print_watchpoints(*output);
 		cout <<"Please enter the watchpoint you want to change: <thread_id> <start> <end> <flag(rw)> "<<endl;
 		cin >>thread_id >>start >>end >>flag;
 	}
