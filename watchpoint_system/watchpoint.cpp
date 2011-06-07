@@ -233,9 +233,10 @@ void WatchPoint<ADDRESS, FLAGS>::print_threads(ostream &output) {
  */
 template<class ADDRESS, class FLAGS>
 void WatchPoint<ADDRESS, FLAGS>::reset() {
-   for (statistics_iter = statistics.begin();statistics_iter != statistics.end();statistics_iter++)
+   map<int32_t, statistics_t>::iterator statistics_iter_tmp;
+   for (statistics_iter_tmp = statistics.begin();statistics_iter_tmp != statistics.end();statistics_iter_tmp++)
                                                             // for all active thread_id's
-      reset(statistics_iter->first);                        // call reset
+      reset(statistics_iter_tmp->first);                        // call reset
    for (statistics_inactive_iter = statistics_inactive.begin();statistics_inactive_iter != statistics_inactive.end();statistics_inactive_iter++)
                                                             // for all inactive thread_id's
       statistics_inactive_iter->second = clear_statistics();  // clear inactive statistics
@@ -260,14 +261,13 @@ void WatchPoint<ADDRESS, FLAGS>::reset(int32_t thread_id) {
  */
 template<class ADDRESS, class FLAGS>
 bool  WatchPoint<ADDRESS, FLAGS>::general_fault(ADDRESS start, ADDRESS end, int32_t thread_id, FLAGS target_flags, bool ignore_statistics) {
-   //cout <<thread_id<<" "<<start<<" "<<end<<" "<<target_flags<<endl;
    /*
     * check for faults
     */
    oracle_wp_iter = oracle_wp.find(thread_id);
    if (oracle_wp_iter != oracle_wp.end()) {                                               // if thread_id found active
       bool oracle_fault = oracle_wp_iter->second->general_fault(start, end, target_flags); // check if Oracle fault
-      //bool oracle_fault = oracle_wp_iter->second->watch_fault(start, end);
+      //bool oracle_fault = oracle_wp_iter->second->watch_fault(start, end);              // for checking pt2_byte_acu
       /*
        * declaring variables
        */
@@ -307,8 +307,6 @@ bool  WatchPoint<ADDRESS, FLAGS>::general_fault(ADDRESS start, ADDRESS end, int3
 #endif
 #ifdef PT2_BYTE_ACU
          pt2_byte_acu_fault = pt2_byte_acu[thread_id]->watch_fault(start, end);
-         if (!oracle_fault && !(pt2_byte_acu_fault == PAGETABLE_UNWATCHED || pt2_byte_acu_fault == BITMAP_UNWATCHED))
-            cout <<"@@@ error..."<<thread_id<<" "<<start<<" "<<end<<" "<<target_flags<<endl;
 #endif
       }
       /*
@@ -436,7 +434,6 @@ void WatchPoint<ADDRESS, FLAGS>::print_watchpoints(ostream &output) {
 
 template<class ADDRESS, class FLAGS>
 int WatchPoint<ADDRESS, FLAGS>::general_change(ADDRESS start, ADDRESS end, int32_t thread_id, string target_flags, bool ignore_statistics) {
-   //cout <<thread_id<<" "<<start<<" "<<end<<" "<<target_flags<<endl;
    /*
     * analyzing target_flags
     */

@@ -158,7 +158,7 @@ void Oracle<ADDRESS, FLAGS>::wp_operation(ADDRESS start_addr, ADDRESS end_addr,
 					 */
 					if (aft_iter->flags == flag_op(wp_iter->flags, target_flags) ) {
 						wp_iter->end_addr = aft_iter->end_addr;
-						wp.erase(aft_iter);
+						wp_iter = wp.erase(aft_iter)-1;
 					}
 				}
 				// Whether merge or not, change the flags.
@@ -200,7 +200,7 @@ void Oracle<ADDRESS, FLAGS>::wp_operation(ADDRESS start_addr, ADDRESS end_addr,
 				 */
 				if (pre_iter->flags == flag_op(wp_iter->flags, target_flags) ) {
 					wp_iter->start_addr = pre_iter->start_addr;
-					wp_iter->flags = flag_op(wp_iter->flags, target_flags);
+					//wp_iter->flags = flag_op(wp_iter->flags, target_flags);
 					wp_iter = wp.erase(pre_iter); //erase and restore wp_iter.
 				}
 			}
