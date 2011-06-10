@@ -1,6 +1,7 @@
 #ifndef RANGE_CACHE_H_
 #define RANGE_CACHE_H_
 #include <deque>
+#include "cache_algo.h"
 #include "wp_data_struct.h"
 
 template<class ADDRESS, class FLAGS>
@@ -9,6 +10,19 @@ public:
 	RangeCache();
 	~RangeCache();
 	
+	typename std::deque< watchpoint_t<ADDRESS, FLAGS> >::iterator 
+		search(ADDRESS target_addr, bool update = true);
+	typename std::deque< watchpoint_t<ADDRESS, FLAGS> >::iterator 
+		search_next(ADDRESS target_addr, bool update = true);
+	
+	void add_range(ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags, bool update = true);
+	void remove_range(ADDRESS start_addr, ADDRESS end_addr, bool update = true);
+	void overwrite_range(ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags, bool update = true);
+	
+	void add_flag(ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags, bool update = true);
+	void remove_flag(ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags, bool update = true);
+	
+	/*
 	typename std::deque< watchpoint_t<ADDRESS, FLAGS> >::iterator 
 		search(ADDRESS target_addr);
 	typename std::deque< watchpoint_t<ADDRESS, FLAGS> >::iterator
@@ -29,11 +43,11 @@ public:
 	void add_flag_update(ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags);
 	void remove_flag(ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags);
 	void remove_flag_update(ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags);
-	
+	*/
 	bool cache_overflow();
 	typename std::deque< watchpoint_t<ADDRESS, FLAGS> >::iterator
 		cache_kickout();
-	 
+	
 //private:
 	typename std::deque< watchpoint_t<ADDRESS, FLAGS> >::iterator 
 		search_address(ADDRESS target_addr);
@@ -58,6 +72,8 @@ public:
 	typename std::deque< watchpoint_t<ADDRESS, FLAGS> >::iterator wp_iter;
 	typename std::deque< watchpoint_t<ADDRESS, FLAGS> >::iterator pre_iter;
 	typename std::deque< watchpoint_t<ADDRESS, FLAGS> >::iterator aft_iter;
+	
+	CacheAlgo<ADDRESS>   lru;
 };
 
 #include "range_cache.cpp"
