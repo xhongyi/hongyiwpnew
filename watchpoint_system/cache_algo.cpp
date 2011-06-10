@@ -15,9 +15,9 @@ CacheAlgo<ADDRESS>::~CacheAlgo() {
 }
 
 template <class ADDRESS>
-int CacheAlgo<ADDRESS>::modify(ADDRESS start_addr, ADDRESS end_addr, ADDRESS new_start, ADDRESS new_end) {
+int CacheAlgo<ADDRESS>::modify(ADDRESS start_addr, ADDRESS end_addr, ADDRESS new_start, ADDRESS new_end, bool update) {
 	typename deque< Range<ADDRESS> >::iterator iter;
-	iter = search_iter(start_addr, end_addr);
+	iter = search_iter(start_addr, end_addr, update);
 	if (iter == ranges.end() )
 		return -1;
 	else {
@@ -26,7 +26,7 @@ int CacheAlgo<ADDRESS>::modify(ADDRESS start_addr, ADDRESS end_addr, ADDRESS new
 		return 1;
 	}
 }
-
+/*
 template <class ADDRESS>
 int CacheAlgo<ADDRESS>::modify_update(ADDRESS start_addr, ADDRESS end_addr, ADDRESS new_start, ADDRESS new_end) {
 	typename deque< Range<ADDRESS> >::iterator iter;
@@ -38,7 +38,7 @@ int CacheAlgo<ADDRESS>::modify_update(ADDRESS start_addr, ADDRESS end_addr, ADDR
 		iter->end_addr = new_end;
 		return 1;
 	}
-}
+}*/
 
 template <class ADDRESS>
 int CacheAlgo<ADDRESS>::insert(ADDRESS start_addr, ADDRESS end_addr) {
@@ -56,7 +56,7 @@ int CacheAlgo<ADDRESS>::insert(ADDRESS start_addr, ADDRESS end_addr) {
 template <class ADDRESS>
 int CacheAlgo<ADDRESS>::remove(ADDRESS start_addr, ADDRESS end_addr) {
 	typename deque< Range<ADDRESS> >::iterator iter;
-	iter = search_iter(start_addr, end_addr);
+	iter = search_iter(start_addr, end_addr, false);
 	if (iter == ranges.end() )
 		return -1;
 	else {
@@ -66,20 +66,20 @@ int CacheAlgo<ADDRESS>::remove(ADDRESS start_addr, ADDRESS end_addr) {
 }
 
 template <class ADDRESS>
-bool CacheAlgo<ADDRESS>::search(ADDRESS start_addr, ADDRESS end_addr) {
-	if (search_iter(start_addr, end_addr) == ranges.end() )
+bool CacheAlgo<ADDRESS>::search(ADDRESS start_addr, ADDRESS end_addr, bool update) {
+	if (search_iter(start_addr, end_addr, update) == ranges.end() )
 		return false;
 	else
 		return true;
 }
-
+/*
 template<class ADDRESS>
 bool CacheAlgo<ADDRESS>::search_update(ADDRESS start_addr, ADDRESS end_addr) {
 	if (search_update_iter(start_addr, end_addr) == ranges.end() )
 		return false;
 	else
 		return true;
-}
+}*/
 
 template<class ADDRESS>
 void CacheAlgo<ADDRESS>::clear () {
@@ -109,16 +109,24 @@ void CacheAlgo<ADDRESS>::print() {
 }
 
 template <class ADDRESS>
-typename deque< Range<ADDRESS> >::iterator CacheAlgo<ADDRESS>::search_iter(ADDRESS start_addr, ADDRESS end_addr) {
+typename deque< Range<ADDRESS> >::iterator CacheAlgo<ADDRESS>::search_iter(ADDRESS start_addr, ADDRESS end_addr, bool update) {
 	typename deque< Range<ADDRESS> >::iterator iter = ranges.begin();
 	while (iter != ranges.end() && iter->start_addr != start_addr)
 		iter++;
 	if (iter == ranges.end() || iter->end_addr != end_addr) {
 		return ranges.end();
 	}
+	if (update) {
+		Range<ADDRESS> temp;
+		temp.start_addr = iter->start_addr;
+		temp.end_addr = iter->end_addr;
+		ranges.erase(iter);
+		iter = ranges.begin();
+		iter = ranges.insert(iter, temp);
+	}
 	return iter;
 }
-
+/*
 template <class ADDRESS>
 typename deque< Range<ADDRESS> >::iterator CacheAlgo<ADDRESS>::search_update_iter(ADDRESS start_addr, ADDRESS end_addr) {	
 	typename deque< Range<ADDRESS> >::iterator iter = ranges.begin();
@@ -134,7 +142,7 @@ typename deque< Range<ADDRESS> >::iterator CacheAlgo<ADDRESS>::search_update_ite
 		iter = ranges.insert(iter, temp);
 		return iter;
 	}
-}
+}*/
 
 template <class ADDRESS>
 bool CacheAlgo<ADDRESS>::check_overlap (ADDRESS start_addr, ADDRESS end_addr) {

@@ -12,7 +12,7 @@
 //#define PAGE_TABLE_MULTI
 //#define PAGE_TABLE2_SINGLE
 //#define PAGE_TABLE2_MULTI
-#define PT2_BYTE_ACU
+//#define PT2_BYTE_ACU
 
 #ifdef PAGE_TABLE2_MULTI
 #define PAGE_TABLE_MULTI

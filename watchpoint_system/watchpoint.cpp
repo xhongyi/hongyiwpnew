@@ -434,6 +434,7 @@ void WatchPoint<ADDRESS, FLAGS>::print_watchpoints(ostream &output) {
 
 template<class ADDRESS, class FLAGS>
 int WatchPoint<ADDRESS, FLAGS>::general_change(ADDRESS start, ADDRESS end, int32_t thread_id, string target_flags, bool ignore_statistics) {
+   cout <<thread_id<<" "<<start<<" "<<end<<" "<<target_flags<<endl;
    /*
     * analyzing target_flags
     */

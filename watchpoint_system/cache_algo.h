@@ -12,12 +12,10 @@ public:
 	CacheAlgo();
 	~CacheAlgo();
 
-	int modify          (ADDRESS start_addr, ADDRESS end_addr, ADDRESS new_start, ADDRESS new_end);
-	int modify_update   (ADDRESS start_addr, ADDRESS end_addr, ADDRESS new_start, ADDRESS new_end);
+	int modify          (ADDRESS start_addr, ADDRESS end_addr, ADDRESS new_start, ADDRESS new_end, bool update = true);
 	int insert          (ADDRESS start_addr, ADDRESS end_addr);
 	int remove          (ADDRESS start_addr, ADDRESS end_addr);
-	bool search         (ADDRESS start_addr, ADDRESS end_addr);
-	bool search_update  (ADDRESS start_addr, ADDRESS end_addr);
+	bool search         (ADDRESS start_addr, ADDRESS end_addr, bool update = true);
 	void clear          ();
 	
 	Range<ADDRESS> kickout  ();
@@ -25,8 +23,7 @@ public:
 	void print              ();
 	
 //private:
-	typename std::deque< Range<ADDRESS> >::iterator search_iter         (ADDRESS start_addr, ADDRESS end_addr);
-	typename std::deque< Range<ADDRESS> >::iterator search_update_iter  (ADDRESS start_addr, ADDRESS end_addr);
+	typename std::deque< Range<ADDRESS> >::iterator search_iter         (ADDRESS start_addr, ADDRESS end_addr, bool update = true);
 	bool check_overlap                                                  (ADDRESS start_addr, ADDRESS end_addr);
 	std::deque< Range<ADDRESS> > ranges;
 };
