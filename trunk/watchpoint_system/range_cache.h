@@ -2,6 +2,7 @@
 #define RANGE_CACHE_H_
 #include <deque>
 #include "cache_algo.h"
+#include "oracle_wp.h"
 #include "wp_data_struct.h"
 
 template<class ADDRESS, class FLAGS>
@@ -19,6 +20,8 @@ public:
 	void remove_range(ADDRESS start_addr, ADDRESS end_addr, bool update = true);
 	void overwrite_range(ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags, bool update = true);
 	
+	void flag_operation(ADDRESS start_addr, ADDRESS end_addr,
+		                 FLAGS (*flag_op)(FLAGS &x, FLAGS &y), FLAGS target_flags, bool update)
 	void add_flag(ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags, bool update = true);
 	void remove_flag(ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags, bool update = true);
 	
