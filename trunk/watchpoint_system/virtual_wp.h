@@ -21,7 +21,7 @@ template<class ADDRESS, class FLAGS>
 class Virtual_wp {
 public:
    Virtual_wp(){};
-   ~Virtual_wp(){};
+   virtual ~Virtual_wp(){};
    virtual int  general_fault  (ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags) = 0;
    virtual int  watch_fault (ADDRESS start_addr, ADDRESS end_addr) = 0;
    virtual int  read_fault  (ADDRESS start_addr, ADDRESS end_addr) = 0;
