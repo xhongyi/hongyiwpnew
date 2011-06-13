@@ -28,43 +28,43 @@ int main () {
 		cout << "no overlap. remove suceeded" << endl;
 	cachealgo.print();
 	cout << "gonna search 0, 500" << endl;
-	if (cachealgo.search(0, 500))
+	if (cachealgo.search(0, 500, false))
 		cout << "find the range" << endl;
 	else
 		cout << "can't find the range" << endl;
 	cout << "print as no change in order" << endl;
 	cachealgo.print();
-	if (cachealgo.search_update(0, 500) > 0)
+	if (cachealgo.search(0, 500, true) > 0)
 		cout << "find the range" << endl;
 	else
 		cout << "can't find the range" << endl;
 	cout << "print as we changed the order" << endl;
 	cachealgo.print();
-	if (cachealgo.search_update(0, 1200) > 0)
+	if (cachealgo.search(0, 1200, true) > 0)
 		cout << "find the range" << endl;
 	else
 		cout << "can't find the range" << endl;
 	cout << "print as we changed the order" << endl;
 	cachealgo.print();
 	cout << "test modify!" << endl;
-	if (cachealgo.modify(700, 1000, 700, 1200) > 0)
+	if (cachealgo.modify(700, 1000, 700, 1200, false) > 0)
 		cout << "found the range and modified" << endl;
 	else
 		cout << "can't find the range" << endl;
 	cout << "print as we didn't change the order" << endl;
 	cachealgo.print();
-	if (cachealgo.modify(700, 1000, 700, 1200) > 0)
+	if (cachealgo.modify(700, 1000, 700, 1200, false) > 0)
 		cout << "found the range and modified" << endl;
 	else
 		cout << "can't find the range" << endl;
 	cout << "print as we didn't change the order" << endl;
-	if (cachealgo.modify_update(700, 1200, 700, 1100) > 0)
+	if (cachealgo.modify(700, 1200, 700, 1100, true) > 0)
 		cout << "found the range and modified" << endl;
 	else
 		cout << "can't find the range" << endl;
 	cout << "print as we change the order" << endl;
 	cachealgo.print();
-	if (cachealgo.modify_update(700, 1200, 700, 1100) > 0)
+	if (cachealgo.modify(700, 1200, 700, 1100, true) > 0)
 		cout << "found the range and modified" << endl;
 	else
 		cout << "can't find the range" << endl;
