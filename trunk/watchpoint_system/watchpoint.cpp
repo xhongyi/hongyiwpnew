@@ -12,32 +12,32 @@ inline statistics_t& operator +=(statistics_t &a, const statistics_t &b) { // no
    a.oracle_faults += b.oracle_faults;
    a.sets += b.sets;
    a.updates += b.updates;
-	#ifdef PAGE_TABLE_SINGLE
-	a.page_table_faults += b.page_table_faults;
-	a.change_count += b.change_count;
-	#endif
-	#ifdef PAGE_TABLE_MULTI
-	a.page_table_multi_faults += b.page_table_multi_faults;
-	a.change_count_multi += b.change_count_multi;
-	#endif
-	#ifdef PAGE_TABLE2_SINGLE
+   #ifdef PAGE_TABLE_SINGLE
+   a.page_table_faults += b.page_table_faults;
+   a.change_count += b.change_count;
+   #endif
+   #ifdef PAGE_TABLE_MULTI
+   a.page_table_multi_faults += b.page_table_multi_faults;
+   a.change_count_multi += b.change_count_multi;
+   #endif
+   #ifdef PAGE_TABLE2_SINGLE
    a.superpage_miss += b.superpage_miss_faults;
    a.superpage_miss += b.superpage_miss;
    a.superpage_faults += b.superpage_faults;
    a.superpage_hits += b.superpage_hits;
    a.highest_faults += b.highest_faults;
    a.highest_hits += b.highest_hits;
-	a.change_count2 += b.change_count2;
-	#endif
-	#ifdef PAGE_TABLE2_MULTI
+   a.change_count2 += b.change_count2;
+   #endif
+   #ifdef PAGE_TABLE2_MULTI
    a.superpage_miss_multi += b.superpage_miss_faults_multi;
    a.superpage_miss_multi += b.superpage_miss_multi;
    a.superpage_faults_multi += b.superpage_faults_multi;
    a.superpage_hits_multi += b.superpage_hits_multi;
    a.highest_faults_multi += b.highest_faults_multi;
    a.highest_hits_multi += b.highest_hits_multi;
-	a.change_count2_multi += b.change_count2_multi;
-	#endif
+   a.change_count2_multi += b.change_count2_multi;
+   #endif
    #ifdef PT2_BYTE_ACU_SINGLE
    a.pt2_byte_acu_seg_reg_hits += b.pt2_byte_acu_seg_reg_hits;
    a.pt2_byte_acu_seg_reg_faults += b.pt2_byte_acu_seg_reg_faults;
@@ -61,32 +61,32 @@ inline statistics_t operator +(const statistics_t &a, const statistics_t &b) {
    result.oracle_faults = a.oracle_faults + b.oracle_faults;
    result.sets = a.sets + b.sets;
    result.updates = a.updates + b.updates;
-	#ifdef PAGE_TABLE_SINGLE
-	result.page_table_faults = a.page_table_faults + b.page_table_faults;
-	result.change_count = a.change_count + b.change_count;
-	#endif
-	#ifdef PAGE_TABLE_MULTI
-	result.page_table_multi_faults = a.page_table_multi_faults + b.page_table_multi_faults;
-	result.change_count_multi = a.change_count_multi + b.change_count_multi;
-	#endif
-	#ifdef PAGE_TABLE2_SINGLE
-	result.superpage_miss_faults = a.superpage_miss_faults + b.superpage_miss_faults;
-	result.superpage_miss = a.superpage_miss + b.superpage_miss;
-	result.superpage_faults = a.superpage_faults + b.superpage_faults;
-	result.superpage_hits = a.superpage_hits + b.superpage_hits;
-	result.highest_faults = a.highest_faults + b.highest_faults;
-	result.highest_hits = a.highest_hits + b.highest_hits;
-	result.change_count2 = a.change_count2 + b.change_count2;
-	#endif
-	#ifdef PAGE_TABLE2_MULTI
-	result.superpage_miss_faults_multi = a.superpage_miss_faults_multi + b.superpage_miss_faults_multi;
-	result.superpage_miss_multi = a.superpage_miss_multi + b.superpage_miss_multi;
-	result.superpage_faults_multi = a.superpage_faults_multi + b.superpage_faults_multi;
-	result.superpage_hits_multi = a.superpage_hits_multi + b.superpage_hits_multi;
-	result.highest_faults_multi = a.highest_faults_multi + b.highest_faults_multi;
-	result.highest_hits_multi = a.highest_hits_multi + b.highest_hits_multi;
-	result.change_count2_multi = a.change_count2_multi + b.change_count2_multi;
-	#endif
+   #ifdef PAGE_TABLE_SINGLE
+   result.page_table_faults = a.page_table_faults + b.page_table_faults;
+   result.change_count = a.change_count + b.change_count;
+   #endif
+   #ifdef PAGE_TABLE_MULTI
+   result.page_table_multi_faults = a.page_table_multi_faults + b.page_table_multi_faults;
+   result.change_count_multi = a.change_count_multi + b.change_count_multi;
+   #endif
+   #ifdef PAGE_TABLE2_SINGLE
+   result.superpage_miss_faults = a.superpage_miss_faults + b.superpage_miss_faults;
+   result.superpage_miss = a.superpage_miss + b.superpage_miss;
+   result.superpage_faults = a.superpage_faults + b.superpage_faults;
+   result.superpage_hits = a.superpage_hits + b.superpage_hits;
+   result.highest_faults = a.highest_faults + b.highest_faults;
+   result.highest_hits = a.highest_hits + b.highest_hits;
+   result.change_count2 = a.change_count2 + b.change_count2;
+   #endif
+   #ifdef PAGE_TABLE2_MULTI
+   result.superpage_miss_faults_multi = a.superpage_miss_faults_multi + b.superpage_miss_faults_multi;
+   result.superpage_miss_multi = a.superpage_miss_multi + b.superpage_miss_multi;
+   result.superpage_faults_multi = a.superpage_faults_multi + b.superpage_faults_multi;
+   result.superpage_hits_multi = a.superpage_hits_multi + b.superpage_hits_multi;
+   result.highest_faults_multi = a.highest_faults_multi + b.highest_faults_multi;
+   result.highest_hits_multi = a.highest_hits_multi + b.highest_hits_multi;
+   result.change_count2_multi = a.change_count2_multi + b.change_count2_multi;
+   #endif
    #ifdef PT2_BYTE_ACU_SINGLE
    result.pt2_byte_acu_seg_reg_hits = a.pt2_byte_acu_seg_reg_hits + b.pt2_byte_acu_seg_reg_hits;
    result.pt2_byte_acu_seg_reg_faults = a.pt2_byte_acu_seg_reg_faults + b.pt2_byte_acu_seg_reg_faults;
@@ -711,33 +711,33 @@ statistics_t WatchPoint<ADDRESS, FLAGS>::clear_statistics() {
    empty.page_table_multi_faults=0;
    empty.change_count_multi=0;
    #endif
-	#ifdef PAGE_TABLE2_SINGLE
-	empty.superpage_miss=0;
-	empty.superpage_miss_faults=0;
-	empty.superpage_faults=0;
-	empty.superpage_hits=0;
-	empty.highest_faults=0;
-	empty.highest_hits=0;
-	empty.change_count2=0;
-	#endif
-	#ifdef PAGE_TABLE2_MULTI
-	empty.superpage_miss_multi=0;
-	empty.superpage_miss_faults_multi=0;
-	empty.superpage_faults_multi=0;
-	empty.superpage_hits_multi=0;
-	empty.highest_faults_multi=0;
-	empty.highest_hits_multi=0;
-	empty.change_count2_multi=0;
-	#endif
+   #ifdef PAGE_TABLE2_SINGLE
+   empty.superpage_miss=0;
+   empty.superpage_miss_faults=0;
+   empty.superpage_faults=0;
+   empty.superpage_hits=0;
+   empty.highest_faults=0;
+   empty.highest_hits=0;
+   empty.change_count2=0;
+   #endif
+   #ifdef PAGE_TABLE2_MULTI
+   empty.superpage_miss_multi=0;
+   empty.superpage_miss_faults_multi=0;
+   empty.superpage_faults_multi=0;
+   empty.superpage_hits_multi=0;
+   empty.highest_faults_multi=0;
+   empty.highest_hits_multi=0;
+   empty.change_count2_multi=0;
+   #endif
    #ifdef PT2_BYTE_ACU_SINGLE
    empty.pt2_byte_acu_seg_reg_hits=0;
-	empty.pt2_byte_acu_seg_reg_faults=0;
-	empty.pt2_byte_acu_superpage_hits=0;
-	empty.pt2_byte_acu_superpage_faults=0;
-	empty.pt2_byte_acu_page_hits=0;
-	empty.pt2_byte_acu_page_faults=0;
-	empty.pt2_byte_acu_bitmap_faults=0;
-	empty.pt2_byte_acu_changes=0;
+   empty.pt2_byte_acu_seg_reg_faults=0;
+   empty.pt2_byte_acu_superpage_hits=0;
+   empty.pt2_byte_acu_superpage_faults=0;
+   empty.pt2_byte_acu_page_hits=0;
+   empty.pt2_byte_acu_page_faults=0;
+   empty.pt2_byte_acu_bitmap_faults=0;
+   empty.pt2_byte_acu_changes=0;
    #endif
    return empty;
 }
