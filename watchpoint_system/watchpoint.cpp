@@ -38,7 +38,7 @@ inline statistics_t& operator +=(statistics_t &a, const statistics_t &b) { // no
    a.highest_hits_multi += b.highest_hits_multi;
 	a.change_count2_multi += b.change_count2_multi;
 	#endif
-   #ifdef PT2_BYTE_ACU
+   #ifdef PT2_BYTE_ACU_SINGLE
    a.pt2_byte_acu_seg_reg_hits += b.pt2_byte_acu_seg_reg_hits;
    a.pt2_byte_acu_seg_reg_faults += b.pt2_byte_acu_seg_reg_faults;
    a.pt2_byte_acu_superpage_hits += b.pt2_byte_acu_superpage_hits;
@@ -87,7 +87,7 @@ inline statistics_t operator +(const statistics_t &a, const statistics_t &b) {
 	result.highest_hits_multi = a.highest_hits_multi + b.highest_hits_multi;
 	result.change_count2_multi = a.change_count2_multi + b.change_count2_multi;
 	#endif
-   #ifdef PT2_BYTE_ACU
+   #ifdef PT2_BYTE_ACU_SINGLE
    result.pt2_byte_acu_seg_reg_hits = a.pt2_byte_acu_seg_reg_hits + b.pt2_byte_acu_seg_reg_hits;
    result.pt2_byte_acu_seg_reg_faults = a.pt2_byte_acu_seg_reg_faults + b.pt2_byte_acu_seg_reg_faults;
    result.pt2_byte_acu_superpage_hits = a.pt2_byte_acu_superpage_hits + b.pt2_byte_acu_superpage_hits;
@@ -106,8 +106,11 @@ inline statistics_t operator +(const statistics_t &a, const statistics_t &b) {
 template<class ADDRESS, class FLAGS>
 WatchPoint<ADDRESS, FLAGS>::WatchPoint() {
     emulate_hardware = true;
+#ifdef PAGE_TABLE_MULTI
+   page_table_multi = new PageTable1_multi<ADDRESS, FLAGS>();
+#endif
 #ifdef PAGE_TABLE2_MULTI
-   page_table2_multi = PageTable2_single<ADDRESS, FLAGS>(&page_table_multi);
+   page_table2_multi = new PageTable2_single<ADDRESS, FLAGS>(page_table_multi);
 #endif
 }
 
@@ -117,10 +120,14 @@ WatchPoint<ADDRESS, FLAGS>::WatchPoint() {
 template<class ADDRESS, class FLAGS>
 WatchPoint<ADDRESS, FLAGS>::WatchPoint(bool do_emulate_hardware) {
     emulate_hardware = do_emulate_hardware;
-#ifdef PAGE_TABLE2_MULTI
-   if (emulate_hardware)
-      page_table2_multi = PageTable2_single<ADDRESS, FLAGS>(&page_table_multi);
+   if (emulate_hardware) {
+#ifdef PAGE_TABLE_MULTI
+      page_table_multi = new PageTable1_multi<ADDRESS, FLAGS>();
 #endif
+#ifdef PAGE_TABLE2_MULTI
+      page_table2_multi = new PageTable2_single<ADDRESS, FLAGS>(page_table_multi);
+#endif
+   }
 }
 
 /*
@@ -162,12 +169,12 @@ int WatchPoint<ADDRESS, FLAGS>::start_thread(int32_t thread_id) {
          page_table_wp[thread_id] = new PageTable1_single<ADDRESS, FLAGS>(oracle_wp.find(thread_id)->second);
 #endif
 #ifdef PAGE_TABLE_MULTI
-         page_table_multi.start_thread(thread_id, page_table_wp[thread_id]);
+         page_table_multi->start_thread(thread_id, page_table_wp[thread_id]);
 #endif
 #ifdef PAGE_TABLE2_SINGLE
          page_table2_wp[thread_id] = new PageTable2_single<ADDRESS, FLAGS>(page_table_wp.find(thread_id)->second);
 #endif
-#ifdef PT2_BYTE_ACU
+#ifdef PT2_BYTE_ACU_SINGLE
          pt2_byte_acu[thread_id] = new PT2_byte_acu_single<ADDRESS, FLAGS>(oracle_wp.find(thread_id)->second);
 #endif
       }
@@ -195,7 +202,7 @@ int WatchPoint<ADDRESS, FLAGS>::end_thread(int32_t thread_id) {
          page_table_wp.erase(page_table_wp_iter);
 #endif
 #ifdef PAGE_TABLE_MULTI
-         page_table_multi.end_thread(thread_id);
+         page_table_multi->end_thread(thread_id);
 #endif
 #ifdef PAGE_TABLE2_SINGLE
          page_table2_wp_iter = page_table2_wp.find(thread_id);
@@ -203,9 +210,9 @@ int WatchPoint<ADDRESS, FLAGS>::end_thread(int32_t thread_id) {
          page_table2_wp.erase(page_table2_wp_iter);
 #endif
 #ifdef PAGE_TABLE2_MULTI
-         page_table2_multi.rm_watchpoint(0, -1);                     // check all pages
+         page_table2_multi->rm_watchpoint(0, -1);                     // check all pages
 #endif
-#ifdef PT2_BYTE_ACU
+#ifdef PT2_BYTE_ACU_SINGLE
          pt2_byte_acu_iter = pt2_byte_acu.find(thread_id);
          delete pt2_byte_acu_iter->second;
          pt2_byte_acu.erase(pt2_byte_acu_iter);
@@ -283,7 +290,7 @@ bool  WatchPoint<ADDRESS, FLAGS>::general_fault(ADDRESS start, ADDRESS end, int3
 #ifdef PAGE_TABLE2_MULTI
       int page_table2_multi_fault = 0;
 #endif
-#ifdef PT2_BYTE_ACU
+#ifdef PT2_BYTE_ACU_SINGLE
       int pt2_byte_acu_fault = 0;
 #endif
       /*
@@ -297,15 +304,15 @@ bool  WatchPoint<ADDRESS, FLAGS>::general_fault(ADDRESS start, ADDRESS end, int3
          page_table_fault = page_table_wp[thread_id]->watch_fault(start, end);        // check if fault in thread_id page_table
 #endif
 #ifdef PAGE_TABLE_MULTI
-         page_table_multi_fault = page_table_multi.watch_fault(start, end);
+         page_table_multi_fault = page_table_multi->watch_fault(start, end);
 #endif
 #ifdef PAGE_TABLE2_SINGLE
          page_table2_fault = page_table2_wp[thread_id]->watch_fault(start, end);
 #endif
 #ifdef PAGE_TABLE2_MULTI
-         page_table2_multi_fault = page_table2_multi.watch_fault(start, end);
+         page_table2_multi_fault = page_table2_multi->watch_fault(start, end);
 #endif
-#ifdef PT2_BYTE_ACU
+#ifdef PT2_BYTE_ACU_SINGLE
          pt2_byte_acu_fault = pt2_byte_acu[thread_id]->watch_fault(start, end);
 #endif
       }
@@ -366,7 +373,7 @@ bool  WatchPoint<ADDRESS, FLAGS>::general_fault(ADDRESS start, ADDRESS end, int3
                statistics_iter->second.highest_faults_multi++;
             }
 #endif
-#ifdef PT2_BYTE_ACU
+#ifdef PT2_BYTE_ACU_SINGLE
             if (pt2_byte_acu_fault == BITMAP_WATCHED)
                statistics_iter->second.pt2_byte_acu_bitmap_faults++;
             else if (pt2_byte_acu_fault == PAGETABLE_UNWATCHED)
@@ -434,7 +441,6 @@ void WatchPoint<ADDRESS, FLAGS>::print_watchpoints(ostream &output) {
 
 template<class ADDRESS, class FLAGS>
 int WatchPoint<ADDRESS, FLAGS>::general_change(ADDRESS start, ADDRESS end, int32_t thread_id, string target_flags, bool ignore_statistics) {
-   cout <<thread_id<<" "<<start<<" "<<end<<" "<<target_flags<<endl;
    /*
     * analyzing target_flags
     */
@@ -462,7 +468,7 @@ int WatchPoint<ADDRESS, FLAGS>::general_change(ADDRESS start, ADDRESS end, int32
 #ifdef PAGE_TABLE2_MULTI
    int change_count2_multi = 0;
 #endif
-#ifdef PT2_BYTE_ACU
+#ifdef PT2_BYTE_ACU_SINGLE
    int change_count2_byte_acu = 0;
 #endif
    oracle_wp_iter = oracle_wp.find(thread_id);
@@ -480,15 +486,15 @@ int WatchPoint<ADDRESS, FLAGS>::general_change(ADDRESS start, ADDRESS end, int32
             change_count = page_table_wp[thread_id]->add_watchpoint(start, end);      // set page_table
 #endif
 #ifdef PAGE_TABLE_MULTI
-            change_count_multi = page_table_multi.add_watchpoint(start, end);
+            change_count_multi = page_table_multi->add_watchpoint(start, end);
 #endif
 #ifdef PAGE_TABLE2_SINGLE
             change_count2 = page_table2_wp[thread_id]->add_watchpoint(start, end);    // set page_table
 #endif
 #ifdef PAGE_TABLE2_MULTI
-            change_count2_multi = page_table2_multi.add_watchpoint(start, end);     // set page_table
+            change_count2_multi = page_table2_multi->add_watchpoint(start, end);     // set page_table
 #endif
-#ifdef PT2_BYTE_ACU
+#ifdef PT2_BYTE_ACU_SINGLE
             change_count2_byte_acu = pt2_byte_acu[thread_id]->add_watchpoint(start, end);
 #endif
          }
@@ -498,15 +504,15 @@ int WatchPoint<ADDRESS, FLAGS>::general_change(ADDRESS start, ADDRESS end, int32
             change_count = page_table_wp[thread_id]->rm_watchpoint(start, end);       // set page_table
 #endif
 #ifdef PAGE_TABLE_MULTI
-            change_count_multi = page_table_multi.rm_watchpoint(start, end);
+            change_count_multi = page_table_multi->rm_watchpoint(start, end);
 #endif
 #ifdef PAGE_TABLE2_SINGLE
             change_count2 = page_table2_wp[thread_id]->rm_watchpoint(start, end);     // set page_table
 #endif
 #ifdef PAGE_TABLE2_MULTI
-            change_count2_multi = page_table2_multi.rm_watchpoint(start, end);    // set page_table
+            change_count2_multi = page_table2_multi->rm_watchpoint(start, end);    // set page_table
 #endif
-#ifdef PT2_BYTE_ACU
+#ifdef PT2_BYTE_ACU_SINGLE
             change_count2_byte_acu = pt2_byte_acu[thread_id]->rm_watchpoint(start, end);
 #endif
          }
@@ -532,7 +538,7 @@ int WatchPoint<ADDRESS, FLAGS>::general_change(ADDRESS start, ADDRESS end, int32
 #ifdef PAGE_TABLE2_MULTI
          statistics_iter->second.change_count2_multi += change_count2_multi;
 #endif
-#ifdef PT2_BYTE_ACU
+#ifdef PT2_BYTE_ACU_SINGLE
          statistics_iter->second.pt2_byte_acu_changes += change_count2_byte_acu;
 #endif
       }
@@ -723,7 +729,7 @@ statistics_t WatchPoint<ADDRESS, FLAGS>::clear_statistics() {
 	empty.highest_hits_multi=0;
 	empty.change_count2_multi=0;
 	#endif
-   #ifdef PT2_BYTE_ACU
+   #ifdef PT2_BYTE_ACU_SINGLE
    empty.pt2_byte_acu_seg_reg_hits=0;
 	empty.pt2_byte_acu_seg_reg_faults=0;
 	empty.pt2_byte_acu_superpage_hits=0;
@@ -816,7 +822,7 @@ void WatchPoint<ADDRESS, FLAGS>::print_statistics(const statistics_t& to_print, 
    output << setw(45) << "low level page fault: " << to_print.superpage_miss_faults_multi <<endl;
    output << setw(45) << "bit changes: " << to_print.change_count2_multi <<endl;
    #endif
-   #ifdef PT2_BYTE_ACU
+   #ifdef PT2_BYTE_ACU_SINGLE
    output << setw(45) << "2_level Page table trie quick hit: " << to_print.pt2_byte_acu_seg_reg_hits <<endl;
    output << setw(45) << "quick fault: " << to_print.pt2_byte_acu_seg_reg_faults <<endl;
    output << setw(45) << "superpage hit: " << to_print.pt2_byte_acu_superpage_hits <<endl;

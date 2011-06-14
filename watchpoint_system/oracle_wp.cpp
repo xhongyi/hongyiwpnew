@@ -3,8 +3,6 @@
 
 #include "oracle_wp.h"
 
-using namespace std;
-
 /*
  * Constructor
  * Initialize the wp system as the whole memory with clean tag

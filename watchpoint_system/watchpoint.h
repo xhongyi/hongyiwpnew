@@ -8,11 +8,12 @@
 #ifndef WATCHPOINT_H_
 #define WATCHPOINT_H_
 
-//#define PAGE_TABLE_SINGLE
-//#define PAGE_TABLE_MULTI
-//#define PAGE_TABLE2_SINGLE
-//#define PAGE_TABLE2_MULTI
-//#define PT2_BYTE_ACU
+#define PAGE_TABLE_SINGLE
+#define PAGE_TABLE_MULTI
+#define PAGE_TABLE2_SINGLE
+#define PAGE_TABLE2_MULTI
+#define PT2_BYTE_ACU_SINGLE
+#define PT2_BYTE_ACU_MULTI
 
 #ifdef PAGE_TABLE2_MULTI
 #define PAGE_TABLE_MULTI
@@ -30,11 +31,19 @@
 #define PAGE_TABLE      // common part of page_table_single and page_table_multi
 #endif
 
+#ifdef PT2_BYTE_ACU_MULTI
+#define ORACLE_MULTI
+#endif
+
 #include <stdint.h>     // contains int32_t
 #include <cstdlib>
 #include <string>
 #include <map>
 #include "oracle_wp.h"
+
+#ifdef ORACLE_MULTI
+#include "oracle_multi.h"
+#endif
 
 #ifdef PAGE_TABLE
 #include "page_table1_single.h"
@@ -48,7 +57,11 @@
 #include "page_table2_single.h"
 #endif
 
-#ifdef PT2_BYTE_ACU
+#ifdef PT2_BYTE_ACU_SINGLE
+#include "pt2_byte_acu_single.h"
+#endif
+
+#ifdef PT2_BYTE_ACU_MULTI
 #include "pt2_byte_acu_single.h"
 #endif
 
@@ -92,7 +105,7 @@ struct statistics_t {
 	long long highest_hits_multi;             // total number of times that all memory are watched/unwatched
 	long long change_count2_multi;            // total number of page_table_watch_bit changes
 	#endif
-   #ifdef PT2_BYTE_ACU
+   #ifdef PT2_BYTE_ACU_SINGLE
    long long pt2_byte_acu_seg_reg_hits;
    long long pt2_byte_acu_seg_reg_faults;
    long long pt2_byte_acu_superpage_hits;
@@ -180,20 +193,26 @@ private:
 	map<int32_t, Oracle<ADDRESS, FLAGS>* >                   oracle_wp;           //	for storing byte accurate emulation class
 	map<int32_t, statistics_t>                               statistics;          //	for storing all active threads and statistics
 	map<int32_t, statistics_t>                               statistics_inactive; //	for storing all inactive threads and statistics (no overlaps)
+	#ifdef ORACLE_MULTI
+	Oracle_multi<ADDRESS, FLAGS>*                            oracle_multi;
+	#endif
 	#ifdef PAGE_TABLE
 	map<int32_t, PageTable1_single<ADDRESS, FLAGS>* >        page_table_wp;       // for storing bitmaps of page_table watch_bits of each threads
 	#endif                                                                        //    to fake a page_table watchpoint system
 	#ifdef PAGE_TABLE_MULTI
-	PageTable1_multi<ADDRESS, FLAGS>                         page_table_multi;
+	PageTable1_multi<ADDRESS, FLAGS>*                        page_table_multi;
 	#endif
 	#ifdef PAGE_TABLE2_SINGLE
 	map<int32_t, PageTable2_single<ADDRESS, FLAGS>* >        page_table2_wp;      // for storing bitmaps of page_table watch_bits of each threads
 	#endif                                                                        //    to fake a page_table watchpoint system
 	#ifdef PAGE_TABLE2_MULTI
-	PageTable2_single<ADDRESS, FLAGS>                        page_table2_multi;
+	PageTable2_single<ADDRESS, FLAGS>*                       page_table2_multi;
 	#endif
-   #ifdef PT2_BYTE_ACU
+   #ifdef PT2_BYTE_ACU_SINGLE
    map<int32_t, PT2_byte_acu_single<ADDRESS, FLAGS>* >      pt2_byte_acu;
+   #endif
+   #ifdef PT2_BYTE_ACU_MULTI
+   PT2_byte_acu_single<ADDRESS, FLAGS>*                     pt2_byte_acu_multi;
    #endif
 
    bool                                                     emulate_hardware;
@@ -209,7 +228,7 @@ private:
 	#ifdef PAGE_TABLE2_SINGLE
 	typename map<int32_t, PageTable2_single<ADDRESS, FLAGS>* >::iterator page_table2_wp_iter;
 	#endif
-   #ifdef PT2_BYTE_ACU
+   #ifdef PT2_BYTE_ACU_SINGLE
    typename map<int32_t, PT2_byte_acu_single<ADDRESS, FLAGS>* >::iterator pt2_byte_acu_iter;
    #endif
 	/*
