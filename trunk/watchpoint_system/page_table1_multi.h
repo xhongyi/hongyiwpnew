@@ -12,6 +12,7 @@
 #include <map>
 #include "virtual_wp.h"
 #include "page_table1_single.h"
+using namespace std;
 
 template<class ADDRESS, class FLAGS>
 class PageTable1_multi : public Virtual_wp<ADDRESS, FLAGS> {
@@ -28,7 +29,6 @@ public:
 	int      watch_fault    (ADDRESS start_addr, ADDRESS end_addr);
 	int      read_fault     (ADDRESS start_addr, ADDRESS end_addr);
 	int      write_fault    (ADDRESS start_addr, ADDRESS end_addr);
-	
 	/*
 	 * returns the number of changes it does on bit_map
 	 * for counting the number of changes: changes = add + rm;
