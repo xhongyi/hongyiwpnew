@@ -19,49 +19,49 @@ public:
    PT2_byte_acu_single(Oracle<ADDRESS, FLAGS> *wp_ref);
    PT2_byte_acu_single();
    ~PT2_byte_acu_single();
-	/*
-	 * this function tells all pages covered by this range is watched or not
-	 */
-	int     general_fault  (ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags = 0);
-	int     watch_fault    (ADDRESS start_addr, ADDRESS end_addr);
-	int     read_fault     (ADDRESS start_addr, ADDRESS end_addr);
-	int     write_fault    (ADDRESS start_addr, ADDRESS end_addr);
-	/*
-	 * returns the number of changes it does on bit_map
-	 * for counting the number of changes: changes = add or rm;
-	 */
-	int      add_watchpoint (ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags = 0);
-	int      rm_watchpoint  (ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags = 0);
-	
-	bool     check_page_level_unity        (ADDRESS page_number,      bool watched);
-	bool     check_superpage_level_unity   (ADDRESS superpage_number, bool watched);
-	bool     check_seg_reg_level_unity     (bool watched);
-	
+   /*
+    * this function tells all pages covered by this range is watched or not
+    */
+   int     general_fault  (ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags = 0);
+   int     watch_fault    (ADDRESS start_addr, ADDRESS end_addr);
+   int     read_fault     (ADDRESS start_addr, ADDRESS end_addr);
+   int     write_fault    (ADDRESS start_addr, ADDRESS end_addr);
+   /*
+    * returns the number of changes it does on bit_map
+    * for counting the number of changes: changes = add or rm;
+    */
+   int      add_watchpoint (ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags = 0);
+   int      rm_watchpoint  (ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags = 0);
+   
+   bool     check_page_level_unity        (ADDRESS page_number,      bool watched);
+   bool     check_superpage_level_unity   (ADDRESS superpage_number, bool watched);
+   bool     check_seg_reg_level_unity     (bool watched);
+   
 private:
-	/*
-	 * initialized when constructing
-	 * used for checking each page's state when rm_watchpoint is called
-	 */
+   /*
+    * initialized when constructing
+    * used for checking each page's state when rm_watchpoint is called
+    */
    Oracle<ADDRESS, FLAGS> *wp;
    /*
-	 * two bits for all pages (in segmentation register)
-	 * watched(10), unwatched(01) or missed(00)
-	 */
+    * two bits for all pages (in segmentation register)
+    * watched(10), unwatched(01) or missed(00)
+    */
    bool seg_reg_watched;
    bool seg_reg_unwatched;
    /*
-	 * two bits for each 2nd_level_page
-	 * watched(10), unwatched(01) or missed(00)
-	 */
-	unsigned char superpage_watched[SUPER_PAGE_BIT_MAP_NUMBER];
-	unsigned char superpage_unwatched[SUPER_PAGE_BIT_MAP_NUMBER];
-	/*
-	 * two bit for each page
-	 * keeping track of whether this page is watched(10) or 
-	 * unwatched(01) or bitmap(00)
-	 */
-	unsigned char pt_watched[BIT_MAP_NUMBER];
-	unsigned char pt_unwatched[BIT_MAP_NUMBER];
+    * two bits for each 2nd_level_page
+    * watched(10), unwatched(01) or missed(00)
+    */
+   unsigned char superpage_watched[SUPER_PAGE_BIT_MAP_NUMBER];
+   unsigned char superpage_unwatched[SUPER_PAGE_BIT_MAP_NUMBER];
+   /*
+    * two bit for each page
+    * keeping track of whether this page is watched(10) or 
+    * unwatched(01) or bitmap(00)
+    */
+   unsigned char pt_watched[BIT_MAP_NUMBER];
+   unsigned char pt_unwatched[BIT_MAP_NUMBER];
 };
 
 #include "pt2_byte_acu_single.cpp"

@@ -30,35 +30,35 @@ public:
    PageTable2_single();
    ~PageTable2_single();
    
-	int   general_fault  (ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags = 0);
-	int   watch_fault    (ADDRESS start_addr, ADDRESS end_addr);
-	int   read_fault     (ADDRESS start_addr, ADDRESS end_addr);
-	int   write_fault    (ADDRESS start_addr, ADDRESS end_addr);
+   int   general_fault  (ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags = 0);
+   int   watch_fault    (ADDRESS start_addr, ADDRESS end_addr);
+   int   read_fault     (ADDRESS start_addr, ADDRESS end_addr);
+   int   write_fault    (ADDRESS start_addr, ADDRESS end_addr);
    
    int   add_watchpoint (ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags = 0);
-	int   rm_watchpoint  (ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags = 0);
-	
-	bool  check_unity    (ADDRESS superpage_number, bool watched);
+   int   rm_watchpoint  (ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags = 0);
+   
+   bool  check_unity    (ADDRESS superpage_number, bool watched);
 private:
-	/*
-	 * initialized when constructing
-	 * used for checking each page's state
-	 */
-	Virtual_wp<ADDRESS, FLAGS> *pt1;
    /*
-	 * two bits for all pages
-	 * watched(10), unwatched(01) or missed(00)
-	 */
-	bool all_watched;
-	bool all_unwatched;
+    * initialized when constructing
+    * used for checking each page's state
+    */
+   Virtual_wp<ADDRESS, FLAGS> *pt1;
    /*
-	 * two bits for each 2nd_level_page
-	 * watched(10), unwatched(01) or missed(00)
-	 */
-	unsigned char superpage_watched[SUPER_PAGE_BIT_MAP_NUMBER];
-	unsigned char superpage_unwatched[SUPER_PAGE_BIT_MAP_NUMBER];
-	
-	//unsigned char bit_map[BIT_MAP_NUMBER];
+    * two bits for all pages
+    * watched(10), unwatched(01) or missed(00)
+    */
+   bool all_watched;
+   bool all_unwatched;
+   /*
+    * two bits for each 2nd_level_page
+    * watched(10), unwatched(01) or missed(00)
+    */
+   unsigned char superpage_watched[SUPER_PAGE_BIT_MAP_NUMBER];
+   unsigned char superpage_unwatched[SUPER_PAGE_BIT_MAP_NUMBER];
+   
+   //unsigned char bit_map[BIT_MAP_NUMBER];
 };
 
 #include "page_table2_single.cpp"

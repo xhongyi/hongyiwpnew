@@ -5,22 +5,22 @@
 
 template<class ADDRESS, class FLAGS>
 PT2_byte_acu_single<ADDRESS, FLAGS>::PT2_byte_acu_single(Oracle<ADDRESS, FLAGS> *wp_ref) {
-	wp = wp_ref;
+   wp = wp_ref;
    seg_reg_watched = false;
    seg_reg_unwatched = true;
    for (int i=0;i<SUPER_PAGE_BIT_MAP_NUMBER;i++) {
       superpage_watched[i] = 0x00;
       superpage_unwatched[i] = 0xff;
    }
-	for (int i=0;i<BIT_MAP_NUMBER;i++) {
-	   pt_watched[i] = 0;
-	   pt_unwatched[i] = 0xff;
-	}
+   for (int i=0;i<BIT_MAP_NUMBER;i++) {
+      pt_watched[i] = 0;
+      pt_unwatched[i] = 0xff;
+   }
 }
 
 template<class ADDRESS, class FLAGS>
 PT2_byte_acu_single<ADDRESS, FLAGS>::PT2_byte_acu_single() {
-	wp = NULL;
+   wp = NULL;
 }
 
 template<class ADDRESS, class FLAGS>
@@ -48,21 +48,21 @@ int PT2_byte_acu_single<ADDRESS, FLAGS>::general_fault(ADDRESS start_addr, ADDRE
       if (unwatched)
          return SUPERPAGE_UNWATCHED;
    }
-	//	calculating the starting V.P.N. and the ending V.P.N.
-	ADDRESS page_number_start = (start_addr>>PAGE_OFFSET_LENGTH);
-	ADDRESS page_number_end = (end_addr>>PAGE_OFFSET_LENGTH);
+   // calculating the starting V.P.N. and the ending V.P.N.
+   ADDRESS page_number_start = (start_addr>>PAGE_OFFSET_LENGTH);
+   ADDRESS page_number_end = (end_addr>>PAGE_OFFSET_LENGTH);
    unwatched = true;
-	for (ADDRESS i=page_number_start;i<=page_number_end;i++) {           //	for each page, 
-		if (pt_watched[i>>BIT_MAP_OFFSET_LENGTH] & (1<<(i&0x7)) )         //	if one of them is watched, 
-			return PAGETABLE_WATCHED;                                      //	then return watched.
-		if (!(pt_unwatched[i>>BIT_MAP_OFFSET_LENGTH] & (1<<(i&0x7)) ))    //	if one of them is not unwatched, 
-			unwatched = false;                                             //	then switch unwatched to false
-	}
-	if (unwatched)
-	   return PAGETABLE_UNWATCHED;
-	if (wp->watch_fault(start_addr, end_addr))
-	   return BITMAP_WATCHED;
-	return BITMAP_UNWATCHED;
+   for (ADDRESS i=page_number_start;i<=page_number_end;i++) {           // for each page, 
+      if (pt_watched[i>>BIT_MAP_OFFSET_LENGTH] & (1<<(i&0x7)) )         // if one of them is watched, 
+         return PAGETABLE_WATCHED;                                      // then return watched.
+      if (!(pt_unwatched[i>>BIT_MAP_OFFSET_LENGTH] & (1<<(i&0x7)) ))    // if one of them is not unwatched, 
+         unwatched = false;                                             // then switch unwatched to false
+   }
+   if (unwatched)
+      return PAGETABLE_UNWATCHED;
+   if (wp->watch_fault(start_addr, end_addr))
+      return BITMAP_WATCHED;
+   return BITMAP_UNWATCHED;
 }
 
 template<class ADDRESS, class FLAGS>
@@ -82,9 +82,9 @@ int PT2_byte_acu_single<ADDRESS, FLAGS>::write_fault(ADDRESS start_addr, ADDRESS
 
 template<class ADDRESS, class FLAGS>
 int PT2_byte_acu_single<ADDRESS, FLAGS>::add_watchpoint(ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags) {
-	//	calculating the starting V.P.N. and the ending V.P.N.
-	ADDRESS page_number_start = (start_addr>>PAGE_OFFSET_LENGTH);
-	ADDRESS page_number_end = (end_addr>>PAGE_OFFSET_LENGTH);
+   // calculating the starting V.P.N. and the ending V.P.N.
+   ADDRESS page_number_start = (start_addr>>PAGE_OFFSET_LENGTH);
+   ADDRESS page_number_end = (end_addr>>PAGE_OFFSET_LENGTH);
    ADDRESS superpage_number_start = (start_addr>>SUPERPAGE_OFFSET_LENGTH);
    ADDRESS superpage_number_end = (end_addr>>SUPERPAGE_OFFSET_LENGTH);
    unsigned int firstpage_bitmap_change = 0, 
@@ -98,7 +98,7 @@ int PT2_byte_acu_single<ADDRESS, FLAGS>::add_watchpoint(ADDRESS start_addr, ADDR
    seg_reg_unwatched = false;
    if (page_number_start == page_number_end) {  // if in the same page
       if (check_page_level_unity(page_number_start, true)) {
-         pt_watched[page_number_start>>BIT_MAP_OFFSET_LENGTH] |= (1<<(page_number_start&0x7));                          //	watched = 1
+         pt_watched[page_number_start>>BIT_MAP_OFFSET_LENGTH] |= (1<<(page_number_start&0x7));                          // watched = 1
          if (check_superpage_level_unity(superpage_number_start, true)) {
             superpage_watched[superpage_number_start>>BIT_MAP_OFFSET_LENGTH] |= (1<<(superpage_number_start&0x7));      // watched = 1
             if (check_seg_reg_level_unity(true))
@@ -112,20 +112,20 @@ int PT2_byte_acu_single<ADDRESS, FLAGS>::add_watchpoint(ADDRESS start_addr, ADDR
    else {   // if not in the same page
       // setting start and end pagetables
       if (check_page_level_unity(page_number_start, true)) {
-         pt_watched[page_number_start>>BIT_MAP_OFFSET_LENGTH] |= (1<<(page_number_start&0x7));                          //	watched = 1
+         pt_watched[page_number_start>>BIT_MAP_OFFSET_LENGTH] |= (1<<(page_number_start&0x7));                          // watched = 1
          firstpage_bitmap_change = 1;
       }
       else
          firstpage_bitmap_change = ((page_number_start+1)<<PAGE_OFFSET_LENGTH) - start_addr;
       if (check_page_level_unity(page_number_end, true)) {
-         pt_watched[page_number_end>>BIT_MAP_OFFSET_LENGTH] |= (1<<(page_number_end&0x7));                              //	watched = 1
+         pt_watched[page_number_end>>BIT_MAP_OFFSET_LENGTH] |= (1<<(page_number_end&0x7));                              // watched = 1
          lastpage_bitmap_change = 1;
       }
       else
          lastpage_bitmap_change = end_addr - (page_number_end<<PAGE_OFFSET_LENGTH) + 1;
       // setting all pagetables in the middle
       for (ADDRESS i=page_number_start+1;i!=page_number_end;i++) {
-         pt_watched[i>>BIT_MAP_OFFSET_LENGTH] |= (1<<(i&0x7));                              //	watched = 1
+         pt_watched[i>>BIT_MAP_OFFSET_LENGTH] |= (1<<(i&0x7));                              //  watched = 1
          pt_unwatched[i>>BIT_MAP_OFFSET_LENGTH] &= ~(1<<(i&0x7));                           // unwatched = 0
       }
       if (superpage_number_start == superpage_number_end) { // if in the same superpage
@@ -177,7 +177,7 @@ int PT2_byte_acu_single<ADDRESS, FLAGS>::rm_watchpoint(ADDRESS start_addr, ADDRE
          page_change++;
       if ( (i & (PAGE_SIZE-1)) == (PAGE_SIZE-1) ) {   // if page_end
          if ((page_change == PAGE_SIZE) || check_page_level_unity(page_number, false)) {     // if all unwatched in a page
-            pt_unwatched[page_number>>BIT_MAP_OFFSET_LENGTH] |= (1<<(page_number&0x7));      //	unwatched = 1
+            pt_unwatched[page_number>>BIT_MAP_OFFSET_LENGTH] |= (1<<(page_number&0x7));      // unwatched = 1
             pt_watched[page_number>>BIT_MAP_OFFSET_LENGTH] &= ~(1<<(page_number&0x7));       // watched = 0
             superpage_change++;
          }
@@ -207,7 +207,7 @@ int PT2_byte_acu_single<ADDRESS, FLAGS>::rm_watchpoint(ADDRESS start_addr, ADDRE
    if (page_change) {
       pt_watched[page_number>>BIT_MAP_OFFSET_LENGTH] &= ~(1<<(page_number&0x7));          // watched = 0
       if (check_page_level_unity(page_number, false)) {
-         pt_unwatched[page_number>>BIT_MAP_OFFSET_LENGTH] |= (1<<(page_number&0x7));      //	unwatched = 1
+         pt_unwatched[page_number>>BIT_MAP_OFFSET_LENGTH] |= (1<<(page_number&0x7));      // unwatched = 1
          superpage_change++;
       }
       else {
