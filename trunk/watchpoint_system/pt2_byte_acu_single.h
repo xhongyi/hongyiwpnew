@@ -10,13 +10,13 @@
 #define BITMAP_WATCHED     6
 #define BITMAP_UNWATCHED   7
 
-#include "oracle_wp.h"
+#include "virtual_wp.h"
 #include "page_table2_single.h"
 
 template<class ADDRESS, class FLAGS>
 class PT2_byte_acu_single : public Virtual_wp<ADDRESS, FLAGS> {
 public:
-   PT2_byte_acu_single(Oracle<ADDRESS, FLAGS> *wp_ref);
+   PT2_byte_acu_single(Virtual_wp<ADDRESS, FLAGS> *wp_ref);
    PT2_byte_acu_single();
    ~PT2_byte_acu_single();
    /*
@@ -42,7 +42,7 @@ private:
     * initialized when constructing
     * used for checking each page's state when rm_watchpoint is called
     */
-   Oracle<ADDRESS, FLAGS> *wp;
+   Virtual_wp<ADDRESS, FLAGS> *wp;
    /*
     * two bits for all pages (in segmentation register)
     * watched(10), unwatched(01) or missed(00)

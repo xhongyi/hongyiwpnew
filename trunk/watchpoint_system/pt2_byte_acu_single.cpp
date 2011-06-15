@@ -4,7 +4,7 @@
 #include "pt2_byte_acu_single.h"
 
 template<class ADDRESS, class FLAGS>
-PT2_byte_acu_single<ADDRESS, FLAGS>::PT2_byte_acu_single(Oracle<ADDRESS, FLAGS> *wp_ref) {
+PT2_byte_acu_single<ADDRESS, FLAGS>::PT2_byte_acu_single(Virtual_wp<ADDRESS, FLAGS> *wp_ref) {
    wp = wp_ref;
    seg_reg_watched = false;
    seg_reg_unwatched = true;
