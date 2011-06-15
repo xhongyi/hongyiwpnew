@@ -115,6 +115,16 @@ struct statistics_t {
    long long pt2_byte_acu_bitmap_faults;
    long long pt2_byte_acu_changes;
    #endif
+   #ifdef PT2_BYTE_ACU_MULTI
+   long long pt2_byte_acu_multi_seg_reg_hits;
+   long long pt2_byte_acu_multi_seg_reg_faults;
+   long long pt2_byte_acu_multi_superpage_hits;
+   long long pt2_byte_acu_multi_superpage_faults;
+   long long pt2_byte_acu_multi_page_hits;
+   long long pt2_byte_acu_multi_page_faults;
+   long long pt2_byte_acu_multi_bitmap_faults;
+   long long pt2_byte_acu_multi_changes;
+   #endif
 };
 
 /*
