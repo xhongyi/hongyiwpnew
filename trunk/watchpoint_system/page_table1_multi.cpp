@@ -98,4 +98,8 @@ int PageTable1_multi<ADDRESS, FLAGS>::rm_watchpoint(ADDRESS start_addr, ADDRESS 
    return changes;
 }
 
+template<class ADDRESS, class FLAGS>
+void PageTable1_multi<ADDRESS, FLAGS>::watch_print(ostream &output) {
+}
+
 #endif
