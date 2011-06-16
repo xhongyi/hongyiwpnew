@@ -564,10 +564,11 @@ int WatchPoint<ADDRESS, FLAGS>::general_change(ADDRESS start, ADDRESS end, int32
        * emulating hardware
        */
       if (emulate_hardware) {
-         if (add_flag) {
 #ifdef ORACLE_MULTI
-            oracle_multi->add_watchpoint(start, end, add_flag);
+         oracle_multi->add_watchpoint(start, end, add_flag);
+         oracle_multi->rm_watchpoint(start, end, rm_flag);
 #endif
+         if (add_flag) {
 #ifdef PAGE_TABLE
             change_count = page_table_wp[thread_id]->add_watchpoint(start, end);      // set page_table
 #endif
@@ -589,9 +590,6 @@ int WatchPoint<ADDRESS, FLAGS>::general_change(ADDRESS start, ADDRESS end, int32
          }
          else if (rm_flag) {                                                     // For pagetables only: if (add_flag) => no need to consider rm_flag
                                                                                  //    (because they do not consider flag type)
-#ifdef ORACLE_MULTI
-            oracle_multi->rm_watchpoint(start, end, rm_flag);
-#endif
 #ifdef PAGE_TABLE
             change_count = page_table_wp[thread_id]->rm_watchpoint(start, end);       // set page_table
 #endif
