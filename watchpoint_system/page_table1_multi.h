@@ -35,6 +35,8 @@ public:
     */
    int      add_watchpoint (ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags = 0);
    int      rm_watchpoint  (ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags = 0);
+   
+   void  watch_print    (ostream &output = cout);
 
 private:
    /*

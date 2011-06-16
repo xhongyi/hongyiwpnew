@@ -172,7 +172,8 @@ int PT2_byte_acu_single<ADDRESS, FLAGS>::rm_watchpoint(ADDRESS start_addr, ADDRE
    int page_change = 0, superpage_change = 0, total_change = 0;
    ADDRESS page_number = (start_addr>>PAGE_OFFSET_LENGTH);
    ADDRESS superpage_number = (start_addr>>SUPERPAGE_OFFSET_LENGTH);
-   for (ADDRESS i=start_addr;i<=end_addr;i++) {
+   ADDRESS i=start_addr;
+   do {
       if (!wp->watch_fault(i, i))      // if unwatched
          page_change++;
       if ( (i & (PAGE_SIZE-1)) == (PAGE_SIZE-1) ) {   // if page_end
@@ -203,7 +204,8 @@ int PT2_byte_acu_single<ADDRESS, FLAGS>::rm_watchpoint(ADDRESS start_addr, ADDRE
          superpage_change = 0;
          superpage_number++;
       }
-   }
+      i++;
+   } while (i!=end_addr+1);
    if (page_change) {
       pt_watched[page_number>>BIT_MAP_OFFSET_LENGTH] &= ~(1<<(page_number&0x7));          // watched = 0
       if (check_page_level_unity(page_number, false)) {

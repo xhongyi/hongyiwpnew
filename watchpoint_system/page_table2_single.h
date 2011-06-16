@@ -39,6 +39,7 @@ public:
    int   rm_watchpoint  (ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags = 0);
    
    bool  check_unity    (ADDRESS superpage_number, bool watched);
+   void  watch_print    (ostream &output = cout);
 private:
    /*
     * initialized when constructing

@@ -154,7 +154,7 @@ int PageTable2_single<ADDRESS, FLAGS>::rm_watchpoint(ADDRESS start_addr, ADDRESS
    // superpages
    ADDRESS page_number = ((start_addr>>PAGE_OFFSET_LENGTH)<<PAGE_OFFSET_LENGTH);
    for (ADDRESS i=superpage_number_start;i!=superpage_number_end;i++) {
-      if (check_unity(i, false)) {                                         // if set to unwatched
+      if (check_unity(i, false)) {                                         // if set to unwatched  
          changes++;
          superpage_watched[i>>BIT_MAP_OFFSET_LENGTH] &= ~(1<<(i&0x7));     // watched = 0
          superpage_unwatched[i>>BIT_MAP_OFFSET_LENGTH] |= (1<<(i&0x7));    // unwatched = 1
@@ -164,11 +164,10 @@ int PageTable2_single<ADDRESS, FLAGS>::rm_watchpoint(ADDRESS start_addr, ADDRESS
          while ((page_number != ((i+1)<<SUPERPAGE_OFFSET_LENGTH)) && (page_number <= end_addr)) { // for all pages within the range and this superpage
             if (!(pt1->watch_fault(page_number, page_number)) ) {
                changes++;
+               superpage_watched[i>>BIT_MAP_OFFSET_LENGTH] &= ~(1<<(i&0x7));     // watched = 0
             }
             page_number += PAGE_SIZE;
          }
-         changes++;
-         superpage_watched[i>>BIT_MAP_OFFSET_LENGTH] &= ~(1<<(i&0x7));     // watched = 0
       }
    }
    // all_watched/all_unwatched
@@ -194,6 +193,10 @@ bool PageTable2_single<ADDRESS, FLAGS>::check_unity(ADDRESS superpage_number, bo
          return false;
    }
    return true;
+}
+
+template<class ADDRESS, class FLAGS>
+void PageTable2_single<ADDRESS, FLAGS>::watch_print(ostream &output) {
 }
 
 #endif

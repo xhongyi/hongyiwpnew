@@ -241,11 +241,12 @@ int WatchPoint<ADDRESS, FLAGS>::end_thread(int32_t thread_id) {
       oracle_wp_iter = oracle_wp.find(thread_id);
       statistics_inactive[thread_id] = statistics_iter->second;         // move its statistics to inactive
       statistics.erase(statistics_iter);                                // remove it from active statistics
+      Oracle<ADDRESS, FLAGS> temp_oracle = *(oracle_wp_iter->second);   // make a copy temporarily for oracle_multi
       delete oracle_wp_iter->second;
       oracle_wp.erase(oracle_wp_iter);                                  // remove its Oracle watchpoint data
       if (emulate_hardware) {
 #ifdef ORACLE_MULTI
-         oracle_multi->end_thread(thread_id);
+         oracle_multi->end_thread(thread_id, &temp_oracle);
 #endif
 #ifdef PAGE_TABLE
          page_table_wp_iter = page_table_wp.find(thread_id);
@@ -261,7 +262,7 @@ int WatchPoint<ADDRESS, FLAGS>::end_thread(int32_t thread_id) {
          page_table2_wp.erase(page_table2_wp_iter);
 #endif
 #ifdef PAGE_TABLE2_MULTI
-         page_table2_multi->rm_watchpoint(0, -1);                     // check all pages
+         page_table2_multi->rm_watchpoint(0, (ADDRESS)-1);                     // check all pages
 #endif
 #ifdef PT2_BYTE_ACU_SINGLE
          pt2_byte_acu_iter = pt2_byte_acu.find(thread_id);
@@ -589,7 +590,7 @@ int WatchPoint<ADDRESS, FLAGS>::general_change(ADDRESS start, ADDRESS end, int32
          else if (rm_flag) {                                                     // For pagetables only: if (add_flag) => no need to consider rm_flag
                                                                                  //    (because they do not consider flag type)
 #ifdef ORACLE_MULTI
-            oracle_multi->rm_watchpoint(start, end, add_flag);
+            oracle_multi->rm_watchpoint(start, end, rm_flag);
 #endif
 #ifdef PAGE_TABLE
             change_count = page_table_wp[thread_id]->rm_watchpoint(start, end);       // set page_table
