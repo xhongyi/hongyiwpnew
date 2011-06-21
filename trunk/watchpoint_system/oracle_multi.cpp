@@ -26,7 +26,6 @@ void Oracle_multi<ADDRESS, FLAGS>::end_thread(int32_t thread_id, Oracle<ADDRESS,
    else {
       watchpoint_t<ADDRESS, FLAGS> temp = oracle_in->start_traverse();
       do {
-         cout <<"@@@ "<<temp.start_addr<<" "<<temp.end_addr<<" "<<temp.flags<<endl;
          rm_watchpoint(temp.start_addr, temp.end_addr, temp.flags);
       } while (oracle_in->continue_traverse(temp));
    }
