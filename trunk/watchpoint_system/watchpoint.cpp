@@ -292,10 +292,16 @@ void WatchPoint<ADDRESS, FLAGS>::print_threads(ostream &output) {
  */
 template<class ADDRESS, class FLAGS>
 void WatchPoint<ADDRESS, FLAGS>::reset() {
-   map<int32_t, statistics_t>::iterator statistics_iter_tmp;
-   for (statistics_iter_tmp = statistics.begin();statistics_iter_tmp != statistics.end();statistics_iter_tmp++)
+   int32_t *active_thread_id = new int32_t[(unsigned int)statistics.size()];
+   int i=0;
+   for (statistics_iter = statistics.begin();statistics_iter != statistics.end();statistics_iter++) {
                                                             // for all active thread_id's
-      reset(statistics_iter_tmp->first);                        // call reset
+      active_thread_id[i] = statistics_iter->first;                        // call reset
+      i++;
+   }
+   for (i=0;i<(int)statistics.size();i++) {
+      reset(active_thread_id[i]);
+   }
    for (statistics_inactive_iter = statistics_inactive.begin();statistics_inactive_iter != statistics_inactive.end();statistics_inactive_iter++)
                                                             // for all inactive thread_id's
       statistics_inactive_iter->second = clear_statistics();  // clear inactive statistics
