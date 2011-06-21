@@ -45,20 +45,18 @@ int Oracle<ADDRESS, FLAGS>::write_fault(ADDRESS start_addr, ADDRESS end_addr) {
 
 template<class ADDRESS, class FLAGS>
 void Oracle<ADDRESS, FLAGS>::watch_print(ostream &output) {
-   output << "There are " << (unsigned int) wp.size() << " watchpoints" << endl;
-   unsigned int j = 0;
-   for (typename list< watchpoint_t<ADDRESS, FLAGS> >::iterator i = wp.begin(); i != wp.end(); i++) {
-      if (i->flags) {                                                   // Only print if there is an existing flag
-         output << "This is watchpoint number " << j << ":" << endl;
-         output << "start_addr = " << setw(10) << i->start_addr << " ";
-         output << "end_addr = " << setw(10) << i->end_addr << " ";
-         if (i->flags & WA_READ)
+   output << "There are " << wp.size() << " watchpoints" << endl;
+   for (unsigned int i = 0; i < wp.size() ; i++) {
+      if (wp[i].flags) {                                                   // Only print if there is an existing flag
+         output << "This is watchpoint number " << i << ":" << endl;
+         output << "start_addr = " << setw(10) << wp[i].start_addr << " ";
+         output << "end_addr = " << setw(10) << wp[i].end_addr << " ";
+         if (wp[i].flags & WA_READ)
             output << "R";
-         if (i->flags & WA_WRITE)
+         if (wp[i].flags & WA_WRITE)
             output << "W";
          output << endl;
       }
-      j++;
    }
    output << endl;
    return;
@@ -118,14 +116,13 @@ void Oracle<ADDRESS, FLAGS>::wp_operation(ADDRESS start_addr, ADDRESS end_addr,
              * If start_addr == 0 then won't merge
              */
             if (start_addr != 0) {
-               pre_iter = --wp_iter;
-               wp_iter++;
+               pre_iter = wp_iter - 1;
                /*
                 * Merge
                 */
                if (pre_iter->flags == flag_op(wp_iter->flags, target_flags) ) {
                   wp_iter->start_addr = pre_iter->start_addr;
-                  wp.erase(pre_iter); // Erase pre_iter and restore wp_iter.
+                  wp_iter = wp.erase(pre_iter); // Erase pre_iter and restore wp_iter.
                }
                // We can't update the flags for now. We must wait until we have
                // determined wether merge or split at the end_addr.
@@ -141,7 +138,7 @@ void Oracle<ADDRESS, FLAGS>::wp_operation(ADDRESS start_addr, ADDRESS end_addr,
             insert_t.end_addr = start_addr - 1;
             insert_t.flags = wp_iter->flags;
             wp_iter->start_addr = start_addr;
-            wp.insert(wp_iter, insert_t); //Insert and Restore wp_iter position.
+            wp_iter = wp.insert(wp_iter, insert_t) + 1; //Insert and Restore wp_iter position.
          }
 
          /*
@@ -153,14 +150,13 @@ void Oracle<ADDRESS, FLAGS>::wp_operation(ADDRESS start_addr, ADDRESS end_addr,
              * If end_addr == -1 then won't merge
              */
             if (end_addr != (ADDRESS)-1) {
-               aft_iter = --wp_iter;
-               wp_iter--;
+               aft_iter = wp_iter + 1;
                /*
                 * Merge
                 */
                if (aft_iter->flags == flag_op(wp_iter->flags, target_flags) ) {
                   wp_iter->end_addr = aft_iter->end_addr;
-                  wp.erase(aft_iter);
+                  wp_iter = wp.erase(aft_iter)-1;
                }
             }
             // Whether merge or not, change the flags.
@@ -196,15 +192,14 @@ void Oracle<ADDRESS, FLAGS>::wp_operation(ADDRESS start_addr, ADDRESS end_addr,
           * If start_addr == 0 then won't merge
           */
          if (start_addr != 0) {
-            pre_iter = --wp_iter;
-            wp_iter++;
+            pre_iter = wp_iter - 1;
             /*
              * Merge
              */
             if (pre_iter->flags == flag_op(wp_iter->flags, target_flags) ) {
                wp_iter->start_addr = pre_iter->start_addr;
                //wp_iter->flags = flag_op(wp_iter->flags, target_flags);
-               wp.erase(pre_iter); //erase and restore wp_iter.
+               wp_iter = wp.erase(pre_iter); //erase and restore wp_iter.
             }
          }
          /*
@@ -222,8 +217,7 @@ void Oracle<ADDRESS, FLAGS>::wp_operation(ADDRESS start_addr, ADDRESS end_addr,
          insert_t.flags = wp_iter->flags;
          wp_iter->start_addr = start_addr;
          wp_iter->flags = flag_op(wp_iter->flags, target_flags);
-         wp.insert(wp_iter, insert_t); //Insert and increment wp_iter.
-         wp_iter++;
+         wp_iter = wp.insert(wp_iter, insert_t) + 2; //Insert and increment wp_iter.
       }
    }
    else
@@ -233,8 +227,7 @@ void Oracle<ADDRESS, FLAGS>::wp_operation(ADDRESS start_addr, ADDRESS end_addr,
     * Iterating part
     */
    while (wp_iter->end_addr < end_addr) {
-      pre_iter = --wp_iter;
-      wp_iter++;
+      pre_iter = wp_iter - 1;
       /*
        * Union the flags.
        */
@@ -257,10 +250,8 @@ void Oracle<ADDRESS, FLAGS>::wp_operation(ADDRESS start_addr, ADDRESS end_addr,
     * We only change wp if the target_flags is excluded.
     */
    if (!flag_test(wp_iter->flags, target_flags) ) {
-      pre_iter = --wp_iter;
-      wp_iter++;
-      aft_iter = ++wp_iter;
-      wp_iter--;
+      pre_iter = wp_iter - 1;
+      aft_iter = wp_iter + 1;
       if (wp_iter->end_addr == end_addr) {
          /*
           * First check if it should merge with the wp before it.
@@ -269,6 +260,7 @@ void Oracle<ADDRESS, FLAGS>::wp_operation(ADDRESS start_addr, ADDRESS end_addr,
          if (wp_iter->flags == pre_iter->flags) {
             pre_iter->end_addr = wp_iter->end_addr;
             aft_iter = wp.erase(wp_iter); // restores aft_iter
+            wp_iter = aft_iter - 1; //restore wp_iter
             // pre_iter is now dead.
          }
          /*
@@ -312,13 +304,13 @@ void Oracle<ADDRESS, FLAGS>::wp_operation(ADDRESS start_addr, ADDRESS end_addr,
     * to merge with the wp before it.
     */
    else {
-      pre_iter = --wp_iter;
-      wp_iter++;
+      pre_iter = wp_iter - 1;
       if (wp_iter->flags == pre_iter->flags) {
          pre_iter->end_addr = wp_iter->end_addr;
          wp.erase(wp_iter);
       }
    }
+
    return;
 }
 
@@ -338,17 +330,28 @@ int Oracle<ADDRESS, FLAGS>::general_fault(ADDRESS start_addr, ADDRESS end_addr, 
  * We also assume that the wp deque is sorted.
  */
 template<class ADDRESS, class FLAGS>
-typename list<watchpoint_t<ADDRESS, FLAGS> >::iterator
-   Oracle<ADDRESS, FLAGS>::search_address(ADDRESS start_addr, list<watchpoint_t<ADDRESS, FLAGS> > &wp) {
-   // can only perform linear search in double-linked list
-   typename list<watchpoint_t<ADDRESS, FLAGS> >::iterator search_iter;
-   search_iter = wp.begin();
-   while (search_iter != wp.end() ) {
-      if (start_addr >= search_iter->start_addr && start_addr <= search_iter->end_addr)
-         return search_iter;
-      search_iter++;
+typename deque<watchpoint_t<ADDRESS, FLAGS> >::iterator
+   Oracle<ADDRESS, FLAGS>::search_address (ADDRESS start_addr, deque<watchpoint_t<ADDRESS, FLAGS> > &wp) {
+   typename deque<watchpoint_t<ADDRESS, FLAGS> >::iterator beg_iter;
+   typename deque<watchpoint_t<ADDRESS, FLAGS> >::iterator mid_iter;
+   typename deque<watchpoint_t<ADDRESS, FLAGS> >::iterator end_iter;
+   beg_iter = wp.begin();
+   end_iter = wp.end();
+   while (beg_iter < end_iter - 1) {
+      mid_iter = beg_iter + (end_iter - beg_iter) / 2;
+      if (start_addr <= mid_iter->start_addr)
+         end_iter = mid_iter;
+      else
+         beg_iter = mid_iter;
    }
-   return wp.end();
+   /*
+    * The iteration will stop at the point where beg + 1 = end
+    * So we need to compare further more to decide which one contains start_addr
+    */
+   if (start_addr <= beg_iter->end_addr)
+      return beg_iter;
+   else
+      return end_iter;
 }
 
 //traverse functions
