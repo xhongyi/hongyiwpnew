@@ -8,7 +8,7 @@
 #ifndef ORACLE_WP_H_
 #define ORACLE_WP_H_
 
-#include <list>
+#include <deque>
 #include <iostream>
 #include <iomanip>
 #include <ostream>
@@ -35,6 +35,9 @@ public:
    int  watch_fault (ADDRESS start_addr, ADDRESS end_addr);
    int  read_fault  (ADDRESS start_addr, ADDRESS end_addr);
    int  write_fault (ADDRESS start_addr, ADDRESS end_addr);
+   
+   typename deque<watchpoint_t<ADDRESS, FLAGS> >::iterator
+      search_address    (ADDRESS start_addr, deque<watchpoint_t<ADDRESS, FLAGS> > &wp);
 
    void  watch_print    (ostream &output = cout);
 
@@ -49,9 +52,6 @@ public:
    bool continue_traverse(watchpoint_t<ADDRESS, FLAGS>& watchpoint);
 
 private:
-   
-   typename list<watchpoint_t<ADDRESS, FLAGS> >::iterator
-      search_address    (ADDRESS start_addr, list<watchpoint_t<ADDRESS, FLAGS> > &wp);
    /*
     * wp       is the container to hold all the ranges for watchpoint structure.
     * wp_iter  is the iterator used in both add_watchpoint and rm_watchpoint.
@@ -61,17 +61,17 @@ private:
     * All these data are declared here is to save time by avoiding creating
     * and destroying them every time add_watchpoint and rm_watchpoint is called.
     */
-   list< watchpoint_t<ADDRESS, FLAGS> > wp;
-   typename list< watchpoint_t<ADDRESS, FLAGS> >::iterator wp_iter;
-   typename list< watchpoint_t<ADDRESS, FLAGS> >::iterator pre_iter;
-   typename list< watchpoint_t<ADDRESS, FLAGS> >::iterator aft_iter;
+   deque< watchpoint_t<ADDRESS, FLAGS> > wp;
+   typename deque< watchpoint_t<ADDRESS, FLAGS> >::iterator wp_iter;
+   typename deque< watchpoint_t<ADDRESS, FLAGS> >::iterator pre_iter;
+   typename deque< watchpoint_t<ADDRESS, FLAGS> >::iterator aft_iter;
    //special wp_iter for traverse functions, don't use this for other functions
-   typename list< watchpoint_t<ADDRESS, FLAGS> >::iterator wp_iter_traverse;
+   typename deque< watchpoint_t<ADDRESS, FLAGS> >::iterator wp_iter_traverse;
 };
 /*
 template<class ADDRESS, class FLAGS>
-typename list<watchpoint_t<ADDRESS, FLAGS> >::iterator
-   search_address (ADDRESS start_addr, list<watchpoint_t<ADDRESS, FLAGS> > &wp);
+typename deque<watchpoint_t<ADDRESS, FLAGS> >::iterator
+   search_address (ADDRESS start_addr, deque<watchpoint_t<ADDRESS, FLAGS> > &wp);
 */
 
 template<class FLAGS>
