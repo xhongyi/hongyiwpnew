@@ -58,6 +58,16 @@ inline statistics_t& operator +=(statistics_t &a, const statistics_t &b) { // no
    a.pt2_byte_acu_multi_bitmap_faults += b.pt2_byte_acu_multi_bitmap_faults;
    a.pt2_byte_acu_multi_changes += b.pt2_byte_acu_multi_changes;
    #endif
+   #ifdef RC_SINGLE
+   a.rc_read_hits += b.rc_read_hits;
+   a.rc_read_miss += b.rc_read_miss;
+   a.rc_write_hits += b.rc_write_hits;
+   a.rc_write_miss += b.rc_write_miss;
+   a.rc_backing_store_accesses += b.rc_backing_store_accesses;
+   a.rc_kickout_dirties += b.rc_kickout_dirties;
+   a.rc_kickouts += b.rc_kickouts;
+   a.rc_complex_updates += b.rc_complex_updates;
+   #endif
    return a;
 }
 
@@ -116,6 +126,16 @@ inline statistics_t operator +(const statistics_t &a, const statistics_t &b) {
    result.pt2_byte_acu_multi_page_faults = a.pt2_byte_acu_multi_page_faults + b.pt2_byte_acu_multi_page_faults;
    result.pt2_byte_acu_multi_bitmap_faults = a.pt2_byte_acu_multi_bitmap_faults + b.pt2_byte_acu_multi_bitmap_faults;
    result.pt2_byte_acu_multi_changes = a.pt2_byte_acu_multi_changes + b.pt2_byte_acu_multi_changes;
+   #endif
+   #ifdef RC_SINGLE
+   result.rc_read_hits = a.rc_read_hits + b.rc_read_hits;
+   result.rc_read_miss = a.rc_read_miss + b.rc_read_miss;
+   result.rc_write_hits = a.rc_write_hits + b.rc_write_hits;
+   result.rc_write_miss = a.rc_write_miss + b.rc_write_miss;
+   result.rc_backing_store_accesses = a.rc_backing_store_accesses + b.rc_backing_store_accesses;
+   result.rc_kickout_dirties = a.rc_kickout_dirties + b.rc_kickout_dirties;
+   result.rc_kickouts = a.rc_kickouts + b.rc_kickouts;
+   result.rc_complex_updates = a.rc_complex_updates + b.rc_complex_updates;
    #endif
    return result;
 }
@@ -225,6 +245,9 @@ int WatchPoint<ADDRESS, FLAGS>::start_thread(int32_t thread_id) {
 #ifdef PT2_BYTE_ACU_SINGLE
          pt2_byte_acu[thread_id] = new PT2_byte_acu_single<ADDRESS, FLAGS>(oracle_wp.find(thread_id)->second);
 #endif
+#ifdef RC_SINGLE
+         range_cache[thread_id] = new RangeCache<ADDRESS, FLAGS>(oracle_wp.find(thread_id)->second);
+#endif
       }
       return 0;                                                         // normal start: return 0
    }
@@ -239,8 +262,6 @@ int WatchPoint<ADDRESS, FLAGS>::end_thread(int32_t thread_id) {
    statistics_iter = statistics.find(thread_id);
    if (statistics_iter != statistics.end()) {                           // if thread_id is active
       oracle_wp_iter = oracle_wp.find(thread_id);
-      statistics_inactive[thread_id] = statistics_iter->second;         // move its statistics to inactive
-      statistics.erase(statistics_iter);                                // remove it from active statistics
       Oracle<ADDRESS, FLAGS> temp_oracle = *(oracle_wp_iter->second);   // make a copy temporarily for oracle_multi
       delete oracle_wp_iter->second;
       oracle_wp.erase(oracle_wp_iter);                                  // remove its Oracle watchpoint data
@@ -269,7 +290,19 @@ int WatchPoint<ADDRESS, FLAGS>::end_thread(int32_t thread_id) {
          delete pt2_byte_acu_iter->second;
          pt2_byte_acu.erase(pt2_byte_acu_iter);
 #endif
+#ifdef RC_SINGLE
+         range_cache_iter = range_cache.find(thread_id);
+         long long kickout, kickout_dirty, complex_updates;
+         range_cache_iter->second->get_stats(kickout, kickout_dirty, complex_updates);
+         statistics_iter->second.rc_kickout_dirties += kickout_dirty;
+         statistics_iter->second.rc_kickouts += kickout;
+         statistics_iter->second.rc_complex_updates += complex_updates;
+         delete range_cache_iter->second;
+         range_cache.erase(range_cache_iter);
+#endif
       }
+      statistics_inactive[thread_id] = statistics_iter->second;         // move its statistics to inactive
+      statistics.erase(statistics_iter);                                // remove it from active statistics
       return 0;                                                         // normal end: return 0
    }
    return -1;                                                           // abnormal end: thread_id not found or inactive, return -1
@@ -354,6 +387,9 @@ bool  WatchPoint<ADDRESS, FLAGS>::general_fault(ADDRESS start, ADDRESS end, int3
 #ifdef PT2_BYTE_ACU_MULTI
       int pt2_byte_acu_multi_fault = 0;
 #endif
+#ifdef RC_SINGLE
+      int range_cache_misses = 0;
+#endif
       /*
        * emulating hardware
        */
@@ -378,6 +414,9 @@ bool  WatchPoint<ADDRESS, FLAGS>::general_fault(ADDRESS start, ADDRESS end, int3
 #endif
 #ifdef PT2_BYTE_ACU_MULTI
          pt2_byte_acu_multi_fault = pt2_byte_acu_multi->watch_fault(start, end);
+#endif
+#ifdef RC_SINGLE
+         range_cache_misses = range_cache[thread_id]->watch_fault(start, end);
 #endif
       }
       /*
@@ -481,6 +520,14 @@ bool  WatchPoint<ADDRESS, FLAGS>::general_fault(ADDRESS start, ADDRESS end, int3
                statistics_iter->second.pt2_byte_acu_multi_seg_reg_faults++;
             }
 #endif
+#ifdef RC_SINGLE
+            if (range_cache_misses) {
+               statistics_iter->second.rc_read_miss++;
+               statistics_iter->second.rc_backing_store_accesses += range_cache_misses;
+            }
+            else 
+               statistics_iter->second.rc_read_hits++;
+#endif
          }
       }
       return oracle_fault;                                              // return Oracle fault
@@ -560,6 +607,9 @@ int WatchPoint<ADDRESS, FLAGS>::general_change(ADDRESS start, ADDRESS end, int32
 #ifdef PT2_BYTE_ACU_MULTI
    int change_count2_byte_acu_multi = 0;
 #endif
+#ifdef RC_SINGLE
+   int range_cache_write_misses = 0;
+#endif
    oracle_wp_iter = oracle_wp.find(thread_id);
    if (oracle_wp_iter != oracle_wp.end()) {                                   // if thread_id found
       if (add_flag)
@@ -593,6 +643,9 @@ int WatchPoint<ADDRESS, FLAGS>::general_change(ADDRESS start, ADDRESS end, int32
 #ifdef PT2_BYTE_ACU_MULTI
             change_count2_byte_acu_multi = pt2_byte_acu_multi->add_watchpoint(start, end);
 #endif
+#ifdef RC_SINGLE
+            range_cache_write_misses = range_cache[thread_id]->add_watchpoint(start, end);
+#endif
          }
          else if (rm_flag) {                                                     // For pagetables only: if (add_flag) => no need to consider rm_flag
                                                                                  //    (because they do not consider flag type)
@@ -613,6 +666,9 @@ int WatchPoint<ADDRESS, FLAGS>::general_change(ADDRESS start, ADDRESS end, int32
 #endif
 #ifdef PT2_BYTE_ACU_MULTI
             change_count2_byte_acu_multi = pt2_byte_acu_multi->rm_watchpoint(start, end);
+#endif
+#ifdef RC_SINGLE
+            range_cache_write_misses = range_cache[thread_id]->rm_watchpoint(start, end);
 #endif
          }
       }
@@ -642,6 +698,14 @@ int WatchPoint<ADDRESS, FLAGS>::general_change(ADDRESS start, ADDRESS end, int32
 #endif
 #ifdef PT2_BYTE_ACU_MULTI
          statistics_iter->second.pt2_byte_acu_multi_changes += change_count2_byte_acu_multi;
+#endif
+#ifdef RC_SINGLE
+         if (range_cache_write_misses) {
+            statistics_iter->second.rc_write_miss++;
+            statistics_iter->second.rc_backing_store_accesses += range_cache_write_misses;
+         }
+         else
+            statistics_iter->second.rc_write_hits++;
 #endif
       }
       return 0;                                                               // normal set: return 0
@@ -851,6 +915,16 @@ statistics_t WatchPoint<ADDRESS, FLAGS>::clear_statistics() {
    empty.pt2_byte_acu_multi_bitmap_faults=0;
    empty.pt2_byte_acu_multi_changes=0;
    #endif
+   #ifdef RC_SINGLE
+   empty.rc_read_hits=0;
+   empty.rc_read_miss=0;
+   empty.rc_write_hits=0;
+   empty.rc_write_miss=0;
+   empty.rc_backing_store_accesses=0;
+   empty.rc_kickout_dirties=0;
+   empty.rc_kickouts=0;
+   empty.rc_complex_updates=0;
+   #endif
    return empty;
 }
 
@@ -955,6 +1029,16 @@ void WatchPoint<ADDRESS, FLAGS>::print_statistics(const statistics_t& to_print, 
    output << setw(45) << "bitmap fault: " << to_print.pt2_byte_acu_multi_bitmap_faults <<endl;
    output << setw(45) << "total fault: " << to_print.pt2_byte_acu_multi_bitmap_faults+to_print.pt2_byte_acu_multi_page_faults+to_print.pt2_byte_acu_multi_superpage_faults+to_print.pt2_byte_acu_multi_seg_reg_faults <<endl;
    output << setw(45) << "bit changes: " << to_print.pt2_byte_acu_multi_changes <<endl;
+   #endif
+   #ifdef RC_SINGLE
+   output << setw(45) << "range cache (single) read hit: "<< to_print.rc_read_hits <<endl;
+   output << setw(45) << "read miss: "<< to_print.rc_read_miss <<endl;
+   output << setw(45) << "write hit: "<< to_print.rc_write_hits <<endl;
+   output << setw(45) << "write miss: "<< to_print.rc_write_miss <<endl;
+   output << setw(45) << "backing store access: "<< to_print.rc_backing_store_accesses <<endl;
+   output << setw(45) << "kickouts dirty: "<< to_print.rc_kickout_dirties <<endl;
+   output << setw(45) << "kickouts total: "<< to_print.rc_kickouts <<endl;
+   output << setw(45) << "complex update: "<< to_print.rc_complex_updates <<endl;
    #endif
    output <<endl;
    return;
