@@ -17,13 +17,14 @@ WATCHPOINT=watchpoint
 PINTOOLS=pintools
 .PHONY : pintools clean
 
-ALL_TEST=$(TEST_ADD) $(TEST_RM) $(TEST_CACHE_ALGO) $(TEST_PRINT) $(TEST_PT) $(TEST_WP) 	#add tests here
+ALL_TEST=$(TEST_ADD) $(TEST_RM) $(TEST_CACHE_ALGO) $(TEST_PRINT) $(TEST_PT) $(TEST_WP) $(TEST_RC)  #add tests here
 TEST_ADD=test/test_add
 TEST_RM=test/test_rm
 TEST_CACHE_ALGO=test/test_cache_algo
 TEST_PRINT=test/test_print
 TEST_PT=test/test_pt
 TEST_WP=test/test_wp
+TEST_RC=test/test_rc
 
 all: $(ALL_TEST) $(PINTOOLS)
 
@@ -44,6 +45,11 @@ $(TEST_PT): $(OBJS) $(TEST_PT).cpp
 
 $(TEST_WP): $(OBJS) $(TEST_WP).cpp
 	$(CXX) $(CFLAGS) $(OBJS) $(TEST_WP).cpp -o test_wp
+
+$(TEST_RC): $(OBJS) $(TEST_RC).cpp
+	$(CXX) $(CFLAGS) $(OBJS) $(TEST_RC).cpp -o test_rc
+
+#add tests here
 
 $(ORACLE).o: $(ORACLE).cpp $(ORACLE).h
 	cd $(WP_FOLDER) & $(CXX) $(CFLAGS) -c $(ORACLE).cpp
