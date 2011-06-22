@@ -1,7 +1,7 @@
 CXX=g++
 CFLAGS=-Wall -Werror -O3
 EXECS=test_add test_rm test_cache_algo test_print test_pt test_wp pintools	#add executes here
-OBJS=$(WP_FOLDER)$(ORACLE).o $(WP_FOLDER)$(PT).o $(WP_FOLDER)$(PT_MULTI).o $(WP_FOLDER)$(PT2).o $(WP_FOLDER)$(PT2_BYTE_ACU).o $(WP_FOLDER)$(CACHE_ALGO).o $(WP_FOLDER)$(RC).o$(WP_FOLDER)$(WATCHPOINT).o 	#add objects here
+OBJS=$(WP_FOLDER)$(ORACLE).o $(WP_FOLDER)$(PT).o $(WP_FOLDER)$(PT_MULTI).o $(WP_FOLDER)$(PT2).o $(WP_FOLDER)$(PT2_BYTE_ACU).o $(WP_FOLDER)$(CACHE_ALGO).o $(WP_FOLDER)$(RC).o $(WP_FOLDER)$(WATCHPOINT).o 	#add objects here
 
 WP_FOLDER=watchpoint_system/
 WP_DATA=wp_data_struct
