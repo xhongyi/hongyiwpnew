@@ -94,7 +94,7 @@ void Oracle<ADDRESS, FLAGS>::wp_operation(ADDRESS start_addr, ADDRESS end_addr,
    /*
     * The first search must fall into a range either tagged or not.
     */
-   wp_iter = search_address (start_addr, wp);
+   wp_iter = search_address (start_addr);
    /*
     * Special case: If the target range is so small that it falls
     * into 1 single range, then we do not need to go through the 3
@@ -316,7 +316,7 @@ void Oracle<ADDRESS, FLAGS>::wp_operation(ADDRESS start_addr, ADDRESS end_addr,
 
 template<class ADDRESS, class FLAGS>
 int Oracle<ADDRESS, FLAGS>::general_fault(ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags) {
-   wp_iter = search_address (start_addr, wp);
+   wp_iter = search_address (start_addr);
    while (wp_iter != wp.end() && end_addr > wp_iter->end_addr) {
       if (wp_iter->flags & target_flags)
          return true;
@@ -331,7 +331,7 @@ int Oracle<ADDRESS, FLAGS>::general_fault(ADDRESS start_addr, ADDRESS end_addr, 
  */
 template<class ADDRESS, class FLAGS>
 typename deque<watchpoint_t<ADDRESS, FLAGS> >::iterator
-   Oracle<ADDRESS, FLAGS>::search_address (ADDRESS start_addr, deque<watchpoint_t<ADDRESS, FLAGS> > &wp) {
+   Oracle<ADDRESS, FLAGS>::search_address (ADDRESS target_addr) {
    typename deque<watchpoint_t<ADDRESS, FLAGS> >::iterator beg_iter;
    typename deque<watchpoint_t<ADDRESS, FLAGS> >::iterator mid_iter;
    typename deque<watchpoint_t<ADDRESS, FLAGS> >::iterator end_iter;
@@ -339,7 +339,7 @@ typename deque<watchpoint_t<ADDRESS, FLAGS> >::iterator
    end_iter = wp.end();
    while (beg_iter < end_iter - 1) {
       mid_iter = beg_iter + (end_iter - beg_iter) / 2;
-      if (start_addr <= mid_iter->start_addr)
+      if (target_addr <= mid_iter->start_addr)
          end_iter = mid_iter;
       else
          beg_iter = mid_iter;
@@ -348,7 +348,7 @@ typename deque<watchpoint_t<ADDRESS, FLAGS> >::iterator
     * The iteration will stop at the point where beg + 1 = end
     * So we need to compare further more to decide which one contains start_addr
     */
-   if (start_addr <= beg_iter->end_addr)
+   if (target_addr <= beg_iter->end_addr)
       return beg_iter;
    else
       return end_iter;

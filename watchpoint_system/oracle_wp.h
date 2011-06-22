@@ -37,7 +37,7 @@ public:
    int  write_fault (ADDRESS start_addr, ADDRESS end_addr);
    
    typename deque<watchpoint_t<ADDRESS, FLAGS> >::iterator
-      search_address    (ADDRESS start_addr, deque<watchpoint_t<ADDRESS, FLAGS> > &wp);
+      search_address    (ADDRESS target_addr);
 
    void  watch_print    (ostream &output = cout);
 

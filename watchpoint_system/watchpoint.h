@@ -8,12 +8,13 @@
 #ifndef WATCHPOINT_H_
 #define WATCHPOINT_H_
 
-#define PAGE_TABLE_SINGLE
-#define PAGE_TABLE_MULTI
-#define PAGE_TABLE2_SINGLE
-#define PAGE_TABLE2_MULTI
-#define PT2_BYTE_ACU_SINGLE
-#define PT2_BYTE_ACU_MULTI
+//#define PAGE_TABLE_SINGLE
+//#define PAGE_TABLE_MULTI
+//#define PAGE_TABLE2_SINGLE
+//#define PAGE_TABLE2_MULTI
+//#define PT2_BYTE_ACU_SINGLE
+//#define PT2_BYTE_ACU_MULTI
+#define RC_SINGLE
 
 #ifdef PAGE_TABLE2_MULTI
 #define PAGE_TABLE_MULTI
@@ -63,6 +64,10 @@
 
 #ifdef PT2_BYTE_ACU_MULTI
 #include "pt2_byte_acu_single.h"
+#endif
+
+#ifdef RC_SINGLE
+#include "range_cache.h"
 #endif
 
 #define IGNORE_STATS true
@@ -124,6 +129,16 @@ struct statistics_t {
    long long pt2_byte_acu_multi_page_faults;
    long long pt2_byte_acu_multi_bitmap_faults;
    long long pt2_byte_acu_multi_changes;
+   #endif
+   #ifdef RC_SINGLE
+   long long rc_read_hits;
+   long long rc_read_miss;
+   long long rc_write_hits;
+   long long rc_write_miss;
+   long long rc_backing_store_accesses;
+   long long rc_kickout_dirties;
+   long long rc_kickouts;
+   long long rc_complex_updates;
    #endif
 };
 
@@ -224,6 +239,9 @@ private:
    #ifdef PT2_BYTE_ACU_MULTI
    PT2_byte_acu_single<ADDRESS, FLAGS>*                     pt2_byte_acu_multi;
    #endif
+   #ifdef RC_SINGLE
+   map<int32_t, RangeCache<ADDRESS, FLAGS>* >               range_cache;
+   #endif
 
    bool                                                     emulate_hardware;
    
@@ -240,6 +258,9 @@ private:
    #endif
    #ifdef PT2_BYTE_ACU_SINGLE
    typename map<int32_t, PT2_byte_acu_single<ADDRESS, FLAGS>* >::iterator pt2_byte_acu_iter;
+   #endif
+   #ifdef RC_SINGLE
+   typename map<int32_t, RangeCache<ADDRESS, FLAGS>* >::iterator        range_cache_iter;
    #endif
    /*
    #ifdef PAGE_TABLE_SINGLE
