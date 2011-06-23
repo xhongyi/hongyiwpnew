@@ -89,14 +89,14 @@ int RangeCache<ADDRESS, FLAGS>::general_fault(ADDRESS start_addr, ADDRESS end_ad
 //    both simulated by removing all covered ranges and then getting new ranges from backing store
 template<class ADDRESS, class FLAGS>
 int RangeCache<ADDRESS, FLAGS>::wp_operation(ADDRESS start_addr, ADDRESS end_addr) {
+   ADDRESS new_start_addr = start_addr, new_end_addr = end_addr;
    bool complex_update = false;
    int rc_miss = 0;
    typename std::deque< watchpoint_t<ADDRESS, FLAGS> >::iterator rc_write_iter;
    // extend start_addr if necessary
    rc_write_iter = search_address(start_addr);
    if (rc_write_iter != rc_data.end()) {        // in case of split
-      if (start_addr > rc_write_iter->start_addr)
-         general_fault(rc_write_iter->start_addr, start_addr-1);
+      new_start_addr = rc_write_iter->start_addr;
    }
    else 
       complex_update = true;
@@ -112,8 +112,7 @@ int RangeCache<ADDRESS, FLAGS>::wp_operation(ADDRESS start_addr, ADDRESS end_add
    // extend end_addr if necessary
    rc_write_iter = search_address(end_addr);
    if (rc_write_iter != rc_data.end()) {        // in case of split
-      if (end_addr < rc_write_iter->end_addr)
-         general_fault(end_addr+1, rc_write_iter->end_addr);
+      new_end_addr = rc_write_iter->end_addr;
    }
    else
       complex_update = true;
@@ -123,9 +122,9 @@ int RangeCache<ADDRESS, FLAGS>::wp_operation(ADDRESS start_addr, ADDRESS end_add
    // getting statistics for backing store accesses
    rc_miss = general_fault(start_addr, end_addr);
    // rm all entries within the new range
-   rm_range(start_addr, end_addr);
+   rm_range(new_start_addr, new_end_addr);
    // update these entries
-   general_fault(start_addr, end_addr, true);
+   general_fault(new_start_addr, new_end_addr, true);
    if (complex_update)
       complex_updates++;
    return rc_miss;

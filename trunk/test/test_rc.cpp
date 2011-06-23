@@ -74,7 +74,7 @@ int main(int argc, char *argv[]) {
 			}
 		   else {
 			   rc_miss = -1;
-			   cout <<"Invalid flag! Flag format: 11 10 01 00 1x x1 0x x0.\t";
+			   cout <<"Invalid flag! Flag format: 11 10 01 00 1x x1 0x x0."<<endl;
 		   }
 		   if (rc_miss != -1) {
 			   cout <<"Printing range cache entries......"<<endl;
