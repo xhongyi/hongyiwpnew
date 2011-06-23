@@ -1,7 +1,6 @@
 #ifndef RANGE_CACHE_H_
 #define RANGE_CACHE_H_
 #include <deque>
-#include "cache_algo.h"
 #include "oracle_wp.h"
 #include "wp_data_struct.h"
 

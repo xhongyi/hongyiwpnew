@@ -65,11 +65,11 @@ int main(int argc, char *argv[]) {
 			   rc_miss = rc_test.wp_operation(start, end);
 			}
 		   else if (flag == "0x") {
-			   oracle_wp.rm_watchpoint(start, end, WA_WRITE);
+			   oracle_wp.rm_watchpoint(start, end, WA_READ);
 			   rc_miss = rc_test.wp_operation(start, end);
 			}
 		   else if (flag == "x0") {
-			   oracle_wp.rm_watchpoint(start, end, WA_READ);
+			   oracle_wp.rm_watchpoint(start, end, WA_WRITE);
 			   rc_miss = rc_test.wp_operation(start, end);
 			}
 		   else {
