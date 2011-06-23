@@ -97,6 +97,8 @@ int RangeCache<ADDRESS, FLAGS>::wp_operation(ADDRESS start_addr, ADDRESS end_add
    rc_write_iter = search_address(start_addr);
    if (rc_write_iter != rc_data.end()) {        // in case of split
       new_start_addr = rc_write_iter->start_addr;
+      //if (start_addr < rc_write_iter->start_addr)
+      //   general_fault(start_addr+1, rc_write_iter->start_addr);
    }
    else 
       complex_update = true;
@@ -113,6 +115,8 @@ int RangeCache<ADDRESS, FLAGS>::wp_operation(ADDRESS start_addr, ADDRESS end_add
    rc_write_iter = search_address(end_addr);
    if (rc_write_iter != rc_data.end()) {        // in case of split
       new_end_addr = rc_write_iter->end_addr;
+      //if (end_addr < rc_write_iter->end_addr)
+      //   general_fault(end_addr+1, rc_write_iter->end_addr);
    }
    else
       complex_update = true;

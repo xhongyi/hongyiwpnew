@@ -19,6 +19,7 @@ limitations under the License. **/
 
 #include <iostream>
 #include <fstream>
+#include <cstdlib>
 #include "pin.H"
 
 #define NUM_PROCS 4
