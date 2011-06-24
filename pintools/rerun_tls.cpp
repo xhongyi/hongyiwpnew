@@ -25,10 +25,9 @@ limitations under the License. **/
 
 // Force each thread's data to be in its own data cache line so that
 // multiple threads do not contend for the same data cache line.
-#define PADSIZE 52  // 64 byte line size
+#define PADSIZE 56  // 64 byte line size
                     // 'number_of_instructions' is 8 bytes, so pad takes
-                    // pointer to the thread local lock is 4 bytes.
-                    // 64-8-4=52 bytes on a 32-bit compile.
+                    // 64-8=56 bytes on a 32-bit compile.
 #define MEM_SIZE -1 // this will give us "all 1s" in a UINT address.
 
 using std::deque;
@@ -37,7 +36,6 @@ using std::deque;
 struct thread_wp_data_t
 {
     UINT64 number_of_instructions;
-    PIN_LOCK *thread_local_lock;
     UINT8 pad[PADSIZE];
 };
 
@@ -69,38 +67,11 @@ KNOB<string> KnobOutputFile(KNOB_MODE_WRITEONCE, "pintool",
 // thread map, then you can use the PIN thread local storage stuff.
 PIN_LOCK init_lock;
 
-VOID GetAllLocks(THREADID threadid)
-{
-    deque<THREADID>::iterator live_iter;
-    // Grab the init lock so that no new threads can start up
-    // until we're done here.
-    GetLock(&init_lock, threadid+1);
-
-    // Go through each live thread and grab the locks in order
-    // Do this in order to prevent deadlocks.
-    for(live_iter = live_threads.begin(); live_iter != live_threads.end(); live_iter++) {
-        GetLock(thread_map[*live_iter]->thread_local_lock, threadid+1);
-    }
-}
-
-VOID ReleaseAllLocks()
-{
-    deque<THREADID>::iterator live_iter;
-    for(live_iter = live_threads.end(); live_iter != live_threads.begin(); live_iter--) {
-        ReleaseLock(thread_map[*live_iter]->thread_local_lock);
-    }
-    // Do begin() as well.
-    ReleaseLock(thread_map[*(live_threads.begin())]->thread_local_lock);
-    ReleaseLock(&init_lock);
-}
-
 VOID ThreadStart(THREADID threadid, CONTEXT *ctxt, INT32 flags, VOID *v)
 {
     // Allocate things inside the thread init lock.
     GetLock(&init_lock, threadid+1);
     thread_wp_data_t* this_thread = new thread_wp_data_t;
-    this_thread->thread_local_lock = new PIN_LOCK;
-    InitLock(this_thread->thread_local_lock);
 
     // Initialization says that this thread has run no instructions
     this_thread->number_of_instructions = 0;
