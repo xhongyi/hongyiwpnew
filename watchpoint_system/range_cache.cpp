@@ -63,10 +63,7 @@ int RangeCache<ADDRESS, FLAGS>::general_fault(ADDRESS start_addr, ADDRESS end_ad
          rc_miss++;                                            //    miss++
          // get new range from backing store
          rc_read_iter = oracle_wp->search_address(start_addr);
-         temp = *rc_read_iter;
-         if (dirty)
-            temp.flags |= DIRTY;
-         rc_data.push_back(*rc_read_iter);                     // push the new range to range cache
+         rc_data.push_front(*rc_read_iter);                    // push the new range to range cache
          rc_read_iter = search_address(start_addr);
       }
       if (rc_read_iter->end_addr >= end_addr)                  // if all ranges are covered
@@ -78,13 +75,62 @@ int RangeCache<ADDRESS, FLAGS>::general_fault(ADDRESS start_addr, ADDRESS end_ad
       if (dirty)
          temp.flags |= DIRTY;// mark as dirty if called by wp_operation
       // refresh lru
-      rc_data.erase(rc_read_iter);
-      rc_data.push_back(temp);
+      rc_data.erase(rc_read_iter);                             // refresh this entry as most recently used
+      rc_data.push_front(temp);
+   }
+   while (cache_overflow())                                    // kick out redundant cache entries
+      cache_kickout();
+   return rc_miss;
+}
+/*    memory leak version of optimized general_fault
+// we only need to know if it is a hit or miss in a range cache
+//    so it is regardless of the checked flags
+template<class ADDRESS, class FLAGS>
+int RangeCache<ADDRESS, FLAGS>::general_fault(ADDRESS start_addr, ADDRESS end_addr, bool dirty) {
+   typename std::deque< watchpoint_t<ADDRESS, FLAGS> >::iterator rc_read_iter;
+   watchpoint_t<ADDRESS, FLAGS> temp;
+   int rc_miss = 0;
+   bool searching = true;     // searching = true until all ranges are covered
+   if (dirty) {
+      while (searching) {
+         rc_miss++;                                            //    miss++
+         // get new range from backing store
+         rc_read_iter = oracle_wp->search_address(start_addr);
+         temp = *rc_read_iter;
+         temp.flags |= DIRTY;                      // mark as dirty if called by wp_operation
+         rc_data.push_front(temp);                     // push the new range to range cache
+         if (rc_read_iter->end_addr >= end_addr)                  // if all ranges are covered
+            searching = false;
+      }
+   }
+   else {
+      while (searching) {
+         rc_read_iter = search_address(start_addr);               // search starts from the start_addr
+         if (rc_read_iter == rc_data.end()) {                     // if cache miss
+            rc_miss++;                                            //    miss++
+            // get new range from backing store
+            rc_read_iter = oracle_wp->search_address(start_addr);
+            temp = *rc_read_iter;
+            rc_data.push_front(temp);                     // push the new range to range cache
+            if (rc_read_iter->end_addr >= end_addr)                  // if all ranges are covered
+               searching = false;
+         }
+         else {
+            if (rc_read_iter->end_addr >= end_addr)                  // if all ranges are covered
+               searching = false;
+            // refresh start_addr
+            temp = *rc_read_iter;
+            start_addr = temp.end_addr+1;
+            // refresh lru
+            rc_data.erase(rc_read_iter);
+            rc_data.push_front(temp);
+         }
+      }
    }
    while (cache_overflow())
       cache_kickout();
    return rc_miss;
-}
+}*/
 // wp_operation is same for add or rm a watchpoint, 
 //    both simulated by removing all covered ranges and then getting new ranges from backing store
 template<class ADDRESS, class FLAGS>
@@ -144,14 +190,15 @@ bool RangeCache<ADDRESS, FLAGS>::cache_overflow() {
 template<class ADDRESS, class FLAGS>
 void RangeCache<ADDRESS, FLAGS>::cache_kickout() {
    kickout++;
-   if (rc_data.front().flags & DIRTY)
+   if (rc_data.back().flags & DIRTY)
       kickout_dirty++;
-   rc_data.pop_front();
+   rc_data.pop_back();
 }
-
+// perform a linear search in the range cache from the most recent used entry
+//    return end if not found
 template<class ADDRESS, class FLAGS>
 typename std::deque< watchpoint_t<ADDRESS, FLAGS> >::iterator 
-RangeCache<ADDRESS, FLAGS>::search_address(ADDRESS target_addr) {
+ RangeCache<ADDRESS, FLAGS>::search_address(ADDRESS target_addr) {
    typename std::deque< watchpoint_t<ADDRESS, FLAGS> >::iterator i;
    for (i=rc_data.begin();i!=rc_data.end();i++) {
       if (target_addr >= i->start_addr && target_addr <= i->end_addr)

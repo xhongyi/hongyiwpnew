@@ -5,8 +5,6 @@
 #include "wp_data_struct.h"
 
 #define     CACHE_SIZE     64
-#define     CACHE_MISS     0
-#define     CACHE_HIT      1
 
 #define     DIRTY          16
 
