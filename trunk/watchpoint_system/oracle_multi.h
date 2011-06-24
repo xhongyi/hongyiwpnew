@@ -19,7 +19,7 @@ public:
    ~Oracle_multi();
    // Threading Calls
    void     start_thread   (int32_t thread_id, Oracle<ADDRESS, FLAGS>* oracle_in);
-   void     end_thread     (int32_t thread_id, Oracle<ADDRESS, FLAGS>* oracle_in);
+   void     end_thread     (int32_t thread_id);
    /*
     * this function tells all pages covered by this range is watched or not
     */

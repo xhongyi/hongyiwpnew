@@ -261,14 +261,15 @@ template<class ADDRESS, class FLAGS>
 int WatchPoint<ADDRESS, FLAGS>::end_thread(int32_t thread_id) {
    statistics_iter = statistics.find(thread_id);
    if (statistics_iter != statistics.end()) {                           // if thread_id is active
+      if (emulate_hardware){
+#ifdef ORACLE_MULTI
+         oracle_multi->end_thread(thread_id);
+#endif
+      }
       oracle_wp_iter = oracle_wp.find(thread_id);
-      Oracle<ADDRESS, FLAGS> temp_oracle = *(oracle_wp_iter->second);   // make a copy temporarily for oracle_multi
       delete oracle_wp_iter->second;
       oracle_wp.erase(oracle_wp_iter);                                  // remove its Oracle watchpoint data
       if (emulate_hardware) {
-#ifdef ORACLE_MULTI
-         oracle_multi->end_thread(thread_id, &temp_oracle);
-#endif
 #ifdef PAGE_TABLE
          page_table_wp_iter = page_table_wp.find(thread_id);
          delete page_table_wp_iter->second;
