@@ -46,7 +46,7 @@ static TLS_KEY tls_key;
 // All the watchpoints for all threads are held here.
 WatchPoint<ADDRINT, UINT32> *wp;
 
-// This holds this opposite of watchpoints. This is the read-write sets
+// This holds the opposite of watchpoints. This is the read-write sets
 // that each thread holds-- this is used to find conflicts.
 WatchPoint<ADDRINT, UINT32> *mem;
 
@@ -188,8 +188,8 @@ VOID RecordMemRead(VOID * ip, ADDRINT addr, UINT32 size, THREADID threadid)
                 }
             }
 
-            wp->rm_read((ADDRINT)addr, (ADDRINT)(addr+size-1), threadid);
-            mem->update_set_read((ADDRINT)addr, (ADDRINT)(addr+size-1), threadid, IGNORE_STATS);
+            wp->rm_read(addr, (ADDRINT)(addr+size-1), threadid);
+            mem->update_set_read(addr, (ADDRINT)(addr+size-1), threadid, IGNORE_STATS);
         }
     }
     ReleaseLock(&init_lock);
@@ -207,7 +207,7 @@ VOID RecordMemWrite(VOID * ip, ADDRINT addr, UINT32 size, THREADID threadid)
         // Check if this thread write-owns this location. This is a real check.
         // This must be entirely locked, or we could enter a disgusting state when walking
         // the oracle internals and another thread updates us.
-        if ( wp->write_fault((ADDRINT)addr, (ADDRINT)(addr+size-1), threadid) ) {
+        if ( wp->write_fault(addr, (ADDRINT)(addr+size-1), threadid) ) {
             /* Took a write fault. We must now see if this location was in the read or write sets of
              * someone else. If so, we need to remove their ownership and watchpoint. */
             for(live_iter = live_threads.begin(); live_iter != live_threads.end(); live_iter++) {
@@ -234,8 +234,11 @@ VOID RecordMemWrite(VOID * ip, ADDRINT addr, UINT32 size, THREADID threadid)
                 }
             }
 
-            wp->rm_write((ADDRINT)addr, (ADDRINT)(addr+size-1), threadid);
-            mem->update_set_write((ADDRINT)addr, (ADDRINT)(addr+size-1), threadid, IGNORE_STATS);
+            // Technically, you don't need to pay attention to any other reads now either,
+            // because you now write-own this location. Any other access on the machine, even reads,
+            // to this location will cause a write-sharing event.
+            wp->rm_watch(addr, (ADDRINT)(addr+size-1), threadid);
+            mem->update_set_write(addr, (ADDRINT)(addr+size-1), threadid, IGNORE_STATS);
         }
     }
     ReleaseLock(&init_lock);
@@ -323,12 +326,10 @@ VOID Fini(INT32 code, VOID *v)
         thread_map.erase(thread_num);
     }
     OutFile << endl << "==============================" << endl << endl;
-    ReleaseLock(&init_lock);
 
     wp->print_statistics(OutFile, INCLUDE_INACTIVE);
+    ReleaseLock(&init_lock);
     
-////////////////////////Out put the data collected
-
     OutFile.close();
 }
 
