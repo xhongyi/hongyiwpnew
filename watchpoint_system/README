@@ -1,0 +1,40 @@
+This is the documentation for all files in /watchpoint_systems/ which contains all watchpoint system simulators
+
+0. watchpoint.h watchpoint.cpp
+class name: WatchPoint
+usage: watchpoint api used as a connection between pin tools and the watchpoint simulator
+
+0. oracle_wp.h oracle_wp.cpp
+class name: Oracle
+characteristics: byte accurate, read/write watchpoint, one for each thread
+usage: contains a self-arranging ranges of read or write watchpoints which covers the whole memory system. We use it as an oracle for all other watchpoint simulators because it is always correct.
+
+1. oracle_multi.h oracle_multi.cpp
+class name: Oracle_multi
+characteristics: byte accurate, read/write watchpoint, one for all threads
+usage: contains an oracle which equals the conjuction of all threads' watchpoints
+
+2. page_table1_single.h page_table1_single.cpp
+class name: PageTable1_single
+characteristics: page accurate, watched/unwatched, one for each thread
+usage: contains a bitmap of which each bit represents a whole page. Only if none of the bytes in a whole page is marked as read/write watched can a whole page be marked as unwatched. In other words, as long as one byte in a page is read/write watched, all bytes in the page is watched.
+
+3. page_table1_multi.h page_table1_multi.cpp
+class name: PageTable1_multi
+characteristics: page accurate, watched/unwatched, one for all threads
+usage: contains a bitmap and a map contains pointers to all threads' PageTable1_single
+
+4. page_table2_single.h page_table2_single.cpp
+class name: PageTable2_single (can be used as PageTable2_multi if input PageTable1_multi when calling constructor)
+characteristics: page accurate, watched/unwatched, one for each threads, be able to hit on superpage
+usage: contains a bitmap for all superpages and a boolean for segment register, two bits each. It takes the watched/unwatched information from PageTable1_single/multi and develop the state of each superpage and the segment register. Each of them can be in state: 1. watched if all pages/superpages are watched 2. unwatched if all pages/superpages are unwatched 3. unknown if some pages/superpages are watched and some pages are unwatched
+
+5. pt2_byte_acu_single.h pt2_byte_acu_single.cpp
+class name: PT2_byte_acu_single
+characteristics: byte accurate, watched/unwatched, one for each threads, be able to hit on superpage/page
+usage: contains a bitmap of pages and superpages, two bits each, representing three states as in PageTable2_single.
+
+6. range_cache.h range_cache.cpp
+class name: RangeCache
+characteristics: byte accurate, read/write watchpoint, one for each thread, may get a miss
+usage: contains a deque storing all watchpoint ranges exist in the cache. It also contains three internal statistics which can be output by calling get_stats()
