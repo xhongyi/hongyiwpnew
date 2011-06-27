@@ -42,7 +42,7 @@ endif
 ##############################################################
 
 
-TOOL_ROOTS = rerun_tls rerun_ins taint sharing_detector grace_tls
+TOOL_ROOTS = rerun_tls rerun_ins taint sharing_detector grace_tls grace_omp
 STATIC_TOOL_ROOTS =
 
 TOOLS = $(TOOL_ROOTS:%=$(OBJDIR)%$(PINTOOL_SUFFIX))
