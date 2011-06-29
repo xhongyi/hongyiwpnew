@@ -40,37 +40,37 @@ int main(int argc, char *argv[]) {
 	      cin >>start >>end >>flag;
 		   if (flag == "11") {
 			   oracle_wp.add_watchpoint(start, end, WA_READ|WA_WRITE);
-			   rc_miss = rc_test.wp_operation(start, end);
+			   rc_miss = rc_test.wp_operation(start, end, false);
 			}
 		   else if (flag == "10") {
 			   oracle_wp.add_watchpoint(start, end, WA_READ);
 			   oracle_wp.rm_watchpoint(start, end, WA_WRITE);
-			   rc_miss = rc_test.wp_operation(start, end);
+			   rc_miss = rc_test.wp_operation(start, end, false);
 			}
 		   else if (flag == "01") {
 			   oracle_wp.add_watchpoint(start, end, WA_WRITE);
 			   oracle_wp.rm_watchpoint(start, end, WA_READ);
-			   rc_miss = rc_test.wp_operation(start, end);
+			   rc_miss = rc_test.wp_operation(start, end, false);
 			}
 		   else if (flag == "00") {
 			   oracle_wp.rm_watchpoint(start, end, WA_READ|WA_WRITE);
-			   rc_miss = rc_test.wp_operation(start, end);
+			   rc_miss = rc_test.wp_operation(start, end, false);
 			}
 		   else if (flag == "1x") {
 			   oracle_wp.add_watchpoint(start, end, WA_READ);
-			   rc_miss = rc_test.wp_operation(start, end);
+			   rc_miss = rc_test.wp_operation(start, end, true);
 			}
 		   else if (flag == "x1") {
 			   oracle_wp.add_watchpoint(start, end, WA_WRITE);
-			   rc_miss = rc_test.wp_operation(start, end);
+			   rc_miss = rc_test.wp_operation(start, end, true);
 			}
 		   else if (flag == "0x") {
 			   oracle_wp.rm_watchpoint(start, end, WA_READ);
-			   rc_miss = rc_test.wp_operation(start, end);
+			   rc_miss = rc_test.wp_operation(start, end, true);
 			}
 		   else if (flag == "x0") {
 			   oracle_wp.rm_watchpoint(start, end, WA_WRITE);
-			   rc_miss = rc_test.wp_operation(start, end);
+			   rc_miss = rc_test.wp_operation(start, end, true);
 			}
 		   else {
 			   rc_miss = -1;
