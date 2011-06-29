@@ -122,13 +122,21 @@ int RangeCache<ADDRESS, FLAGS>::wp_operation(ADDRESS start_addr, ADDRESS end_add
       temp = *oracle_iter;
       if (oracle_iter->start_addr < start_addr) {
          rc_write_iter = search_address(start_addr-1);
-         temp.start_addr = rc_write_iter->start_addr;
-         rc_data.erase(rc_write_iter);
+         if (rc_write_iter!=rc_data.end()) {
+            temp.start_addr = rc_write_iter->start_addr;
+            rc_data.erase(rc_write_iter);
+         }
+         else
+            temp.start_addr = start_addr;
       }
-      if (oracle_iter->end_addr < end_addr) {
+      if (oracle_iter->end_addr > end_addr) {
          rc_write_iter = search_address(end_addr+1);
-         temp.end_addr = rc_write_iter->end_addr;
-         rc_data.erase(rc_write_iter);
+         if (rc_write_iter!=rc_data.end()) {
+            temp.end_addr = rc_write_iter->end_addr;
+            rc_data.erase(rc_write_iter);
+         }
+         else
+            temp.end_addr = end_addr;
       }
       temp.flags |= DIRTY;
       rc_data.push_front(temp);
