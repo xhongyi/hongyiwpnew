@@ -15,14 +15,14 @@ public:
    RangeCache();
    ~RangeCache();
    // for all ranges referred to, update lru if found in rc; load from backing store if not found.
-   int   general_fault  (ADDRESS start_addr, ADDRESS end_addr, bool dirty = false);
+   int   general_fault  (ADDRESS start_addr, ADDRESS end_addr);
    int   watch_fault (ADDRESS start_addr, ADDRESS end_addr);
    int   read_fault  (ADDRESS start_addr, ADDRESS end_addr);
    int   write_fault (ADDRESS start_addr, ADDRESS end_addr);
    // actually updating all the entries referred by this range
-   int   wp_operation   (ADDRESS start_addr, ADDRESS end_addr);
-   int   add_watchpoint (ADDRESS start_addr, ADDRESS end_addr);
-   int   rm_watchpoint  (ADDRESS start_addr, ADDRESS end_addr);
+   int   wp_operation   (ADDRESS start_addr, ADDRESS end_addr, bool is_update);
+   int   add_watchpoint (ADDRESS start_addr, ADDRESS end_addr, bool is_update);
+   int   rm_watchpoint  (ADDRESS start_addr, ADDRESS end_addr, bool is_update);
    // for getting statistics
    void  get_stats      (long long &kickout_out, long long &kickout_dirty_out, long long &complex_updates_out);
    // print for debugging

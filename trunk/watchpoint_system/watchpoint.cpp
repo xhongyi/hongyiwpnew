@@ -645,7 +645,7 @@ int WatchPoint<ADDRESS, FLAGS>::general_change(ADDRESS start, ADDRESS end, int32
             change_count2_byte_acu_multi = pt2_byte_acu_multi->add_watchpoint(start, end);
 #endif
 #ifdef RC_SINGLE
-            range_cache_write_misses = range_cache[thread_id]->add_watchpoint(start, end);
+            range_cache_write_misses = range_cache[thread_id]->add_watchpoint(start, end, (target_flags.find("x")!=string::npos));
 #endif
          }
          else if (rm_flag) {                                                     // For pagetables only: if (add_flag) => no need to consider rm_flag
@@ -669,7 +669,7 @@ int WatchPoint<ADDRESS, FLAGS>::general_change(ADDRESS start, ADDRESS end, int32
             change_count2_byte_acu_multi = pt2_byte_acu_multi->rm_watchpoint(start, end);
 #endif
 #ifdef RC_SINGLE
-            range_cache_write_misses = range_cache[thread_id]->rm_watchpoint(start, end);
+            range_cache_write_misses = range_cache[thread_id]->rm_watchpoint(start, end, (target_flags.find("x")!=string::npos));
 #endif
          }
       }

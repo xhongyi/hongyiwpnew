@@ -41,21 +41,21 @@ int RangeCache<ADDRESS, FLAGS>::write_fault(ADDRESS start_addr, ADDRESS end_addr
 }
 
 template<class ADDRESS, class FLAGS>
-int RangeCache<ADDRESS, FLAGS>::add_watchpoint(ADDRESS start_addr, ADDRESS end_addr) {
-   return wp_operation(start_addr, end_addr);
+int RangeCache<ADDRESS, FLAGS>::add_watchpoint(ADDRESS start_addr, ADDRESS end_addr, bool is_update) {
+   return wp_operation(start_addr, end_addr, is_update);
 }
 
 template<class ADDRESS, class FLAGS>
-int RangeCache<ADDRESS, FLAGS>::rm_watchpoint(ADDRESS start_addr, ADDRESS end_addr) {
-   return wp_operation(start_addr, end_addr);
+int RangeCache<ADDRESS, FLAGS>::rm_watchpoint(ADDRESS start_addr, ADDRESS end_addr, bool is_update) {
+   return wp_operation(start_addr, end_addr, is_update);
 }
 // we only need to know if it is a hit or miss in a range cache
 //    so it is regardless of the checked flags
 template<class ADDRESS, class FLAGS>
-int RangeCache<ADDRESS, FLAGS>::general_fault(ADDRESS start_addr, ADDRESS end_addr, bool dirty) {
+int RangeCache<ADDRESS, FLAGS>::general_fault(ADDRESS start_addr, ADDRESS end_addr) {
+   int rc_miss = 0;
    typename std::deque< watchpoint_t<ADDRESS, FLAGS> >::iterator rc_read_iter;
    watchpoint_t<ADDRESS, FLAGS> temp;
-   int rc_miss = 0;
    bool searching = true;     // searching = true until all ranges are covered
    while (searching) {
       rc_read_iter = search_address(start_addr);               // search starts from the start_addr
@@ -63,6 +63,7 @@ int RangeCache<ADDRESS, FLAGS>::general_fault(ADDRESS start_addr, ADDRESS end_ad
          rc_miss++;                                            //    miss++
          // get new range from backing store
          rc_read_iter = oracle_wp->search_address(start_addr);
+         rm_range(rc_read_iter->start_addr, rc_read_iter->end_addr);
          rc_data.push_front(*rc_read_iter);                    // push the new range to range cache
          rc_read_iter = search_address(start_addr);
       }
@@ -71,9 +72,6 @@ int RangeCache<ADDRESS, FLAGS>::general_fault(ADDRESS start_addr, ADDRESS end_ad
       // refresh start_addr
       temp = *rc_read_iter;
       start_addr = temp.end_addr+1;
-      // mark as dirty if called by wp_operation
-      if (dirty)
-         temp.flags |= DIRTY;// mark as dirty if called by wp_operation
       // refresh lru
       rc_data.erase(rc_read_iter);                             // refresh this entry as most recently used
       rc_data.push_front(temp);
@@ -82,101 +80,61 @@ int RangeCache<ADDRESS, FLAGS>::general_fault(ADDRESS start_addr, ADDRESS end_ad
       cache_kickout();
    return rc_miss;
 }
-/*    memory leak version of optimized general_fault
-// we only need to know if it is a hit or miss in a range cache
-//    so it is regardless of the checked flags
-template<class ADDRESS, class FLAGS>
-int RangeCache<ADDRESS, FLAGS>::general_fault(ADDRESS start_addr, ADDRESS end_addr, bool dirty) {
-   typename std::deque< watchpoint_t<ADDRESS, FLAGS> >::iterator rc_read_iter;
-   watchpoint_t<ADDRESS, FLAGS> temp;
-   int rc_miss = 0;
-   bool searching = true;     // searching = true until all ranges are covered
-   if (dirty) {
-      while (searching) {
-         rc_miss++;                                            //    miss++
-         // get new range from backing store
-         rc_read_iter = oracle_wp->search_address(start_addr);
-         temp = *rc_read_iter;
-         temp.flags |= DIRTY;                      // mark as dirty if called by wp_operation
-         rc_data.push_front(temp);                     // push the new range to range cache
-         if (rc_read_iter->end_addr >= end_addr)                  // if all ranges are covered
-            searching = false;
-      }
-   }
-   else {
-      while (searching) {
-         rc_read_iter = search_address(start_addr);               // search starts from the start_addr
-         if (rc_read_iter == rc_data.end()) {                     // if cache miss
-            rc_miss++;                                            //    miss++
-            // get new range from backing store
-            rc_read_iter = oracle_wp->search_address(start_addr);
-            temp = *rc_read_iter;
-            rc_data.push_front(temp);                     // push the new range to range cache
-            if (rc_read_iter->end_addr >= end_addr)                  // if all ranges are covered
-               searching = false;
-         }
-         else {
-            if (rc_read_iter->end_addr >= end_addr)                  // if all ranges are covered
-               searching = false;
-            // refresh start_addr
-            temp = *rc_read_iter;
-            start_addr = temp.end_addr+1;
-            // refresh lru
-            rc_data.erase(rc_read_iter);
-            rc_data.push_front(temp);
-         }
-      }
-   }
-   while (cache_overflow())
-      cache_kickout();
-   return rc_miss;
-}*/
 // wp_operation is same for add or rm a watchpoint, 
 //    both simulated by removing all covered ranges and then getting new ranges from backing store
 template<class ADDRESS, class FLAGS>
-int RangeCache<ADDRESS, FLAGS>::wp_operation(ADDRESS start_addr, ADDRESS end_addr) {
-   ADDRESS new_start_addr = start_addr, new_end_addr = end_addr;
-   bool complex_update = false;
+int RangeCache<ADDRESS, FLAGS>::wp_operation(ADDRESS start_addr, ADDRESS end_addr, bool is_update) {
    int rc_miss = 0;
-   typename std::deque< watchpoint_t<ADDRESS, FLAGS> >::iterator rc_write_iter;
-   // extend start_addr if necessary
-   rc_write_iter = search_address(start_addr);
-   if (rc_write_iter != rc_data.end()) {        // in case of split
-      new_start_addr = rc_write_iter->start_addr;
-      //if (start_addr < rc_write_iter->start_addr)
-      //   general_fault(start_addr+1, rc_write_iter->start_addr);
+   typename std::deque< watchpoint_t<ADDRESS, FLAGS> >::iterator rc_write_iter, oracle_iter;
+   watchpoint_t<ADDRESS, FLAGS> temp;
+   if (is_update) {
+      // support for counting complex updates
+      bool searching = true;     // searching = true until all ranges are covered
+      while (searching) {
+         rc_write_iter = search_address(start_addr);               // search starts from the start_addr
+         oracle_iter = oracle_wp->search_address(start_addr);
+         if (rc_write_iter != rc_data.end()) {                     // if cache hit
+            temp = *rc_write_iter;
+            temp.flags = oracle_iter->flags | DIRTY;
+            if (temp.end_addr >= end_addr)
+               searching = false;
+            else
+               start_addr = temp.end_addr+1;
+            rc_data.erase(rc_write_iter);
+            rc_data.push_front(temp);
+         }
+         else {                                                   // if cache miss
+            rc_miss++;                                            //    miss++
+            rm_range(oracle_iter->start_addr, oracle_iter->end_addr);
+            temp = *oracle_iter;
+            temp.flags |= DIRTY;
+            if (temp.end_addr >= end_addr)
+               searching = false;
+            else
+               start_addr = temp.end_addr+1;
+            rc_data.push_front(temp);                     // push the new range to range cache
+         }
+      }
    }
-   else 
-      complex_update = true;
-   rc_write_iter = oracle_wp->search_address(start_addr);
-   if (rc_write_iter->start_addr < start_addr)  // in case of merge
-      start_addr = rc_write_iter->start_addr;
-   // check if complex_update
-   if (rc_write_iter->end_addr != (ADDRESS)-1) {
-      rc_write_iter++;
-      if (rc_write_iter->end_addr<end_addr)
-         complex_update = true;
+   else {
+      rm_range(start_addr, end_addr);
+      oracle_iter = oracle_wp->search_address(start_addr);
+      temp = *oracle_iter;
+      if (oracle_iter->start_addr < start_addr) {
+         rc_write_iter = search_address(start_addr-1);
+         temp.start_addr = rc_write_iter->start_addr;
+         rc_data.erase(rc_write_iter);
+      }
+      if (oracle_iter->end_addr < end_addr) {
+         rc_write_iter = search_address(end_addr+1);
+         temp.end_addr = rc_write_iter->end_addr;
+         rc_data.erase(rc_write_iter);
+      }
+      temp.flags |= DIRTY;
+      rc_data.push_front(temp);
    }
-   // extend end_addr if necessary
-   rc_write_iter = search_address(end_addr);
-   if (rc_write_iter != rc_data.end()) {        // in case of split
-      new_end_addr = rc_write_iter->end_addr;
-      //if (end_addr < rc_write_iter->end_addr)
-      //   general_fault(end_addr+1, rc_write_iter->end_addr);
-   }
-   else
-      complex_update = true;
-   rc_write_iter = oracle_wp->search_address(end_addr);
-   if (rc_write_iter->end_addr > end_addr)      // in case of merge
-      end_addr = rc_write_iter->end_addr;
-   // getting statistics for backing store accesses
-   rc_miss = general_fault(start_addr, end_addr);
-   // rm all entries within the new range
-   rm_range(new_start_addr, new_end_addr);
-   // update these entries
-   general_fault(new_start_addr, new_end_addr, true);
-   if (complex_update)
-      complex_updates++;
+   while (cache_overflow())                                    // kick out redundant cache entries
+      cache_kickout();
    return rc_miss;
 }
 
@@ -210,19 +168,33 @@ typename std::deque< watchpoint_t<ADDRESS, FLAGS> >::iterator
 template<class ADDRESS, class FLAGS>
 void RangeCache<ADDRESS, FLAGS>::rm_range(ADDRESS start_addr, ADDRESS end_addr) {
    typename std::deque< watchpoint_t<ADDRESS, FLAGS> >::iterator rc_rm_iter;
-   bool searching = true;  // searching = true until all ranges are removed
-   while (searching) {
-      rc_rm_iter = search_address(start_addr);
-      if (rc_rm_iter != rc_data.end()) {        // if found in range cache
-         if (rc_rm_iter->end_addr >= end_addr)  // if finished all ranges
-            searching = false;
-         start_addr = rc_rm_iter->end_addr+1;   // adjust start_addr
+   watchpoint_t<ADDRESS, FLAGS> temp;
+   rc_rm_iter = search_address(start_addr);
+   // split start if needed
+   if (rc_rm_iter!=rc_data.end() && rc_rm_iter->start_addr < start_addr) {
+      temp.start_addr = rc_rm_iter->start_addr;
+      temp.end_addr = start_addr-1;
+      temp.flags = rc_rm_iter->flags;
+      rc_rm_iter->start_addr = start_addr;
+      rc_data.push_front(temp);
+   }
+   rc_rm_iter = search_address(end_addr);
+   // split end if needed
+   if (rc_rm_iter!=rc_data.end() && rc_rm_iter->end_addr > end_addr) {
+      temp.start_addr = end_addr+1;
+      temp.end_addr = rc_rm_iter->end_addr;
+      temp.flags = rc_rm_iter->flags;
+      rc_rm_iter->end_addr = end_addr;
+      rc_data.push_front(temp);
+   }
+   unsigned int i=0;
+   while (i < rc_data.size()) {
+      rc_rm_iter = rc_data.begin()+i;
+      if (rc_rm_iter->start_addr >= start_addr && rc_rm_iter->start_addr <= end_addr && 
+          rc_rm_iter->end_addr   >= start_addr && rc_rm_iter->end_addr   <= end_addr)
          rc_data.erase(rc_rm_iter);
-      }                                         // if miss in range cache
-      else if (start_addr != end_addr)
-         start_addr++;
       else
-         searching = false;
+         i++;
    }
 }
 
