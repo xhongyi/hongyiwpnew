@@ -85,34 +85,82 @@ int RangeCache<ADDRESS, FLAGS>::general_fault(ADDRESS start_addr, ADDRESS end_ad
 template<class ADDRESS, class FLAGS>
 int RangeCache<ADDRESS, FLAGS>::wp_operation(ADDRESS start_addr, ADDRESS end_addr, bool is_update) {
    int rc_miss = 0;
+   bool complex_update = false;
    typename std::deque< watchpoint_t<ADDRESS, FLAGS> >::iterator rc_write_iter, oracle_iter;
    watchpoint_t<ADDRESS, FLAGS> temp;
    if (is_update) {
       // support for counting complex updates
+      rc_write_iter = search_address(start_addr);
+      if (rc_write_iter == rc_data.end())
+         complex_update = true;
+      rc_write_iter = search_address(end_addr);
+      if (rc_write_iter == rc_data.end())
+         complex_update = true;
+      if ( (oracle_wp->search_address(start_addr)+1)->end_addr < end_addr)
+         complex_update = true;
+      // counting rc_miss
       bool searching = true;     // searching = true until all ranges are covered
+      ADDRESS search_addr = start_addr;
       while (searching) {
-         rc_write_iter = search_address(start_addr);               // search starts from the start_addr
-         oracle_iter = oracle_wp->search_address(start_addr);
+         rc_write_iter = search_address(search_addr);               // search starts from the start_addr
+         oracle_iter = oracle_wp->search_address(search_addr);
          if (rc_write_iter != rc_data.end()) {                     // if cache hit
-            temp = *rc_write_iter;
-            temp.flags = oracle_iter->flags | DIRTY;
-            if (temp.end_addr >= end_addr)
+            if (rc_write_iter->end_addr >= end_addr)
                searching = false;
             else
-               start_addr = temp.end_addr+1;
-            rc_data.erase(rc_write_iter);
-            rc_data.push_front(temp);
+               search_addr = rc_write_iter->end_addr+1;
          }
          else {                                                   // if cache miss
             rc_miss++;                                            //    miss++
-            rm_range(oracle_iter->start_addr, oracle_iter->end_addr);
-            temp = *oracle_iter;
-            temp.flags |= DIRTY;
-            if (temp.end_addr >= end_addr)
+            if (oracle_iter->end_addr >= end_addr)
                searching = false;
             else
-               start_addr = temp.end_addr+1;
-            rc_data.push_front(temp);                     // push the new range to range cache
+               search_addr = oracle_iter->end_addr+1;
+         }
+      }
+      rm_range(start_addr, end_addr);
+      // adding ranges
+      oracle_iter = oracle_wp->search_address(start_addr);        // merge start
+      temp = *oracle_iter;
+      temp.flags |= DIRTY;
+      if (oracle_iter->start_addr < start_addr) {
+         rc_write_iter = search_address(start_addr-1);
+         if (rc_write_iter!=rc_data.end()) {
+            temp.start_addr = rc_write_iter->start_addr;
+            rc_data.erase(rc_write_iter);
+         }
+         else
+            temp.start_addr = start_addr;
+      }
+      if (oracle_iter->end_addr > end_addr) {
+         rc_write_iter = search_address(end_addr+1);
+         if (rc_write_iter!=rc_data.end()) {
+            temp.end_addr = rc_write_iter->end_addr;
+            rc_data.erase(rc_write_iter);
+         }
+         else
+            temp.end_addr = end_addr;
+      }
+      rc_data.push_front(temp);
+      if (oracle_iter->end_addr < end_addr) {
+         searching = true;
+         while (searching) {
+            oracle_iter++;
+            temp = *oracle_iter;
+            temp.flags |= DIRTY;
+            if (oracle_iter->end_addr > end_addr) {
+               searching = false;
+               rc_write_iter = search_address(end_addr+1);
+               if (rc_write_iter!=rc_data.end()) {
+                  temp.end_addr = rc_write_iter->end_addr;
+                  rc_data.erase(rc_write_iter);
+               }
+               else
+                  temp.end_addr = end_addr;
+            }
+            else if (oracle_iter->end_addr == end_addr)
+               searching = false;
+            rc_data.push_front(temp);
          }
       }
    }
