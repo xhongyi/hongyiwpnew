@@ -60,10 +60,9 @@ int RangeCache<ADDRESS, FLAGS>::general_fault(ADDRESS start_addr, ADDRESS end_ad
    while (searching) {
       rc_read_iter = search_address(start_addr);               // search starts from the start_addr
       if (rc_read_iter == rc_data.end()) {                     // if cache miss
-         rc_miss++;                                            //    miss++
          // get new range from backing store
          rc_read_iter = oracle_wp->search_address(start_addr);
-         rm_range(rc_read_iter->start_addr, rc_read_iter->end_addr);
+         rc_miss += rm_range(rc_read_iter->start_addr, rc_read_iter->end_addr);
          rc_data.push_front(*rc_read_iter);                    // push the new range to range cache
          rc_read_iter = search_address(start_addr);
       }
@@ -110,12 +109,15 @@ int RangeCache<ADDRESS, FLAGS>::wp_operation(ADDRESS start_addr, ADDRESS end_add
             else
                search_addr = rc_write_iter->end_addr+1;
          }
-         else {                                                   // if cache miss
-            rc_miss++;                                            //    miss++
-            if (oracle_iter->end_addr >= end_addr)
+         else {
+            if (oracle_iter->end_addr >= end_addr) {
+               rc_miss += rm_range(search_addr, end_addr);
                searching = false;
-            else
+            }
+            else {
+               rc_miss += rm_range(search_addr, oracle_iter->end_addr);
                search_addr = oracle_iter->end_addr+1;
+            }
          }
       }
       rm_range(start_addr, end_addr);
@@ -222,12 +224,13 @@ typename std::deque< watchpoint_t<ADDRESS, FLAGS> >::iterator
 }
 
 template<class ADDRESS, class FLAGS>
-void RangeCache<ADDRESS, FLAGS>::rm_range(ADDRESS start_addr, ADDRESS end_addr) {
+int RangeCache<ADDRESS, FLAGS>::rm_range(ADDRESS start_addr, ADDRESS end_addr) {
+   int rc_miss = 0;
    typename std::deque< watchpoint_t<ADDRESS, FLAGS> >::iterator rc_rm_iter;
    watchpoint_t<ADDRESS, FLAGS> temp;
    rc_rm_iter = search_address(start_addr);
    // split start if needed
-   if (rc_rm_iter!=rc_data.end() && rc_rm_iter->start_addr < start_addr) {
+   if (rc_rm_iter!=rc_data.end() && rc_rm_iter->start_addr<start_addr) {
       temp.start_addr = rc_rm_iter->start_addr;
       temp.end_addr = start_addr-1;
       temp.flags = rc_rm_iter->flags;
@@ -235,8 +238,10 @@ void RangeCache<ADDRESS, FLAGS>::rm_range(ADDRESS start_addr, ADDRESS end_addr) 
       rc_data.push_front(temp);
    }
    rc_rm_iter = search_address(end_addr);
+   if (rc_rm_iter == rc_data.end())
+      rc_miss++;
    // split end if needed
-   if (rc_rm_iter!=rc_data.end() && rc_rm_iter->end_addr > end_addr) {
+   if (rc_rm_iter!=rc_data.end() && rc_rm_iter->end_addr>end_addr) {
       temp.start_addr = end_addr+1;
       temp.end_addr = rc_rm_iter->end_addr;
       temp.flags = rc_rm_iter->flags;
@@ -247,11 +252,14 @@ void RangeCache<ADDRESS, FLAGS>::rm_range(ADDRESS start_addr, ADDRESS end_addr) 
    while (i < rc_data.size()) {
       rc_rm_iter = rc_data.begin()+i;
       if (rc_rm_iter->start_addr >= start_addr && rc_rm_iter->start_addr <= end_addr && 
-          rc_rm_iter->end_addr   >= start_addr && rc_rm_iter->end_addr   <= end_addr)
+          rc_rm_iter->end_addr   >= start_addr && rc_rm_iter->end_addr   <= end_addr) {
          rc_data.erase(rc_rm_iter);
+         rc_miss++;
+      }
       else
          i++;
    }
+   return rc_miss;
 }
 
 template<class ADDRESS, class FLAGS>

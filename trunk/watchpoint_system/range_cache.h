@@ -1,6 +1,7 @@
 #ifndef RANGE_CACHE_H_
 #define RANGE_CACHE_H_
 #include <deque>
+#include <algorithm>
 #include "oracle_wp.h"
 #include "wp_data_struct.h"
 
@@ -37,7 +38,7 @@ private:
    // private functions used in range cache
    typename deque<watchpoint_t<ADDRESS, FLAGS> >::iterator
       search_address    (ADDRESS target_addr);           // search for target addr in rc, return rc_data.end() if miss
-   void rm_range(ADDRESS start_addr, ADDRESS end_addr);  // remove all entries within the range
+   int rm_range(ADDRESS start_addr, ADDRESS end_addr);  // remove all entries within the range
    bool cache_overflow();
    void cache_kickout();   // kickout one lru entry at a time
 };
