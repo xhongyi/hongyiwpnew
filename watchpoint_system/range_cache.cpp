@@ -7,7 +7,8 @@
 using namespace std;
 
 template<class ADDRESS, class FLAGS>
-RangeCache<ADDRESS, FLAGS>::RangeCache(Oracle<ADDRESS, FLAGS> *wp_ref) {
+RangeCache<ADDRESS, FLAGS>::RangeCache(Oracle<ADDRESS, FLAGS> *wp_ref, bool ocbm_in) {
+   ocbm = ocbm_in;
    oracle_wp = wp_ref;
    kickout_dirty=0;
    kickout=0;
@@ -16,6 +17,7 @@ RangeCache<ADDRESS, FLAGS>::RangeCache(Oracle<ADDRESS, FLAGS> *wp_ref) {
 
 template<class ADDRESS, class FLAGS>
 RangeCache<ADDRESS, FLAGS>::RangeCache() {
+   ocbm = false;
    kickout_dirty=0;
    kickout=0;
    complex_updates=0;
@@ -75,6 +77,8 @@ int RangeCache<ADDRESS, FLAGS>::general_fault(ADDRESS start_addr, ADDRESS end_ad
       rc_data.erase(rc_read_iter);                             // refresh this entry as most recently used
       rc_data.push_front(temp);
    }
+   if (ocbm)
+      check_ocbm(start_addr, end_addr);
    while (cache_overflow())                                    // kick out redundant cache entries
       cache_kickout();
    return rc_miss;
@@ -82,7 +86,7 @@ int RangeCache<ADDRESS, FLAGS>::general_fault(ADDRESS start_addr, ADDRESS end_ad
 // wp_operation is same for add or rm a watchpoint, 
 //    both simulated by removing all covered ranges and then getting new ranges from backing store
 template<class ADDRESS, class FLAGS>
-int RangeCache<ADDRESS, FLAGS>::wp_operation(ADDRESS start_addr, ADDRESS end_addr, bool is_update) {
+int RangeCache<ADDRESS, FLAGS>::wp_operation(ADDRESS start_addr, ADDRESS end_addr, bool is_update) {cout <<"o";
    int rc_miss = 0;
    bool complex_update = false;
    typename std::deque< watchpoint_t<ADDRESS, FLAGS> >::iterator rc_write_iter, oracle_iter;
@@ -150,7 +154,7 @@ int RangeCache<ADDRESS, FLAGS>::wp_operation(ADDRESS start_addr, ADDRESS end_add
             oracle_iter++;
             temp = *oracle_iter;
             temp.flags |= DIRTY;
-            if (oracle_iter->end_addr > end_addr) {
+            if (oracle_iter->end_addr > end_addr) {               // merge end
                searching = false;
                rc_write_iter = search_address(end_addr+1);
                if (rc_write_iter!=rc_data.end()) {
@@ -191,6 +195,8 @@ int RangeCache<ADDRESS, FLAGS>::wp_operation(ADDRESS start_addr, ADDRESS end_add
       temp.flags |= DIRTY;
       rc_data.push_front(temp);
    }
+   if (ocbm)
+      check_ocbm(start_addr, end_addr);
    while (cache_overflow())                                    // kick out redundant cache entries
       cache_kickout();
    return rc_miss;
@@ -224,7 +230,7 @@ typename std::deque< watchpoint_t<ADDRESS, FLAGS> >::iterator
 }
 
 template<class ADDRESS, class FLAGS>
-int RangeCache<ADDRESS, FLAGS>::rm_range(ADDRESS start_addr, ADDRESS end_addr) {
+int RangeCache<ADDRESS, FLAGS>::rm_range(ADDRESS start_addr, ADDRESS end_addr) {cout <<"r";
    int rc_miss = 0;
    typename std::deque< watchpoint_t<ADDRESS, FLAGS> >::iterator rc_rm_iter;
    watchpoint_t<ADDRESS, FLAGS> temp;
@@ -234,6 +240,8 @@ int RangeCache<ADDRESS, FLAGS>::rm_range(ADDRESS start_addr, ADDRESS end_addr) {
       temp.start_addr = rc_rm_iter->start_addr;
       temp.end_addr = start_addr-1;
       temp.flags = rc_rm_iter->flags;
+      if (ocbm && (temp.end_addr - temp.start_addr <= 15))
+         temp.flags |= WA_OCBM;
       rc_rm_iter->start_addr = start_addr;
       rc_data.push_front(temp);
    }
@@ -245,6 +253,8 @@ int RangeCache<ADDRESS, FLAGS>::rm_range(ADDRESS start_addr, ADDRESS end_addr) {
       temp.start_addr = end_addr+1;
       temp.end_addr = rc_rm_iter->end_addr;
       temp.flags = rc_rm_iter->flags;
+      if (ocbm && (temp.end_addr - temp.start_addr <= 15))
+         temp.flags |= WA_OCBM;
       rc_rm_iter->end_addr = end_addr;
       rc_data.push_front(temp);
    }
@@ -276,14 +286,78 @@ void RangeCache<ADDRESS, FLAGS>::watch_print(ostream &output) {
    for (unsigned int i = 0; i < rc_data.size() ; i++) {
       output << "start_addr = " << setw(10) << rc_data[i].start_addr << " ";
       output << "end_addr = " << setw(10) << rc_data[i].end_addr << " ";
-      if (rc_data[i].flags & WA_READ)
-         output << "R";
-      if (rc_data[i].flags & WA_WRITE)
-         output << "W";
+      if (rc_data[i].flags & WA_OCBM) {
+         output << "OCBM";
+      }
+      else {
+         if (rc_data[i].flags & WA_READ)
+            output << "R";
+         if (rc_data[i].flags & WA_WRITE)
+            output << "W";
+      }
       output << endl;
    }
    output << endl;
    return;
+}
+
+template<class ADDRESS, class FLAGS>
+void RangeCache<ADDRESS, FLAGS>::check_ocbm(ADDRESS start_addr, ADDRESS end_addr) {
+   typename std::deque< watchpoint_t<ADDRESS, FLAGS> >::iterator check_iter, merge_iter;
+   ADDRESS search_addr = start_addr;
+   // switch all qualified ranges into ocbm first
+   bool searching = true;
+   do {
+      check_iter = search_address(search_addr);                // is guaranteed to be in the cache
+      if (check_iter->end_addr - check_iter->start_addr <= 15)
+         check_iter->flags |= WA_OCBM;
+      if (check_iter->end_addr >= end_addr)
+         searching = false;
+      else
+         search_addr = check_iter->end_addr+1;
+   } while (searching);
+   // check their neighbors for merge
+   searching = true;
+   search_addr = start_addr;
+   do {
+      check_iter = search_address(search_addr);
+      if (check_iter->flags & WA_OCBM) {                       // only merge if it is an ocbm itself
+         // merge left
+         merge_iter = search_address(check_iter->start_addr-1);
+         if (merge_iter!=rc_data.end() && (merge_iter->flags & WA_OCBM)) {
+            if (check_iter->end_addr - merge_iter->start_addr <= 15) {
+               check_iter->flags |= merge_iter->flags;         // in case of merging dirty ocbms
+               check_iter->start_addr = merge_iter->start_addr;
+               rc_data.erase(merge_iter);
+               check_iter = search_address(search_addr);
+            }
+         }
+         if (check_iter->end_addr >= end_addr)
+            searching = false;
+         else {
+            search_addr = check_iter->end_addr+1;
+            // merge right
+            merge_iter = search_address(search_addr);
+            if (merge_iter!=rc_data.end() && (merge_iter->flags & WA_OCBM)) {
+               if (merge_iter->end_addr - check_iter->start_addr <= 15) {
+                  check_iter->flags |= merge_iter->flags;
+                  check_iter->end_addr = merge_iter->end_addr;
+                  if (merge_iter->end_addr >= end_addr)
+                     searching = false;
+                  else
+                     search_addr = merge_iter->end_addr+1;
+                  rc_data.erase(merge_iter);
+               }
+            }
+         }
+      }
+      else {
+         if (check_iter->end_addr >= end_addr)
+            searching = false;
+         else
+            search_addr = check_iter->end_addr+1;
+      }
+   } while (searching);
 }
 
 #endif

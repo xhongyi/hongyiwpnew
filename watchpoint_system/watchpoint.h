@@ -14,7 +14,8 @@
 //#define PAGE_TABLE2_MULTI
 //#define PT2_BYTE_ACU_SINGLE
 //#define PT2_BYTE_ACU_MULTI
-#define RC_SINGLE
+//#define RC_SINGLE
+#define RC_OCBM
 
 #ifdef PAGE_TABLE2_MULTI
 #define PAGE_TABLE_MULTI
@@ -67,6 +68,10 @@
 #endif
 
 #ifdef RC_SINGLE
+#include "range_cache.h"
+#endif
+
+#ifdef RC_OCBM
 #include "range_cache.h"
 #endif
 
@@ -140,6 +145,16 @@ struct statistics_t {
    long long rc_kickouts;
    long long rc_complex_updates;
    #endif
+   #ifdef RC_OCBM
+   long long rc_ocbm_read_hits;
+   long long rc_ocbm_read_miss;
+   long long rc_ocbm_write_hits;
+   long long rc_ocbm_write_miss;
+   long long rc_ocbm_backing_store_accesses;
+   long long rc_ocbm_kickout_dirties;
+   long long rc_ocbm_kickouts;
+   long long rc_ocbm_complex_updates;
+   #endif
 };
 
 /*
@@ -160,7 +175,7 @@ template<class ADDRESS, class FLAGS>
 class WatchPoint {
 public:
    WatchPoint();              // Constructor
-    WatchPoint(bool);         // Constructor that turns off hardware emulation.
+   WatchPoint(bool);         // Constructor that turns off hardware emulation.
    ~WatchPoint();             // Destructor
    
    //Threading Calls
@@ -242,6 +257,9 @@ private:
    #ifdef RC_SINGLE
    map<int32_t, RangeCache<ADDRESS, FLAGS>* >               range_cache;
    #endif
+   #ifdef RC_OCBM
+   map<int32_t, RangeCache<ADDRESS, FLAGS>* >               range_cache_ocbm;
+   #endif
 
    bool                                                     emulate_hardware;
    
@@ -261,6 +279,9 @@ private:
    #endif
    #ifdef RC_SINGLE
    typename map<int32_t, RangeCache<ADDRESS, FLAGS>* >::iterator        range_cache_iter;
+   #endif
+   #ifdef RC_OCBM
+   typename map<int32_t, RangeCache<ADDRESS, FLAGS>* >::iterator        range_cache_ocbm_iter;
    #endif
    /*
    #ifdef PAGE_TABLE_SINGLE

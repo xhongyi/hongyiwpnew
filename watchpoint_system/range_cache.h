@@ -12,7 +12,7 @@
 template<class ADDRESS, class FLAGS>
 class RangeCache {
 public:
-   RangeCache(Oracle<ADDRESS, FLAGS> *wp_ref);
+   RangeCache(Oracle<ADDRESS, FLAGS> *wp_ref, bool ocbm_in = false);
    RangeCache();
    ~RangeCache();
    // for all ranges referred to, update lru if found in rc; load from backing store if not found.
@@ -28,7 +28,10 @@ public:
    void  get_stats      (long long &kickout_out, long long &kickout_dirty_out, long long &complex_updates_out);
    // print for debugging
    void watch_print     (ostream &output = cout);
+   // only for range_cache with ocbm function
+   void check_ocbm      (ADDRESS start_addr, ADDRESS end_addr);
 private:
+   bool ocbm;
    // data structure used in range cache
    deque< watchpoint_t<ADDRESS, FLAGS> >  rc_data;       // cache data
    Oracle<ADDRESS, FLAGS>*                oracle_wp;     // storing a pointer to its corresponding oracle

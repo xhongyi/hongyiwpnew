@@ -68,6 +68,16 @@ inline statistics_t& operator +=(statistics_t &a, const statistics_t &b) { // no
    a.rc_kickouts += b.rc_kickouts;
    a.rc_complex_updates += b.rc_complex_updates;
    #endif
+   #ifdef RC_OCBM
+   a.rc_ocbm_read_hits += b.rc_ocbm_read_hits;
+   a.rc_ocbm_read_miss += b.rc_ocbm_read_miss;
+   a.rc_ocbm_write_hits += b.rc_ocbm_write_hits;
+   a.rc_ocbm_write_miss += b.rc_ocbm_write_miss;
+   a.rc_ocbm_backing_store_accesses += b.rc_ocbm_backing_store_accesses;
+   a.rc_ocbm_kickout_dirties += b.rc_ocbm_kickout_dirties;
+   a.rc_ocbm_kickouts += b.rc_ocbm_kickouts;
+   a.rc_ocbm_complex_updates += b.rc_ocbm_complex_updates;
+   #endif
    return a;
 }
 
@@ -136,6 +146,16 @@ inline statistics_t operator +(const statistics_t &a, const statistics_t &b) {
    result.rc_kickout_dirties = a.rc_kickout_dirties + b.rc_kickout_dirties;
    result.rc_kickouts = a.rc_kickouts + b.rc_kickouts;
    result.rc_complex_updates = a.rc_complex_updates + b.rc_complex_updates;
+   #endif
+   #ifdef RC_OCBM
+   result.rc_ocbm_read_hits = a.rc_ocbm_read_hits + b.rc_ocbm_read_hits;
+   result.rc_ocbm_read_miss = a.rc_ocbm_read_miss + b.rc_ocbm_read_miss;
+   result.rc_ocbm_write_hits = a.rc_ocbm_write_hits + b.rc_ocbm_write_hits;
+   result.rc_ocbm_write_miss = a.rc_ocbm_write_miss + b.rc_ocbm_write_miss;
+   result.rc_ocbm_backing_store_accesses = a.rc_ocbm_backing_store_accesses + b.rc_ocbm_backing_store_accesses;
+   result.rc_ocbm_kickout_dirties = a.rc_ocbm_kickout_dirties + b.rc_ocbm_kickout_dirties;
+   result.rc_ocbm_kickouts = a.rc_ocbm_kickouts + b.rc_ocbm_kickouts;
+   result.rc_ocbm_complex_updates = a.rc_ocbm_complex_updates + b.rc_ocbm_complex_updates;
    #endif
    return result;
 }
@@ -248,6 +268,9 @@ int WatchPoint<ADDRESS, FLAGS>::start_thread(int32_t thread_id) {
 #ifdef RC_SINGLE
          range_cache[thread_id] = new RangeCache<ADDRESS, FLAGS>(oracle_wp.find(thread_id)->second);
 #endif
+#ifdef RC_OCBM
+         range_cache_ocbm[thread_id] = new RangeCache<ADDRESS, FLAGS>(oracle_wp.find(thread_id)->second, true);
+#endif
       }
       return 0;                                                         // normal start: return 0
    }
@@ -300,6 +323,16 @@ int WatchPoint<ADDRESS, FLAGS>::end_thread(int32_t thread_id) {
          statistics_iter->second.rc_complex_updates += complex_updates;
          delete range_cache_iter->second;
          range_cache.erase(range_cache_iter);
+#endif
+#ifdef RC_OCBM
+         range_cache_ocbm_iter = range_cache_ocbm.find(thread_id);
+         long long kickout_ocbm, kickout_dirty_ocbm, complex_updates_ocbm;
+         range_cache_ocbm_iter->second->get_stats(kickout_ocbm, kickout_dirty_ocbm, complex_updates_ocbm);
+         statistics_iter->second.rc_ocbm_kickout_dirties += kickout_dirty_ocbm;
+         statistics_iter->second.rc_ocbm_kickouts += kickout_ocbm;
+         statistics_iter->second.rc_ocbm_complex_updates += complex_updates_ocbm;
+         delete range_cache_ocbm_iter->second;
+         range_cache_ocbm.erase(range_cache_ocbm_iter);
 #endif
       }
       statistics_inactive[thread_id] = statistics_iter->second;         // move its statistics to inactive
@@ -391,6 +424,9 @@ bool  WatchPoint<ADDRESS, FLAGS>::general_fault(ADDRESS start, ADDRESS end, int3
 #ifdef RC_SINGLE
       int range_cache_misses = 0;
 #endif
+#ifdef RC_OCBM
+      int range_cache_ocbm_misses = 0;
+#endif
       /*
        * emulating hardware
        */
@@ -418,6 +454,9 @@ bool  WatchPoint<ADDRESS, FLAGS>::general_fault(ADDRESS start, ADDRESS end, int3
 #endif
 #ifdef RC_SINGLE
          range_cache_misses = range_cache[thread_id]->watch_fault(start, end);
+#endif
+#ifdef RC_OCBM
+         range_cache_ocbm_misses = range_cache_ocbm[thread_id]->watch_fault(start, end);
 #endif
       }
       /*
@@ -529,6 +568,14 @@ bool  WatchPoint<ADDRESS, FLAGS>::general_fault(ADDRESS start, ADDRESS end, int3
             else 
                statistics_iter->second.rc_read_hits++;
 #endif
+#ifdef RC_OCBM
+            if (range_cache_ocbm_misses) {
+               statistics_iter->second.rc_ocbm_read_miss++;
+               statistics_iter->second.rc_ocbm_backing_store_accesses += range_cache_ocbm_misses;
+            }
+            else 
+               statistics_iter->second.rc_ocbm_read_hits++;
+#endif
          }
       }
       return oracle_fault;                                              // return Oracle fault
@@ -611,6 +658,9 @@ int WatchPoint<ADDRESS, FLAGS>::general_change(ADDRESS start, ADDRESS end, int32
 #ifdef RC_SINGLE
    int range_cache_write_misses = 0;
 #endif
+#ifdef RC_OCBM
+   int range_cache_ocbm_write_misses = 0;
+#endif
    oracle_wp_iter = oracle_wp.find(thread_id);
    if (oracle_wp_iter != oracle_wp.end()) {                                   // if thread_id found
       if (add_flag)
@@ -647,6 +697,9 @@ int WatchPoint<ADDRESS, FLAGS>::general_change(ADDRESS start, ADDRESS end, int32
 #ifdef RC_SINGLE
             range_cache_write_misses = range_cache[thread_id]->add_watchpoint(start, end, (target_flags.find("x")!=string::npos));
 #endif
+#ifdef RC_OCBM
+            range_cache_ocbm_write_misses = range_cache_ocbm[thread_id]->add_watchpoint(start, end, (target_flags.find("x")!=string::npos));
+#endif
          }
          else if (rm_flag) {                                                     // For pagetables only: if (add_flag) => no need to consider rm_flag
                                                                                  //    (because they do not consider flag type)
@@ -670,6 +723,9 @@ int WatchPoint<ADDRESS, FLAGS>::general_change(ADDRESS start, ADDRESS end, int32
 #endif
 #ifdef RC_SINGLE
             range_cache_write_misses = range_cache[thread_id]->rm_watchpoint(start, end, (target_flags.find("x")!=string::npos));
+#endif
+#ifdef RC_OCBM
+            range_cache_ocbm_write_misses = range_cache_ocbm[thread_id]->rm_watchpoint(start, end, (target_flags.find("x")!=string::npos));
 #endif
          }
       }
@@ -707,6 +763,14 @@ int WatchPoint<ADDRESS, FLAGS>::general_change(ADDRESS start, ADDRESS end, int32
          }
          else
             statistics_iter->second.rc_write_hits++;
+#endif
+#ifdef RC_OCBM
+         if (range_cache_ocbm_write_misses) {
+            statistics_iter->second.rc_ocbm_write_miss++;
+            statistics_iter->second.rc_ocbm_backing_store_accesses += range_cache_ocbm_write_misses;
+         }
+         else
+            statistics_iter->second.rc_ocbm_write_hits++;
 #endif
       }
       return 0;                                                               // normal set: return 0
@@ -926,6 +990,16 @@ statistics_t WatchPoint<ADDRESS, FLAGS>::clear_statistics() {
    empty.rc_kickouts=0;
    empty.rc_complex_updates=0;
    #endif
+   #ifdef RC_OCBM
+   empty.rc_ocbm_read_hits=0;
+   empty.rc_ocbm_read_miss=0;
+   empty.rc_ocbm_write_hits=0;
+   empty.rc_ocbm_write_miss=0;
+   empty.rc_ocbm_backing_store_accesses=0;
+   empty.rc_ocbm_kickout_dirties=0;
+   empty.rc_ocbm_kickouts=0;
+   empty.rc_ocbm_complex_updates=0;
+   #endif
    return empty;
 }
 
@@ -1040,6 +1114,16 @@ void WatchPoint<ADDRESS, FLAGS>::print_statistics(const statistics_t& to_print, 
    output << setw(45) << "kickouts dirty: "<< to_print.rc_kickout_dirties <<endl;
    output << setw(45) << "kickouts total: "<< to_print.rc_kickouts <<endl;
    output << setw(45) << "complex update: "<< to_print.rc_complex_updates <<endl;
+   #endif
+   #ifdef RC_OCBM
+   output << setw(45) << "range cache (with ocbm) read hit: "<< to_print.rc_ocbm_read_hits <<endl;
+   output << setw(45) << "read miss: "<< to_print.rc_ocbm_read_miss <<endl;
+   output << setw(45) << "write hit: "<< to_print.rc_ocbm_write_hits <<endl;
+   output << setw(45) << "write miss: "<< to_print.rc_ocbm_write_miss <<endl;
+   output << setw(45) << "backing store access: "<< to_print.rc_ocbm_backing_store_accesses <<endl;
+   output << setw(45) << "kickouts dirty: "<< to_print.rc_ocbm_kickout_dirties <<endl;
+   output << setw(45) << "kickouts total: "<< to_print.rc_ocbm_kickouts <<endl;
+   output << setw(45) << "complex update: "<< to_print.rc_ocbm_complex_updates <<endl;
    #endif
    output <<endl;
    return;

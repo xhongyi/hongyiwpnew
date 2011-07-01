@@ -2,7 +2,7 @@
 
 #define  WA_READ     1
 #define  WA_WRITE    2
-#define  WA_TRIE     4
+#define  WA_OCBM     4
 #define  WA_LINEMAP  8
 
 template<class ADDRESS, class FLAGS>
