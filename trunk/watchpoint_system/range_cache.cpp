@@ -59,20 +59,21 @@ int RangeCache<ADDRESS, FLAGS>::general_fault(ADDRESS start_addr, ADDRESS end_ad
    typename std::deque< watchpoint_t<ADDRESS, FLAGS> >::iterator rc_read_iter;
    watchpoint_t<ADDRESS, FLAGS> temp;
    bool searching = true;     // searching = true until all ranges are covered
+   ADDRESS search_addr = start_addr;
    while (searching) {
-      rc_read_iter = search_address(start_addr);               // search starts from the start_addr
+      rc_read_iter = search_address(search_addr);               // search starts from the start_addr
       if (rc_read_iter == rc_data.end()) {                     // if cache miss
          // get new range from backing store
-         rc_read_iter = oracle_wp->search_address(start_addr);
+         rc_read_iter = oracle_wp->search_address(search_addr);
          rc_miss += rm_range(rc_read_iter->start_addr, rc_read_iter->end_addr);
          rc_data.push_front(*rc_read_iter);                    // push the new range to range cache
-         rc_read_iter = search_address(start_addr);
+         rc_read_iter = search_address(search_addr);
       }
       if (rc_read_iter->end_addr >= end_addr)                  // if all ranges are covered
          searching = false;
       // refresh start_addr
       temp = *rc_read_iter;
-      start_addr = temp.end_addr+1;
+      search_addr = temp.end_addr+1;
       // refresh lru
       rc_data.erase(rc_read_iter);                             // refresh this entry as most recently used
       rc_data.push_front(temp);
@@ -86,7 +87,7 @@ int RangeCache<ADDRESS, FLAGS>::general_fault(ADDRESS start_addr, ADDRESS end_ad
 // wp_operation is same for add or rm a watchpoint, 
 //    both simulated by removing all covered ranges and then getting new ranges from backing store
 template<class ADDRESS, class FLAGS>
-int RangeCache<ADDRESS, FLAGS>::wp_operation(ADDRESS start_addr, ADDRESS end_addr, bool is_update) {cout <<"o";
+int RangeCache<ADDRESS, FLAGS>::wp_operation(ADDRESS start_addr, ADDRESS end_addr, bool is_update) {
    int rc_miss = 0;
    bool complex_update = false;
    typename std::deque< watchpoint_t<ADDRESS, FLAGS> >::iterator rc_write_iter, oracle_iter;
@@ -230,7 +231,7 @@ typename std::deque< watchpoint_t<ADDRESS, FLAGS> >::iterator
 }
 
 template<class ADDRESS, class FLAGS>
-int RangeCache<ADDRESS, FLAGS>::rm_range(ADDRESS start_addr, ADDRESS end_addr) {cout <<"r";
+int RangeCache<ADDRESS, FLAGS>::rm_range(ADDRESS start_addr, ADDRESS end_addr) {
    int rc_miss = 0;
    typename std::deque< watchpoint_t<ADDRESS, FLAGS> >::iterator rc_rm_iter;
    watchpoint_t<ADDRESS, FLAGS> temp;

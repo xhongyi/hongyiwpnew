@@ -14,7 +14,7 @@
 //#define PAGE_TABLE2_MULTI
 //#define PT2_BYTE_ACU_SINGLE
 //#define PT2_BYTE_ACU_MULTI
-//#define RC_SINGLE
+#define RC_SINGLE
 #define RC_OCBM
 
 #ifdef PAGE_TABLE2_MULTI
