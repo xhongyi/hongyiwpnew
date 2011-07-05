@@ -4,10 +4,12 @@ This is the documentation for all files in /watchpoint_systems/ which contains a
 class name: WatchPoint
 usage: watchpoint api used as a connection between pin tools and the watchpoint simulator
 
+
 0. oracle_wp.h oracle_wp.cpp
 class name: Oracle
 characteristics: byte accurate, read/write watchpoint, one for each thread
-usage: contains a self-arranging ranges of read or write watchpoints which covers the whole memory system. We use it as an oracle for all other watchpoint simulators because it is always correct.
+usage: contains a self-arranging ranges of read or write watchpoints which covers the whole memory system. We use it as an oracle for all other watchpoint simulators because it is always correct. It is also the basic data structure of all other classes, for it is storing watchpoint informations for the whole memory system. 
+internal data structure: using a std::deque<> for storing ranges of watchpoints arranged by memory addresses. It covers memory addresses from 0 to 4294967295. In other words, the conjuction of all ranges exist in oracle_wp is the whole memory space.
 
 1. oracle_multi.h oracle_multi.cpp
 class name: Oracle_multi
