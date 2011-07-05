@@ -61,7 +61,7 @@ int RangeCache<ADDRESS, FLAGS>::general_fault(ADDRESS start_addr, ADDRESS end_ad
    bool searching = true;     // searching = true until all ranges are covered
    ADDRESS search_addr = start_addr;
    while (searching) {
-      rc_read_iter = search_address(search_addr);               // search starts from the start_addr
+      rc_read_iter = search_address(search_addr);              // search starts from the start_addr
       if (rc_read_iter == rc_data.end()) {                     // if cache miss
          // get new range from backing store
          rc_read_iter = oracle_wp->search_address(search_addr);
@@ -106,9 +106,9 @@ int RangeCache<ADDRESS, FLAGS>::wp_operation(ADDRESS start_addr, ADDRESS end_add
       bool searching = true;     // searching = true until all ranges are covered
       ADDRESS search_addr = start_addr;
       while (searching) {
-         rc_write_iter = search_address(search_addr);               // search starts from the start_addr
+         rc_write_iter = search_address(search_addr);             // search starts from the start_addr
          oracle_iter = oracle_wp->search_address(search_addr);
-         if (rc_write_iter != rc_data.end()) {                     // if cache hit
+         if (rc_write_iter != rc_data.end()) {                    // if cache hit
             if (rc_write_iter->end_addr >= end_addr)
                searching = false;
             else
@@ -241,7 +241,7 @@ int RangeCache<ADDRESS, FLAGS>::rm_range(ADDRESS start_addr, ADDRESS end_addr) {
       temp.start_addr = rc_rm_iter->start_addr;
       temp.end_addr = start_addr-1;
       temp.flags = rc_rm_iter->flags;
-      if (ocbm && (temp.end_addr - temp.start_addr <= 15))
+      if (ocbm && (temp.end_addr - temp.start_addr <= OCBM_LEN-1))
          temp.flags |= WA_OCBM;
       rc_rm_iter->start_addr = start_addr;
       rc_data.push_front(temp);
@@ -254,7 +254,7 @@ int RangeCache<ADDRESS, FLAGS>::rm_range(ADDRESS start_addr, ADDRESS end_addr) {
       temp.start_addr = end_addr+1;
       temp.end_addr = rc_rm_iter->end_addr;
       temp.flags = rc_rm_iter->flags;
-      if (ocbm && (temp.end_addr - temp.start_addr <= 15))
+      if (ocbm && (temp.end_addr - temp.start_addr <= OCBM_LEN-1))
          temp.flags |= WA_OCBM;
       rc_rm_iter->end_addr = end_addr;
       rc_data.push_front(temp);
@@ -310,7 +310,7 @@ void RangeCache<ADDRESS, FLAGS>::check_ocbm(ADDRESS start_addr, ADDRESS end_addr
    bool searching = true;
    do {
       check_iter = search_address(search_addr);                // is guaranteed to be in the cache
-      if (check_iter->end_addr - check_iter->start_addr <= 15)
+      if (check_iter->end_addr - check_iter->start_addr <= OCBM_LEN-1)
          check_iter->flags |= WA_OCBM;
       if (check_iter->end_addr >= end_addr)
          searching = false;
@@ -326,7 +326,7 @@ void RangeCache<ADDRESS, FLAGS>::check_ocbm(ADDRESS start_addr, ADDRESS end_addr
          // merge left
          merge_iter = search_address(check_iter->start_addr-1);
          if (merge_iter!=rc_data.end() && (merge_iter->flags & WA_OCBM)) {
-            if (check_iter->end_addr - merge_iter->start_addr <= 15) {
+            if (check_iter->end_addr - merge_iter->start_addr <= OCBM_LEN-1) {
                check_iter->flags |= merge_iter->flags;         // in case of merging dirty ocbms
                check_iter->start_addr = merge_iter->start_addr;
                rc_data.erase(merge_iter);
@@ -340,7 +340,7 @@ void RangeCache<ADDRESS, FLAGS>::check_ocbm(ADDRESS start_addr, ADDRESS end_addr
             // merge right
             merge_iter = search_address(search_addr);
             if (merge_iter!=rc_data.end() && (merge_iter->flags & WA_OCBM)) {
-               if (merge_iter->end_addr - check_iter->start_addr <= 15) {
+               if (merge_iter->end_addr - check_iter->start_addr <= OCBM_LEN-1) {
                   check_iter->flags |= merge_iter->flags;
                   check_iter->end_addr = merge_iter->end_addr;
                   if (merge_iter->end_addr >= end_addr)

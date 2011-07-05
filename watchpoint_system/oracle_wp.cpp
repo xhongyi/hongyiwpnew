@@ -86,7 +86,7 @@ int Oracle<ADDRESS, FLAGS>::rm_watchpoint(ADDRESS start_addr, ADDRESS end_addr, 
 template<class ADDRESS, class FLAGS>
 void Oracle<ADDRESS, FLAGS>::wp_operation(ADDRESS start_addr, ADDRESS end_addr,
       FLAGS target_flags, bool (*flag_test)(FLAGS &x, FLAGS &y),
-      FLAGS (*flag_op)(FLAGS &x, FLAGS &y) ) {
+      FLAGS (*flag_op)(FLAGS &x, FLAGS &y) ) {cout <<(int)wp.size()<<endl;
    /*
     * insert_t is used for keeping temp data before being inserted into wp.
     */

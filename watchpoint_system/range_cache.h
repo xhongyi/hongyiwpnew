@@ -6,6 +6,7 @@
 #include "wp_data_struct.h"
 
 #define     CACHE_SIZE     64
+#define     OCBM_LEN       10
 
 #define     DIRTY          16
 
