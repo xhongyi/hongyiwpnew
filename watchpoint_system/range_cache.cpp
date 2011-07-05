@@ -102,6 +102,8 @@ int RangeCache<ADDRESS, FLAGS>::wp_operation(ADDRESS start_addr, ADDRESS end_add
          complex_update = true;
       if ( (oracle_wp->search_address(start_addr)+1)->end_addr < end_addr)
          complex_update = true;
+      if (complex_update)
+         complex_updates++;
       // counting rc_miss
       bool searching = true;     // searching = true until all ranges are covered
       ADDRESS search_addr = start_addr;
@@ -171,11 +173,11 @@ int RangeCache<ADDRESS, FLAGS>::wp_operation(ADDRESS start_addr, ADDRESS end_add
          }
       }
    }
-   else {
+   else {      // sets can create only one range
       rm_range(start_addr, end_addr);
       oracle_iter = oracle_wp->search_address(start_addr);
       temp = *oracle_iter;
-      if (oracle_iter->start_addr < start_addr) {
+      if (oracle_iter->start_addr < start_addr) {     // merge start
          rc_write_iter = search_address(start_addr-1);
          if (rc_write_iter!=rc_data.end()) {
             temp.start_addr = rc_write_iter->start_addr;
@@ -184,7 +186,7 @@ int RangeCache<ADDRESS, FLAGS>::wp_operation(ADDRESS start_addr, ADDRESS end_add
          else
             temp.start_addr = start_addr;
       }
-      if (oracle_iter->end_addr > end_addr) {
+      if (oracle_iter->end_addr > end_addr) {         // merge end
          rc_write_iter = search_address(end_addr+1);
          if (rc_write_iter!=rc_data.end()) {
             temp.end_addr = rc_write_iter->end_addr;
@@ -198,7 +200,7 @@ int RangeCache<ADDRESS, FLAGS>::wp_operation(ADDRESS start_addr, ADDRESS end_add
    }
    if (ocbm)
       check_ocbm(start_addr, end_addr);
-   while (cache_overflow())                                    // kick out redundant cache entries
+   while (cache_overflow())                           // kick out redundant cache entries
       cache_kickout();
    return rc_miss;
 }
