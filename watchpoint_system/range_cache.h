@@ -2,7 +2,7 @@
 #define RANGE_CACHE_H_
 #include <deque>
 #include <algorithm>
-#include "oracle_wp.h"
+#include "virtual_wp.h"
 #include "wp_data_struct.h"
 
 #define     CACHE_SIZE     64
@@ -13,7 +13,7 @@
 template<class ADDRESS, class FLAGS>
 class RangeCache {
 public:
-   RangeCache(Oracle<ADDRESS, FLAGS> *wp_ref, bool ocbm_in = false);
+   RangeCache(Virtual_wp<ADDRESS, FLAGS> *wp_ref, bool ocbm_in = false);
    RangeCache();
    ~RangeCache();
    // for all ranges referred to, update lru if found in rc; load from backing store if not found.
@@ -35,7 +35,7 @@ private:
    bool ocbm;
    // data structure used in range cache
    deque< watchpoint_t<ADDRESS, FLAGS> >  rc_data;       // cache data
-   Oracle<ADDRESS, FLAGS>*                oracle_wp;     // storing a pointer to its corresponding oracle
+   Virtual_wp<ADDRESS, FLAGS>*            oracle_wp;     // storing a pointer to its corresponding oracle
    long long                              kickout_dirty, 
                                           kickout, 
                                           complex_updates;

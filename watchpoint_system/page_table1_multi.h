@@ -36,7 +36,11 @@ public:
    int      add_watchpoint (ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags = 0);
    int      rm_watchpoint  (ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags = 0);
    
-   void  watch_print    (ostream &output = cout);
+   void     watch_print    (ostream &output = cout);
+   // this is just an empty function
+   typename deque<watchpoint_t<ADDRESS, FLAGS> >::iterator
+      search_address             (ADDRESS target_addr)
+      {return page_table_wp.begin()->second->search_address(target_addr);}
 
 private:
    /*

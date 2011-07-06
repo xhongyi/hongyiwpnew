@@ -17,6 +17,8 @@ Oracle<ADDRESS, FLAGS>::Oracle() {
    temp.end_addr = -1;
    temp.flags = 0;
    wp.push_back(temp);
+   sst_insertions = 0;
+   max_size = 0;
 }
 
 template<class ADDRESS, class FLAGS>
@@ -95,6 +97,7 @@ void Oracle<ADDRESS, FLAGS>::wp_operation(ADDRESS start_addr, ADDRESS end_addr,
     * The first search must fall into a range either tagged or not.
     */
    wp_iter = search_address (start_addr);
+   int ori_size = wp.size(), distance = wp.end()-wp_iter-1;
    /*
     * Special case: If the target range is so small that it falls
     * into 1 single range, then we do not need to go through the 3
@@ -173,6 +176,10 @@ void Oracle<ADDRESS, FLAGS>::wp_operation(ADDRESS start_addr, ADDRESS end_addr,
             wp.insert(wp_iter, insert_t); // No need to restore as we are done.
          }
       }
+      if ( (int)wp.size()-ori_size == -2 )
+         distance--;
+      sst_insertions+=(abs((int)wp.size()-ori_size)*distance);
+      max_size = max(max_size, (int)wp.size());
       return;
    }
 
@@ -310,7 +317,10 @@ void Oracle<ADDRESS, FLAGS>::wp_operation(ADDRESS start_addr, ADDRESS end_addr,
          wp.erase(wp_iter);
       }
    }
-
+   if ( (int)wp.size()-ori_size == -2 )
+      distance--;
+   sst_insertions+=(abs((int)wp.size()-ori_size)*distance);
+   max_size = max(max_size, (int)wp.size());
    return;
 }
 

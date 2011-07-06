@@ -38,6 +38,7 @@
 #endif
 
 #include <stdint.h>     // contains int32_t
+#include <algorithm>
 #include <cstdlib>
 #include <string>
 #include <map>
@@ -89,6 +90,8 @@ struct statistics_t {
    long long oracle_faults;            // total number of times that the Oracle get faults
    long long sets;                     // total number of times the API sets a watchpoint
    long long updates;                  // total number of times the API updates a watchpoint
+   long long sst_insertions;           // total number of data copies while doing SST insertions
+   int max_size;                 // max size of the total watchpoint system
    #ifdef PAGE_TABLE_SINGLE
    long long page_table_faults;        // total number of times that the page_table get faults
    long long change_count;             // total number of page_table_watch_bit changes

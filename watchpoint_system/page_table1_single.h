@@ -47,6 +47,10 @@ public:
    unsigned int   add_watchpoint (ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags);
    unsigned int   rm_watchpoint  (ADDRESS start_addr, ADDRESS end_addr);
    */
+   // this is just an empty function
+   typename deque<watchpoint_t<ADDRESS, FLAGS> >::iterator
+      search_address             (ADDRESS target_addr)
+      {return wp->search_address(target_addr);}
 
 private:
    /*
