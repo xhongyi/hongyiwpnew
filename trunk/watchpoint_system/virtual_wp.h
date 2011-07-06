@@ -23,12 +23,15 @@ public:
    Virtual_wp(){};
    virtual ~Virtual_wp(){};
       
-   virtual int  general_fault  (ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags) = 0;
-   virtual int  watch_fault (ADDRESS start_addr, ADDRESS end_addr) = 0;
-   virtual int  read_fault  (ADDRESS start_addr, ADDRESS end_addr) = 0;
-   virtual int  write_fault (ADDRESS start_addr, ADDRESS end_addr) = 0;
+   virtual int  general_fault    (ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags) = 0;
+   virtual int  watch_fault      (ADDRESS start_addr, ADDRESS end_addr) = 0;
+   virtual int  read_fault       (ADDRESS start_addr, ADDRESS end_addr) = 0;
+   virtual int  write_fault      (ADDRESS start_addr, ADDRESS end_addr) = 0;
 
-   virtual int  add_watchpoint (ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags) = 0;
-   virtual int  rm_watchpoint  (ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags) = 0;
+   virtual int  add_watchpoint   (ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags) = 0;
+   virtual int  rm_watchpoint    (ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags) = 0;
+   
+   virtual typename deque<watchpoint_t<ADDRESS, FLAGS> >::iterator
+      search_address             (ADDRESS target_addr) = 0;
 };
 #endif /* VIRTUAL_WP_H_ */

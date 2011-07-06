@@ -33,6 +33,10 @@ public:
     */
    int      add_watchpoint (ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags = 0);
    int      rm_watchpoint  (ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags = 0);
+   // this is just an empty function
+   typename deque<watchpoint_t<ADDRESS, FLAGS> >::iterator
+      search_address             (ADDRESS target_addr)
+      {return oracle_wp.begin()->second->search_address(target_addr);}
 private:
    Oracle<ADDRESS, FLAGS> wp;
    map<int32_t, Oracle<ADDRESS, FLAGS>* >                      oracle_wp;

@@ -7,7 +7,7 @@
 using namespace std;
 
 template<class ADDRESS, class FLAGS>
-RangeCache<ADDRESS, FLAGS>::RangeCache(Oracle<ADDRESS, FLAGS> *wp_ref, bool ocbm_in) {
+RangeCache<ADDRESS, FLAGS>::RangeCache(Virtual_wp<ADDRESS, FLAGS> *wp_ref, bool ocbm_in) {
    ocbm = ocbm_in;
    oracle_wp = wp_ref;
    kickout_dirty=0;

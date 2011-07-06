@@ -40,6 +40,10 @@ public:
    
    bool  check_unity    (ADDRESS superpage_number, bool watched);
    void  watch_print    (ostream &output = cout);
+   // this is just an empty function
+   typename deque<watchpoint_t<ADDRESS, FLAGS> >::iterator
+      search_address             (ADDRESS target_addr)
+      {return pt1->search_address(target_addr);}
 private:
    /*
     * initialized when constructing

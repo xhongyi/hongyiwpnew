@@ -36,6 +36,10 @@ public:
    bool     check_page_level_unity        (ADDRESS page_number,      bool watched);
    bool     check_superpage_level_unity   (ADDRESS superpage_number, bool watched);
    bool     check_seg_reg_level_unity     (bool watched);
+   // this is just an empty function
+   typename deque<watchpoint_t<ADDRESS, FLAGS> >::iterator
+      search_address             (ADDRESS target_addr)
+      {return wp->search_address(target_addr);}
    
 private:
    /*

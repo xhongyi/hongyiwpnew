@@ -12,6 +12,8 @@ inline statistics_t& operator +=(statistics_t &a, const statistics_t &b) { // no
    a.oracle_faults += b.oracle_faults;
    a.sets += b.sets;
    a.updates += b.updates;
+   a.sst_insertions += b.sst_insertions;
+   a.max_size = max(a.max_size, b.max_size);
    #ifdef PAGE_TABLE_SINGLE
    a.page_table_faults += b.page_table_faults;
    a.change_count += b.change_count;
@@ -91,6 +93,8 @@ inline statistics_t operator +(const statistics_t &a, const statistics_t &b) {
    result.oracle_faults = a.oracle_faults + b.oracle_faults;
    result.sets = a.sets + b.sets;
    result.updates = a.updates + b.updates;
+   result.sst_insertions = a.sst_insertions + b.sst_insertions;
+   result.max_size = max(a.max_size, b.max_size);
    #ifdef PAGE_TABLE_SINGLE
    result.page_table_faults = a.page_table_faults + b.page_table_faults;
    result.change_count = a.change_count + b.change_count;
@@ -290,6 +294,8 @@ int WatchPoint<ADDRESS, FLAGS>::end_thread(int32_t thread_id) {
 #endif
       }
       oracle_wp_iter = oracle_wp.find(thread_id);
+      statistics_iter->second.sst_insertions += oracle_wp_iter->second->sst_insertions;
+      statistics_iter->second.max_size = max(statistics_iter->second.max_size, oracle_wp_iter->second->max_size);
       delete oracle_wp_iter->second;
       oracle_wp.erase(oracle_wp_iter);                                  // remove its Oracle watchpoint data
       if (emulate_hardware) {
@@ -335,7 +341,7 @@ int WatchPoint<ADDRESS, FLAGS>::end_thread(int32_t thread_id) {
          range_cache_ocbm.erase(range_cache_ocbm_iter);
 #endif
       }
-      statistics_inactive[thread_id] = statistics_iter->second;         // move its statistics to inactive
+      statistics_inactive[thread_id] = statistics_iter->second;        // move its statistics to inactive
       statistics.erase(statistics_iter);                                // remove it from active statistics
       return 0;                                                         // normal end: return 0
    }
@@ -934,6 +940,8 @@ statistics_t WatchPoint<ADDRESS, FLAGS>::clear_statistics() {
    empty.oracle_faults=0;
    empty.sets=0;
    empty.updates=0;
+   empty.sst_insertions=0;
+   empty.max_size = 0;
    #ifdef PAGE_TABLE_SINGLE
    empty.page_table_faults=0;
    empty.change_count=0;
@@ -1057,6 +1065,8 @@ void WatchPoint<ADDRESS, FLAGS>::print_statistics(const statistics_t& to_print, 
    output << setw(45) << "Watchpoint faults taken: " << to_print.oracle_faults << endl;
    output << setw(45) << "Watchpoint \'set\'s: " << to_print.sets << endl;
    output << setw(45) << "Watchpoint \'update\'s: " << to_print.updates << endl;
+   output << setw(45) << "complexity to do SST insertions: " << to_print.sst_insertions << endl;
+   output << setw(45) << "max size of the whole watchpoint system: " << to_print.max_size << endl;
    #ifdef PAGE_TABLE_SINGLE
    output << setw(45) << "Page table (single) faults taken: " << to_print.page_table_faults <<endl;
    output << setw(45) << "Page table bitmap changes: " << to_print.change_count <<endl;

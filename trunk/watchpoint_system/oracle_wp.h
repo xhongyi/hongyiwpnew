@@ -13,6 +13,7 @@
 #include <iomanip>
 #include <ostream>
 #include <fstream>
+#include <algorithm>
 #include "virtual_wp.h"
 #include "wp_data_struct.h"
 
@@ -43,14 +44,16 @@ public:
 
    void  wp_operation   (ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags,
                          bool (*flag_test)(FLAGS &x, FLAGS &y), FLAGS (*flag_op)(FLAGS &x, FLAGS &y) );
-   int  add_watchpoint (ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags);
-   int  rm_watchpoint  (ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags);
-   int  general_fault  (ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags);
+   int  add_watchpoint  (ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags);
+   int  rm_watchpoint   (ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags);
+   int  general_fault   (ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags);
    
    //traverse functions
    watchpoint_t<ADDRESS, FLAGS>& start_traverse();
    bool continue_traverse(watchpoint_t<ADDRESS, FLAGS>& watchpoint);
-
+   // statistics for SSTs
+   long long sst_insertions;
+   int max_size;
 private:
    /*
     * wp       is the container to hold all the ranges for watchpoint structure.
