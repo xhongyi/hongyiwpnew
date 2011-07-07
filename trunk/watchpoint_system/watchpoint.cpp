@@ -12,6 +12,7 @@ inline statistics_t& operator +=(statistics_t &a, const statistics_t &b) { // no
    a.oracle_faults += b.oracle_faults;
    a.sets += b.sets;
    a.updates += b.updates;
+   a.write_size += b.write_size;
    a.sst_insertions += b.sst_insertions;
    a.max_size = max(a.max_size, b.max_size);
    a.sum_size += b.sum_size;
@@ -99,6 +100,7 @@ inline statistics_t operator +(const statistics_t &a, const statistics_t &b) {
    result.oracle_faults = a.oracle_faults + b.oracle_faults;
    result.sets = a.sets + b.sets;
    result.updates = a.updates + b.updates;
+   result.write_size = a.write_size + b.write_size;
    result.sst_insertions = a.sst_insertions + b.sst_insertions;
    result.max_size = max(a.max_size, b.max_size);
    result.sum_size = a.sum_size + b.sum_size;
@@ -717,7 +719,8 @@ int WatchPoint<ADDRESS, FLAGS>::general_change(ADDRESS start, ADDRESS end, int32
          oracle_multi->rm_watchpoint(start, end, rm_flag);
 #endif
 #ifdef MEM_TRACKER
-         mem_tracker_write_mises = mem_tracker[thread_id]->wp_operation(start, end);
+         if ((target_flags.find("x")!=string::npos))
+            mem_tracker_write_mises = mem_tracker[thread_id]->wp_operation(start, end);
 #endif
          if (add_flag) {
 #ifdef PAGE_TABLE
@@ -782,6 +785,7 @@ int WatchPoint<ADDRESS, FLAGS>::general_change(ADDRESS start, ADDRESS end, int32
             statistics_iter->second.sets++;                                   // sets++
          else
             statistics_iter->second.updates++;                                // updates++
+         statistics_iter->second.write_size += (end-start+1);
          statistics_iter->second.sum_size += oracle_wp_iter->second->get_size();
 #ifdef PAGE_TABLE_SINGLE
          statistics_iter->second.change_count += change_count;
@@ -985,6 +989,7 @@ statistics_t WatchPoint<ADDRESS, FLAGS>::clear_statistics() {
    empty.oracle_faults=0;
    empty.sets=0;
    empty.updates=0;
+   empty.write_size=0;
    empty.sst_insertions=0;
    empty.max_size=0;
    empty.sum_size=0;
@@ -1116,6 +1121,7 @@ void WatchPoint<ADDRESS, FLAGS>::print_statistics(const statistics_t& to_print, 
    output << setw(45) << "Watchpoint faults taken: " << to_print.oracle_faults << endl;
    output << setw(45) << "Watchpoint \'set\'s: " << to_print.sets << endl;
    output << setw(45) << "Watchpoint \'update\'s: " << to_print.updates << endl;
+   output << setw(45) << "total wp write size: " << to_print.write_size << endl;
    output << setw(45) << "complexity to do SST insertions: " << to_print.sst_insertions << endl;
    output << setw(45) << "max size of the whole watchpoint system: " << to_print.max_size << endl;
    output << setw(45) << "average size: " << ( (double)to_print.sum_size/(to_print.sets+to_print.updates) ) << endl;
@@ -1170,7 +1176,7 @@ void WatchPoint<ADDRESS, FLAGS>::print_statistics(const statistics_t& to_print, 
    #ifdef MEM_TRACKER
    output << setw(45) << "mem tracker read misses: " << to_print.mem_tracker_read_miss << endl;
    output << setw(45) << "mem tracker write misses: " << to_print.mem_tracker_write_miss << endl;
-   output << setw(45) << "mem tracker total memory accesses: " << to_print.mem_tracker_mem_accesses << endl;
+   output << setw(45) << "mem tracker total bitmap reads: " << to_print.mem_tracker_mem_accesses << endl;
    #endif
    #ifdef RC_SINGLE
    output << setw(45) << "range cache (single) read hit: " << to_print.rc_read_hits << endl;
