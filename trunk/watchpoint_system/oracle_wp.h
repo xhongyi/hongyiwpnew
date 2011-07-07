@@ -52,6 +52,7 @@ public:
    watchpoint_t<ADDRESS, FLAGS>& start_traverse();
    bool continue_traverse(watchpoint_t<ADDRESS, FLAGS>& watchpoint);
    // statistics for SSTs
+   int get_size();
    long long sst_insertions;
    int max_size;
 private:
