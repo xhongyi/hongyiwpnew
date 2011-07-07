@@ -61,10 +61,10 @@ inline statistics_t& operator +=(statistics_t &a, const statistics_t &b) { // no
    a.pt2_byte_acu_multi_bitmap_faults += b.pt2_byte_acu_multi_bitmap_faults;
    a.pt2_byte_acu_multi_changes += b.pt2_byte_acu_multi_changes;
    #endif
-   #ifdef WLB_BYTE_ACU
-   a.wlb_read_miss += b.wlb_read_miss;
-   a.wlb_write_miss += b.wlb_write_miss;
-   a.mem_accesses += b.mem_accesses;
+   #ifdef MEM_TRACKER
+   a.mem_tracker_read_miss += b.mem_tracker_read_miss;
+   a.mem_tracker_write_miss += b.mem_tracker_write_miss;
+   a.mem_tracker_mem_accesses += b.mem_tracker_mem_accesses;
    #endif
    #ifdef RC_SINGLE
    a.rc_read_hits += b.rc_read_hits;
@@ -148,10 +148,10 @@ inline statistics_t operator +(const statistics_t &a, const statistics_t &b) {
    result.pt2_byte_acu_multi_bitmap_faults = a.pt2_byte_acu_multi_bitmap_faults + b.pt2_byte_acu_multi_bitmap_faults;
    result.pt2_byte_acu_multi_changes = a.pt2_byte_acu_multi_changes + b.pt2_byte_acu_multi_changes;
    #endif
-   #ifdef WLB_BYTE_ACU
-   result.wlb_read_miss = a.wlb_read_miss + b.wlb_read_miss;
-   result.wlb_write_miss = a.wlb_write_miss + b.wlb_write_miss;
-   result.mem_accesses = a.mem_accesses + b.mem_accesses;
+   #ifdef MEM_TRACKER
+   result.mem_tracker_read_miss = a.mem_tracker_read_miss + b.mem_tracker_read_miss;
+   result.mem_tracker_write_miss = a.mem_tracker_write_miss + b.mem_tracker_write_miss;
+   result.mem_tracker_mem_accesses = a.mem_tracker_mem_accesses + b.mem_tracker_mem_accesses;
    #endif
    #ifdef RC_SINGLE
    result.rc_read_hits = a.rc_read_hits + b.rc_read_hits;
@@ -281,8 +281,8 @@ int WatchPoint<ADDRESS, FLAGS>::start_thread(int32_t thread_id) {
 #ifdef PT2_BYTE_ACU_SINGLE
          pt2_byte_acu[thread_id] = new PT2_byte_acu_single<ADDRESS, FLAGS>(oracle_wp.find(thread_id)->second);
 #endif
-#ifdef WLB_BYTE_ACU
-         wlb_byte_acu[thread_id] = new WLB_byte_acu<ADDRESS>();
+#ifdef MEM_TRACKER
+         mem_tracker[thread_id] = new MemTracker<ADDRESS>();
 #endif
 #ifdef RC_SINGLE
          range_cache[thread_id] = new RangeCache<ADDRESS, FLAGS>(oracle_wp.find(thread_id)->second);
@@ -335,10 +335,10 @@ int WatchPoint<ADDRESS, FLAGS>::end_thread(int32_t thread_id) {
          delete pt2_byte_acu_iter->second;
          pt2_byte_acu.erase(pt2_byte_acu_iter);
 #endif
-#ifdef WLB_BYTE_ACU
-         wlb_byte_acu_iter = wlb_byte_acu.find(thread_id);
-         delete wlb_byte_acu_iter->second;
-         wlb_byte_acu.erase(wlb_byte_acu_iter);
+#ifdef MEM_TRACKER
+         mem_tracker_iter = mem_tracker.find(thread_id);
+         delete mem_tracker_iter->second;
+         mem_tracker.erase(mem_tracker_iter);
 #endif
 #ifdef RC_SINGLE
          range_cache_iter = range_cache.find(thread_id);
@@ -447,8 +447,8 @@ bool  WatchPoint<ADDRESS, FLAGS>::general_fault(ADDRESS start, ADDRESS end, int3
 #ifdef PT2_BYTE_ACU_MULTI
       int pt2_byte_acu_multi_fault = 0;
 #endif
-#ifdef WLB_BYTE_ACU
-      int wlb_byte_acu_read_mises = 0;
+#ifdef MEM_TRACKER
+      int mem_tracker_read_mises = 0;
 #endif
 #ifdef RC_SINGLE
       int range_cache_misses = 0;
@@ -481,8 +481,8 @@ bool  WatchPoint<ADDRESS, FLAGS>::general_fault(ADDRESS start, ADDRESS end, int3
 #ifdef PT2_BYTE_ACU_MULTI
          pt2_byte_acu_multi_fault = pt2_byte_acu_multi->watch_fault(start, end);
 #endif
-#ifdef WLB_BYTE_ACU
-         wlb_byte_acu_read_mises = wlb_byte_acu[thread_id]->general_fault(start, end);
+#ifdef MEM_TRACKER
+         mem_tracker_read_mises = mem_tracker[thread_id]->general_fault(start, end);
 #endif
 #ifdef RC_SINGLE
          range_cache_misses = range_cache[thread_id]->watch_fault(start, end);
@@ -592,10 +592,10 @@ bool  WatchPoint<ADDRESS, FLAGS>::general_fault(ADDRESS start, ADDRESS end, int3
                statistics_iter->second.pt2_byte_acu_multi_seg_reg_faults++;
             }
 #endif
-#ifdef WLB_BYTE_ACU
-         if (wlb_byte_acu_read_mises) {
-            statistics_iter->second.mem_accesses += wlb_byte_acu_read_mises;
-            statistics_iter->second.wlb_read_miss++;
+#ifdef MEM_TRACKER
+         if (mem_tracker_read_mises) {
+            statistics_iter->second.mem_tracker_mem_accesses += mem_tracker_read_mises;
+            statistics_iter->second.mem_tracker_read_miss++;
          }
 #endif
 #ifdef RC_SINGLE
@@ -693,8 +693,8 @@ int WatchPoint<ADDRESS, FLAGS>::general_change(ADDRESS start, ADDRESS end, int32
 #ifdef PT2_BYTE_ACU_MULTI
    int change_count2_byte_acu_multi = 0;
 #endif
-#ifdef WLB_BYTE_ACU
-   int wlb_byte_acu_write_mises = 0;
+#ifdef MEM_TRACKER
+   int mem_tracker_write_mises = 0;
 #endif
 #ifdef RC_SINGLE
    int range_cache_write_misses = 0;
@@ -716,8 +716,8 @@ int WatchPoint<ADDRESS, FLAGS>::general_change(ADDRESS start, ADDRESS end, int32
          oracle_multi->add_watchpoint(start, end, add_flag);
          oracle_multi->rm_watchpoint(start, end, rm_flag);
 #endif
-#ifdef WLB_BYTE_ACU
-         wlb_byte_acu_write_mises = wlb_byte_acu[thread_id]->wp_operation(start, end);
+#ifdef MEM_TRACKER
+         mem_tracker_write_mises = mem_tracker[thread_id]->wp_operation(start, end);
 #endif
          if (add_flag) {
 #ifdef PAGE_TABLE
@@ -801,10 +801,10 @@ int WatchPoint<ADDRESS, FLAGS>::general_change(ADDRESS start, ADDRESS end, int32
 #ifdef PT2_BYTE_ACU_MULTI
          statistics_iter->second.pt2_byte_acu_multi_changes += change_count2_byte_acu_multi;
 #endif
-#ifdef WLB_BYTE_ACU
-         if (wlb_byte_acu_write_mises) {
-            statistics_iter->second.mem_accesses += wlb_byte_acu_write_mises;
-            statistics_iter->second.wlb_write_miss++;
+#ifdef MEM_TRACKER
+         if (mem_tracker_write_mises) {
+            statistics_iter->second.mem_tracker_mem_accesses += mem_tracker_write_mises;
+            statistics_iter->second.mem_tracker_write_miss++;
          }
 #endif
 #ifdef RC_SINGLE
@@ -1034,10 +1034,10 @@ statistics_t WatchPoint<ADDRESS, FLAGS>::clear_statistics() {
    empty.pt2_byte_acu_multi_bitmap_faults=0;
    empty.pt2_byte_acu_multi_changes=0;
    #endif
-   #ifdef WLB_BYTE_ACU
-   empty.wlb_read_miss=0;
-   empty.wlb_write_miss=0;
-   empty.mem_accesses=0;
+   #ifdef MEM_TRACKER
+   empty.mem_tracker_read_miss=0;
+   empty.mem_tracker_write_miss=0;
+   empty.mem_tracker_mem_accesses=0;
    #endif
    #ifdef RC_SINGLE
    empty.rc_read_hits=0;
@@ -1167,10 +1167,10 @@ void WatchPoint<ADDRESS, FLAGS>::print_statistics(const statistics_t& to_print, 
    output << setw(45) << "total fault: " << to_print.pt2_byte_acu_multi_bitmap_faults+to_print.pt2_byte_acu_multi_page_faults+to_print.pt2_byte_acu_multi_superpage_faults+to_print.pt2_byte_acu_multi_seg_reg_faults << endl;
    output << setw(45) << "bit changes: " << to_print.pt2_byte_acu_multi_changes << endl;
    #endif
-   #ifdef WLB_BYTE_ACU
-   output << setw(45) << "WLB read misses: " << to_print.wlb_read_miss << endl;
-   output << setw(45) << "WLB write misses: " << to_print.wlb_write_miss << endl;
-   output << setw(45) << "WLB total memory accesses: " << to_print.mem_accesses << endl;
+   #ifdef MEM_TRACKER
+   output << setw(45) << "mem tracker read misses: " << to_print.mem_tracker_read_miss << endl;
+   output << setw(45) << "mem tracker write misses: " << to_print.mem_tracker_write_miss << endl;
+   output << setw(45) << "mem tracker total memory accesses: " << to_print.mem_tracker_mem_accesses << endl;
    #endif
    #ifdef RC_SINGLE
    output << setw(45) << "range cache (single) read hit: " << to_print.rc_read_hits << endl;
