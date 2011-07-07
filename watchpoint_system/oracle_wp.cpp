@@ -381,6 +381,11 @@ bool Oracle<ADDRESS, FLAGS>::continue_traverse(watchpoint_t<ADDRESS, FLAGS>& wat
    return false;
 }
 
+template<class ADDRESS, class FLAGS>
+int Oracle<ADDRESS, FLAGS>::get_size() {
+   return wp.size();
+}
+
 /*
  * Returns true if all the target_flags are included by container_flags
  */

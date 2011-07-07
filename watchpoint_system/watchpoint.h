@@ -91,7 +91,9 @@ struct statistics_t {
    long long sets;                     // total number of times the API sets a watchpoint
    long long updates;                  // total number of times the API updates a watchpoint
    long long sst_insertions;           // total number of data copies while doing SST insertions
-   int max_size;                 // max size of the total watchpoint system
+   int max_size;                       // max size of the total watchpoint system
+   long long sum_size;                 // the sum of all recorded sizes when updates and sets, 
+                                       //    used for calculating avg_size
    #ifdef PAGE_TABLE_SINGLE
    long long page_table_faults;        // total number of times that the page_table get faults
    long long change_count;             // total number of page_table_watch_bit changes
@@ -230,6 +232,7 @@ public:
    statistics_t clear_statistics ();
    void         print_statistics (ostream &output = cout, bool active = false);
    void         print_statistics (const statistics_t& to_print, ostream &output = cout);
+   void         print_size       (int32_t thread_id, ostream &output = cout);
    
 private:
    //Data Structures (mainly maps from thread_id's to the thread's data)

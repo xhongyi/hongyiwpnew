@@ -14,6 +14,7 @@ inline statistics_t& operator +=(statistics_t &a, const statistics_t &b) { // no
    a.updates += b.updates;
    a.sst_insertions += b.sst_insertions;
    a.max_size = max(a.max_size, b.max_size);
+   a.sum_size += b.sum_size;
    #ifdef PAGE_TABLE_SINGLE
    a.page_table_faults += b.page_table_faults;
    a.change_count += b.change_count;
@@ -95,6 +96,7 @@ inline statistics_t operator +(const statistics_t &a, const statistics_t &b) {
    result.updates = a.updates + b.updates;
    result.sst_insertions = a.sst_insertions + b.sst_insertions;
    result.max_size = max(a.max_size, b.max_size);
+   result.sum_size = a.sum_size + b.sum_size;
    #ifdef PAGE_TABLE_SINGLE
    result.page_table_faults = a.page_table_faults + b.page_table_faults;
    result.change_count = a.change_count + b.change_count;
@@ -744,6 +746,7 @@ int WatchPoint<ADDRESS, FLAGS>::general_change(ADDRESS start, ADDRESS end, int32
             statistics_iter->second.sets++;                                   // sets++
          else
             statistics_iter->second.updates++;                                // updates++
+         statistics_iter->second.sum_size += oracle_wp_iter->second->get_size();
 #ifdef PAGE_TABLE_SINGLE
          statistics_iter->second.change_count += change_count;
 #endif
@@ -941,7 +944,8 @@ statistics_t WatchPoint<ADDRESS, FLAGS>::clear_statistics() {
    empty.sets=0;
    empty.updates=0;
    empty.sst_insertions=0;
-   empty.max_size = 0;
+   empty.max_size=0;
+   empty.sum_size=0;
    #ifdef PAGE_TABLE_SINGLE
    empty.page_table_faults=0;
    empty.change_count=0;
@@ -1067,6 +1071,7 @@ void WatchPoint<ADDRESS, FLAGS>::print_statistics(const statistics_t& to_print, 
    output << setw(45) << "Watchpoint \'update\'s: " << to_print.updates << endl;
    output << setw(45) << "complexity to do SST insertions: " << to_print.sst_insertions << endl;
    output << setw(45) << "max size of the whole watchpoint system: " << to_print.max_size << endl;
+   output << setw(45) << "average size: " << ( (double)to_print.sum_size/(to_print.sets+to_print.updates) ) << endl;
    #ifdef PAGE_TABLE_SINGLE
    output << setw(45) << "Page table (single) faults taken: " << to_print.page_table_faults <<endl;
    output << setw(45) << "Page table bitmap changes: " << to_print.change_count <<endl;
@@ -1116,27 +1121,32 @@ void WatchPoint<ADDRESS, FLAGS>::print_statistics(const statistics_t& to_print, 
    output << setw(45) << "bit changes: " << to_print.pt2_byte_acu_multi_changes <<endl;
    #endif
    #ifdef RC_SINGLE
-   output << setw(45) << "range cache (single) read hit: "<< to_print.rc_read_hits <<endl;
-   output << setw(45) << "read miss: "<< to_print.rc_read_miss <<endl;
-   output << setw(45) << "write hit: "<< to_print.rc_write_hits <<endl;
-   output << setw(45) << "write miss: "<< to_print.rc_write_miss <<endl;
-   output << setw(45) << "backing store access: "<< to_print.rc_backing_store_accesses <<endl;
-   output << setw(45) << "kickouts dirty: "<< to_print.rc_kickout_dirties <<endl;
-   output << setw(45) << "kickouts total: "<< to_print.rc_kickouts <<endl;
-   output << setw(45) << "complex update: "<< to_print.rc_complex_updates <<endl;
+   output << setw(45) << "range cache (single) read hit: " << to_print.rc_read_hits <<endl;
+   output << setw(45) << "read miss: " << to_print.rc_read_miss <<endl;
+   output << setw(45) << "write hit: " << to_print.rc_write_hits <<endl;
+   output << setw(45) << "write miss: " << to_print.rc_write_miss <<endl;
+   output << setw(45) << "backing store access: " << to_print.rc_backing_store_accesses <<endl;
+   output << setw(45) << "kickouts dirty: " << to_print.rc_kickout_dirties <<endl;
+   output << setw(45) << "kickouts total: " << to_print.rc_kickouts <<endl;
+   output << setw(45) << "complex update: " << to_print.rc_complex_updates <<endl;
    #endif
    #ifdef RC_OCBM
-   output << setw(45) << "range cache (with ocbm) read hit: "<< to_print.rc_ocbm_read_hits <<endl;
-   output << setw(45) << "read miss: "<< to_print.rc_ocbm_read_miss <<endl;
-   output << setw(45) << "write hit: "<< to_print.rc_ocbm_write_hits <<endl;
-   output << setw(45) << "write miss: "<< to_print.rc_ocbm_write_miss <<endl;
-   output << setw(45) << "backing store access: "<< to_print.rc_ocbm_backing_store_accesses <<endl;
-   output << setw(45) << "kickouts dirty: "<< to_print.rc_ocbm_kickout_dirties <<endl;
-   output << setw(45) << "kickouts total: "<< to_print.rc_ocbm_kickouts <<endl;
-   output << setw(45) << "complex update: "<< to_print.rc_ocbm_complex_updates <<endl;
+   output << setw(45) << "range cache (with ocbm) read hit: " << to_print.rc_ocbm_read_hits <<endl;
+   output << setw(45) << "read miss: " << to_print.rc_ocbm_read_miss <<endl;
+   output << setw(45) << "write hit: " << to_print.rc_ocbm_write_hits <<endl;
+   output << setw(45) << "write miss: " << to_print.rc_ocbm_write_miss <<endl;
+   output << setw(45) << "backing store access: " << to_print.rc_ocbm_backing_store_accesses <<endl;
+   output << setw(45) << "kickouts dirty: " << to_print.rc_ocbm_kickout_dirties <<endl;
+   output << setw(45) << "kickouts total: " << to_print.rc_ocbm_kickouts <<endl;
+   output << setw(45) << "complex update: " << to_print.rc_ocbm_complex_updates <<endl;
    #endif
    output <<endl;
    return;
+}
+
+template<class ADDRESS, class FLAGS>
+void WatchPoint<ADDRESS, FLAGS>::print_size(int32_t thread_id, ostream &output) {
+   output << oracle_wp[thread_id]->get_size() << endl;
 }
 
 #ifdef PAGE_TABLE_SINGLE
