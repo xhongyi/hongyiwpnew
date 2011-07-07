@@ -61,6 +61,11 @@ inline statistics_t& operator +=(statistics_t &a, const statistics_t &b) { // no
    a.pt2_byte_acu_multi_bitmap_faults += b.pt2_byte_acu_multi_bitmap_faults;
    a.pt2_byte_acu_multi_changes += b.pt2_byte_acu_multi_changes;
    #endif
+   #ifdef WLB_BYTE_ACU
+   a.wlb_read_miss += b.wlb_read_miss;
+   a.wlb_write_miss += b.wlb_write_miss;
+   a.mem_accesses += b.mem_accesses;
+   #endif
    #ifdef RC_SINGLE
    a.rc_read_hits += b.rc_read_hits;
    a.rc_read_miss += b.rc_read_miss;
@@ -142,6 +147,11 @@ inline statistics_t operator +(const statistics_t &a, const statistics_t &b) {
    result.pt2_byte_acu_multi_page_faults = a.pt2_byte_acu_multi_page_faults + b.pt2_byte_acu_multi_page_faults;
    result.pt2_byte_acu_multi_bitmap_faults = a.pt2_byte_acu_multi_bitmap_faults + b.pt2_byte_acu_multi_bitmap_faults;
    result.pt2_byte_acu_multi_changes = a.pt2_byte_acu_multi_changes + b.pt2_byte_acu_multi_changes;
+   #endif
+   #ifdef WLB_BYTE_ACU
+   result.wlb_read_miss = a.wlb_read_miss + b.wlb_read_miss;
+   result.wlb_write_miss = a.wlb_write_miss + b.wlb_write_miss;
+   result.mem_accesses = a.mem_accesses + b.mem_accesses;
    #endif
    #ifdef RC_SINGLE
    result.rc_read_hits = a.rc_read_hits + b.rc_read_hits;
@@ -271,6 +281,9 @@ int WatchPoint<ADDRESS, FLAGS>::start_thread(int32_t thread_id) {
 #ifdef PT2_BYTE_ACU_SINGLE
          pt2_byte_acu[thread_id] = new PT2_byte_acu_single<ADDRESS, FLAGS>(oracle_wp.find(thread_id)->second);
 #endif
+#ifdef WLB_BYTE_ACU
+         wlb_byte_acu[thread_id] = new WLB_byte_acu<ADDRESS>();
+#endif
 #ifdef RC_SINGLE
          range_cache[thread_id] = new RangeCache<ADDRESS, FLAGS>(oracle_wp.find(thread_id)->second);
 #endif
@@ -321,6 +334,11 @@ int WatchPoint<ADDRESS, FLAGS>::end_thread(int32_t thread_id) {
          pt2_byte_acu_iter = pt2_byte_acu.find(thread_id);
          delete pt2_byte_acu_iter->second;
          pt2_byte_acu.erase(pt2_byte_acu_iter);
+#endif
+#ifdef WLB_BYTE_ACU
+         wlb_byte_acu_iter = wlb_byte_acu.find(thread_id);
+         delete wlb_byte_acu_iter->second;
+         wlb_byte_acu.erase(wlb_byte_acu_iter);
 #endif
 #ifdef RC_SINGLE
          range_cache_iter = range_cache.find(thread_id);
@@ -429,6 +447,9 @@ bool  WatchPoint<ADDRESS, FLAGS>::general_fault(ADDRESS start, ADDRESS end, int3
 #ifdef PT2_BYTE_ACU_MULTI
       int pt2_byte_acu_multi_fault = 0;
 #endif
+#ifdef WLB_BYTE_ACU
+      int wlb_byte_acu_read_mises = 0;
+#endif
 #ifdef RC_SINGLE
       int range_cache_misses = 0;
 #endif
@@ -459,6 +480,9 @@ bool  WatchPoint<ADDRESS, FLAGS>::general_fault(ADDRESS start, ADDRESS end, int3
 #endif
 #ifdef PT2_BYTE_ACU_MULTI
          pt2_byte_acu_multi_fault = pt2_byte_acu_multi->watch_fault(start, end);
+#endif
+#ifdef WLB_BYTE_ACU
+         wlb_byte_acu_read_mises = wlb_byte_acu[thread_id]->general_fault(start, end);
 #endif
 #ifdef RC_SINGLE
          range_cache_misses = range_cache[thread_id]->watch_fault(start, end);
@@ -568,6 +592,12 @@ bool  WatchPoint<ADDRESS, FLAGS>::general_fault(ADDRESS start, ADDRESS end, int3
                statistics_iter->second.pt2_byte_acu_multi_seg_reg_faults++;
             }
 #endif
+#ifdef WLB_BYTE_ACU
+         if (wlb_byte_acu_read_mises) {
+            statistics_iter->second.mem_accesses += wlb_byte_acu_read_mises;
+            statistics_iter->second.wlb_read_miss++;
+         }
+#endif
 #ifdef RC_SINGLE
             if (range_cache_misses) {
                statistics_iter->second.rc_read_miss++;
@@ -663,6 +693,9 @@ int WatchPoint<ADDRESS, FLAGS>::general_change(ADDRESS start, ADDRESS end, int32
 #ifdef PT2_BYTE_ACU_MULTI
    int change_count2_byte_acu_multi = 0;
 #endif
+#ifdef WLB_BYTE_ACU
+   int wlb_byte_acu_write_mises = 0;
+#endif
 #ifdef RC_SINGLE
    int range_cache_write_misses = 0;
 #endif
@@ -682,6 +715,9 @@ int WatchPoint<ADDRESS, FLAGS>::general_change(ADDRESS start, ADDRESS end, int32
 #ifdef ORACLE_MULTI
          oracle_multi->add_watchpoint(start, end, add_flag);
          oracle_multi->rm_watchpoint(start, end, rm_flag);
+#endif
+#ifdef WLB_BYTE_ACU
+         wlb_byte_acu_write_mises = wlb_byte_acu[thread_id]->wp_operation(start, end);
 #endif
          if (add_flag) {
 #ifdef PAGE_TABLE
@@ -764,6 +800,12 @@ int WatchPoint<ADDRESS, FLAGS>::general_change(ADDRESS start, ADDRESS end, int32
 #endif
 #ifdef PT2_BYTE_ACU_MULTI
          statistics_iter->second.pt2_byte_acu_multi_changes += change_count2_byte_acu_multi;
+#endif
+#ifdef WLB_BYTE_ACU
+         if (wlb_byte_acu_write_mises) {
+            statistics_iter->second.mem_accesses += wlb_byte_acu_write_mises;
+            statistics_iter->second.wlb_write_miss++;
+         }
 #endif
 #ifdef RC_SINGLE
          if (range_cache_write_misses) {
@@ -992,6 +1034,11 @@ statistics_t WatchPoint<ADDRESS, FLAGS>::clear_statistics() {
    empty.pt2_byte_acu_multi_bitmap_faults=0;
    empty.pt2_byte_acu_multi_changes=0;
    #endif
+   #ifdef WLB_BYTE_ACU
+   empty.wlb_read_miss=0;
+   empty.wlb_write_miss=0;
+   empty.mem_accesses=0;
+   #endif
    #ifdef RC_SINGLE
    empty.rc_read_hits=0;
    empty.rc_read_miss=0;
@@ -1073,74 +1120,79 @@ void WatchPoint<ADDRESS, FLAGS>::print_statistics(const statistics_t& to_print, 
    output << setw(45) << "max size of the whole watchpoint system: " << to_print.max_size << endl;
    output << setw(45) << "average size: " << ( (double)to_print.sum_size/(to_print.sets+to_print.updates) ) << endl;
    #ifdef PAGE_TABLE_SINGLE
-   output << setw(45) << "Page table (single) faults taken: " << to_print.page_table_faults <<endl;
-   output << setw(45) << "Page table bitmap changes: " << to_print.change_count <<endl;
+   output << setw(45) << "Page table (single) faults taken: " << to_print.page_table_faults << endl;
+   output << setw(45) << "Page table bitmap changes: " << to_print.change_count << endl;
    #endif
    #ifdef PAGE_TABLE_MULTI
-   output << setw(45) << "Page table (multi) faults taken: " << to_print.page_table_multi_faults <<endl;
-   output << setw(45) << "Page table bitmap changes: " << to_print.change_count_multi <<endl;
+   output << setw(45) << "Page table (multi) faults taken: " << to_print.page_table_multi_faults << endl;
+   output << setw(45) << "Page table bitmap changes: " << to_print.change_count_multi << endl;
    #endif
    #ifdef PAGE_TABLE2_SINGLE
-   output << setw(45) << "2_level Page table (single) quick hit: " << to_print.highest_hits <<endl;
-   output << setw(45) << "quick fault: " << to_print.highest_faults <<endl;
-   output << setw(45) << "superpage hit: " << to_print.superpage_hits <<endl;
-   output << setw(45) << "superpage fault: " << to_print.superpage_faults <<endl;
-   output << setw(45) << "superpage miss: " << to_print.superpage_miss <<endl;
-   output << setw(45) << "low level page fault: " << to_print.superpage_miss_faults <<endl;
-   output << setw(45) << "bit changes: " << to_print.change_count2 <<endl;
+   output << setw(45) << "2_level Page table (single) quick hit: " << to_print.highest_hits << endl;
+   output << setw(45) << "quick fault: " << to_print.highest_faults << endl;
+   output << setw(45) << "superpage hit: " << to_print.superpage_hits << endl;
+   output << setw(45) << "superpage fault: " << to_print.superpage_faults << endl;
+   output << setw(45) << "superpage miss: " << to_print.superpage_miss << endl;
+   output << setw(45) << "low level page fault: " << to_print.superpage_miss_faults << endl;
+   output << setw(45) << "bit changes: " << to_print.change_count2 << endl;
    #endif
    #ifdef PAGE_TABLE2_MULTI
-   output << setw(45) << "2_level Page table (multi) quick hit: " << to_print.highest_hits_multi <<endl;
-   output << setw(45) << "quick fault: " << to_print.highest_faults_multi <<endl;
-   output << setw(45) << "superpage hit: " << to_print.superpage_hits_multi <<endl;
-   output << setw(45) << "superpage fault: " << to_print.superpage_faults_multi <<endl;
-   output << setw(45) << "superpage miss: " << to_print.superpage_miss_multi <<endl;
-   output << setw(45) << "low level page fault: " << to_print.superpage_miss_faults_multi <<endl;
-   output << setw(45) << "bit changes: " << to_print.change_count2_multi <<endl;
+   output << setw(45) << "2_level Page table (multi) quick hit: " << to_print.highest_hits_multi << endl;
+   output << setw(45) << "quick fault: " << to_print.highest_faults_multi << endl;
+   output << setw(45) << "superpage hit: " << to_print.superpage_hits_multi << endl;
+   output << setw(45) << "superpage fault: " << to_print.superpage_faults_multi << endl;
+   output << setw(45) << "superpage miss: " << to_print.superpage_miss_multi << endl;
+   output << setw(45) << "low level page fault: " << to_print.superpage_miss_faults_multi << endl;
+   output << setw(45) << "bit changes: " << to_print.change_count2_multi << endl;
    #endif
    #ifdef PT2_BYTE_ACU_SINGLE
-   output << setw(45) << "2_level Page table trie (single) quick hit: " << to_print.pt2_byte_acu_seg_reg_hits <<endl;
-   output << setw(45) << "quick fault: " << to_print.pt2_byte_acu_seg_reg_faults <<endl;
-   output << setw(45) << "superpage hit: " << to_print.pt2_byte_acu_superpage_hits <<endl;
-   output << setw(45) << "superpage fault: " << to_print.pt2_byte_acu_superpage_faults <<endl;
-   output << setw(45) << "pagetable hit: " << to_print.pt2_byte_acu_page_hits <<endl;
-   output << setw(45) << "pagetable fault: " << to_print.pt2_byte_acu_page_faults <<endl;
-   output << setw(45) << "bitmap fault: " << to_print.pt2_byte_acu_bitmap_faults <<endl;
-   output << setw(45) << "total fault: " << to_print.pt2_byte_acu_bitmap_faults+to_print.pt2_byte_acu_page_faults+to_print.pt2_byte_acu_superpage_faults+to_print.pt2_byte_acu_seg_reg_faults <<endl;
-   output << setw(45) << "bit changes: " << to_print.pt2_byte_acu_changes <<endl;
+   output << setw(45) << "2_level Page table trie (single) quick hit: " << to_print.pt2_byte_acu_seg_reg_hits << endl;
+   output << setw(45) << "quick fault: " << to_print.pt2_byte_acu_seg_reg_faults << endl;
+   output << setw(45) << "superpage hit: " << to_print.pt2_byte_acu_superpage_hits << endl;
+   output << setw(45) << "superpage fault: " << to_print.pt2_byte_acu_superpage_faults << endl;
+   output << setw(45) << "pagetable hit: " << to_print.pt2_byte_acu_page_hits << endl;
+   output << setw(45) << "pagetable fault: " << to_print.pt2_byte_acu_page_faults << endl;
+   output << setw(45) << "bitmap fault: " << to_print.pt2_byte_acu_bitmap_faults << endl;
+   output << setw(45) << "total fault: " << to_print.pt2_byte_acu_bitmap_faults+to_print.pt2_byte_acu_page_faults+to_print.pt2_byte_acu_superpage_faults+to_print.pt2_byte_acu_seg_reg_faults << endl;
+   output << setw(45) << "bit changes: " << to_print.pt2_byte_acu_changes << endl;
    #endif
    #ifdef PT2_BYTE_ACU_MULTI
-   output << setw(45) << "2_level Page table trie (multi) quick hit: " << to_print.pt2_byte_acu_multi_seg_reg_hits <<endl;
-   output << setw(45) << "quick fault: " << to_print.pt2_byte_acu_multi_seg_reg_faults <<endl;
-   output << setw(45) << "superpage hit: " << to_print.pt2_byte_acu_multi_superpage_hits <<endl;
-   output << setw(45) << "superpage fault: " << to_print.pt2_byte_acu_multi_superpage_faults <<endl;
-   output << setw(45) << "pagetable hit: " << to_print.pt2_byte_acu_multi_page_hits <<endl;
-   output << setw(45) << "pagetable fault: " << to_print.pt2_byte_acu_multi_page_faults <<endl;
-   output << setw(45) << "bitmap fault: " << to_print.pt2_byte_acu_multi_bitmap_faults <<endl;
-   output << setw(45) << "total fault: " << to_print.pt2_byte_acu_multi_bitmap_faults+to_print.pt2_byte_acu_multi_page_faults+to_print.pt2_byte_acu_multi_superpage_faults+to_print.pt2_byte_acu_multi_seg_reg_faults <<endl;
-   output << setw(45) << "bit changes: " << to_print.pt2_byte_acu_multi_changes <<endl;
+   output << setw(45) << "2_level Page table trie (multi) quick hit: " << to_print.pt2_byte_acu_multi_seg_reg_hits << endl;
+   output << setw(45) << "quick fault: " << to_print.pt2_byte_acu_multi_seg_reg_faults << endl;
+   output << setw(45) << "superpage hit: " << to_print.pt2_byte_acu_multi_superpage_hits << endl;
+   output << setw(45) << "superpage fault: " << to_print.pt2_byte_acu_multi_superpage_faults << endl;
+   output << setw(45) << "pagetable hit: " << to_print.pt2_byte_acu_multi_page_hits << endl;
+   output << setw(45) << "pagetable fault: " << to_print.pt2_byte_acu_multi_page_faults << endl;
+   output << setw(45) << "bitmap fault: " << to_print.pt2_byte_acu_multi_bitmap_faults << endl;
+   output << setw(45) << "total fault: " << to_print.pt2_byte_acu_multi_bitmap_faults+to_print.pt2_byte_acu_multi_page_faults+to_print.pt2_byte_acu_multi_superpage_faults+to_print.pt2_byte_acu_multi_seg_reg_faults << endl;
+   output << setw(45) << "bit changes: " << to_print.pt2_byte_acu_multi_changes << endl;
+   #endif
+   #ifdef WLB_BYTE_ACU
+   output << setw(45) << "WLB read misses: " << to_print.wlb_read_miss << endl;
+   output << setw(45) << "WLB write misses: " << to_print.wlb_write_miss << endl;
+   output << setw(45) << "WLB total memory accesses: " << to_print.mem_accesses << endl;
    #endif
    #ifdef RC_SINGLE
-   output << setw(45) << "range cache (single) read hit: " << to_print.rc_read_hits <<endl;
-   output << setw(45) << "read miss: " << to_print.rc_read_miss <<endl;
-   output << setw(45) << "write hit: " << to_print.rc_write_hits <<endl;
-   output << setw(45) << "write miss: " << to_print.rc_write_miss <<endl;
-   output << setw(45) << "backing store access: " << to_print.rc_backing_store_accesses <<endl;
-   output << setw(45) << "kickouts dirty: " << to_print.rc_kickout_dirties <<endl;
-   output << setw(45) << "kickouts total: " << to_print.rc_kickouts <<endl;
-   output << setw(45) << "complex update: " << to_print.rc_complex_updates <<endl;
+   output << setw(45) << "range cache (single) read hit: " << to_print.rc_read_hits << endl;
+   output << setw(45) << "read miss: " << to_print.rc_read_miss << endl;
+   output << setw(45) << "write hit: " << to_print.rc_write_hits << endl;
+   output << setw(45) << "write miss: " << to_print.rc_write_miss << endl;
+   output << setw(45) << "backing store access: " << to_print.rc_backing_store_accesses <<  endl;
+   output << setw(45) << "kickouts dirty: " << to_print.rc_kickout_dirties << endl;
+   output << setw(45) << "kickouts total: " << to_print.rc_kickouts << endl;
+   output << setw(45) << "complex update: " << to_print.rc_complex_updates << endl;
    #endif
    #ifdef RC_OCBM
-   output << setw(45) << "range cache (with ocbm) read hit: " << to_print.rc_ocbm_read_hits <<endl;
-   output << setw(45) << "read miss: " << to_print.rc_ocbm_read_miss <<endl;
-   output << setw(45) << "write hit: " << to_print.rc_ocbm_write_hits <<endl;
-   output << setw(45) << "write miss: " << to_print.rc_ocbm_write_miss <<endl;
-   output << setw(45) << "backing store access: " << to_print.rc_ocbm_backing_store_accesses <<endl;
-   output << setw(45) << "kickouts dirty: " << to_print.rc_ocbm_kickout_dirties <<endl;
-   output << setw(45) << "kickouts total: " << to_print.rc_ocbm_kickouts <<endl;
-   output << setw(45) << "complex update: " << to_print.rc_ocbm_complex_updates <<endl;
+   output << setw(45) << "range cache (with ocbm) read hit: " << to_print.rc_ocbm_read_hits << endl;
+   output << setw(45) << "read miss: " << to_print.rc_ocbm_read_miss << endl;
+   output << setw(45) << "write hit: " << to_print.rc_ocbm_write_hits << endl;
+   output << setw(45) << "write miss: " << to_print.rc_ocbm_write_miss << endl;
+   output << setw(45) << "backing store access: " << to_print.rc_ocbm_backing_store_accesses << endl;
+   output << setw(45) << "kickouts dirty: " << to_print.rc_ocbm_kickout_dirties << endl;
+   output << setw(45) << "kickouts total: " << to_print.rc_ocbm_kickouts << endl;
+   output << setw(45) << "complex update: " << to_print.rc_ocbm_complex_updates << endl;
    #endif
-   output <<endl;
+   output << endl;
    return;
 }
 
