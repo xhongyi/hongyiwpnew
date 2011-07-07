@@ -98,11 +98,13 @@ int PT2_byte_acu_single<ADDRESS, FLAGS>::add_watchpoint(ADDRESS start_addr, ADDR
    seg_reg_unwatched = false;
    if (page_number_start == page_number_end) {  // if in the same page
       if (check_page_level_unity(page_number_start, true)) {
-         pt_watched[page_number_start>>BIT_MAP_OFFSET_LENGTH] |= (1<<(page_number_start&0x7));                          // watched = 1
+         pt_watched[page_number_start>>BIT_MAP_OFFSET_LENGTH] |= (1<<(page_number_start&0x7));
+                                                // pagetable watched = 1
          if (check_superpage_level_unity(superpage_number_start, true)) {
-            superpage_watched[superpage_number_start>>BIT_MAP_OFFSET_LENGTH] |= (1<<(superpage_number_start&0x7));      // watched = 1
+            superpage_watched[superpage_number_start>>BIT_MAP_OFFSET_LENGTH] |= (1<<(superpage_number_start&0x7));
+                                                // superpage watched = 1
             if (check_seg_reg_level_unity(true))
-               seg_reg_watched = true;
+               seg_reg_watched = true;          // seg_reg watched = 1
          }
          return 1;
       }
@@ -111,53 +113,58 @@ int PT2_byte_acu_single<ADDRESS, FLAGS>::add_watchpoint(ADDRESS start_addr, ADDR
    }
    else {   // if not in the same page
       // setting start and end pagetables
-      if (check_page_level_unity(page_number_start, true)) {
-         pt_watched[page_number_start>>BIT_MAP_OFFSET_LENGTH] |= (1<<(page_number_start&0x7));                          // watched = 1
+      if (check_page_level_unity(page_number_start, true)) {   // start
+         pt_watched[page_number_start>>BIT_MAP_OFFSET_LENGTH] |= (1<<(page_number_start&0x7));
+                                                // pagetable watched = 1
          firstpage_bitmap_change = 1;
       }
       else
          firstpage_bitmap_change = ((page_number_start+1)<<PAGE_OFFSET_LENGTH) - start_addr;
-      if (check_page_level_unity(page_number_end, true)) {
-         pt_watched[page_number_end>>BIT_MAP_OFFSET_LENGTH] |= (1<<(page_number_end&0x7));                              // watched = 1
+      if (check_page_level_unity(page_number_end, true)) {     // end
+         pt_watched[page_number_end>>BIT_MAP_OFFSET_LENGTH] |= (1<<(page_number_end&0x7));
+                                                // pagetable watched = 1
          lastpage_bitmap_change = 1;
       }
       else
          lastpage_bitmap_change = end_addr - (page_number_end<<PAGE_OFFSET_LENGTH) + 1;
       // setting all pagetables in the middle
       for (ADDRESS i=page_number_start+1;i!=page_number_end;i++) {
-         pt_watched[i>>BIT_MAP_OFFSET_LENGTH] |= (1<<(i&0x7));                              //  watched = 1
-         pt_unwatched[i>>BIT_MAP_OFFSET_LENGTH] &= ~(1<<(i&0x7));                           // unwatched = 0
+         pt_watched[i>>BIT_MAP_OFFSET_LENGTH] |= (1<<(i&0x7));    // pagetable watched = 1
+         pt_unwatched[i>>BIT_MAP_OFFSET_LENGTH] &= ~(1<<(i&0x7)); // pagetable unwatched = 0
       }
       if (superpage_number_start == superpage_number_end) { // if in the same superpage
          if (check_superpage_level_unity(superpage_number_start, true)) {
-            superpage_watched[superpage_number_start>>BIT_MAP_OFFSET_LENGTH] |= (1<<(superpage_number_start&0x7));      // watched = 1
+            superpage_watched[superpage_number_start>>BIT_MAP_OFFSET_LENGTH] |= (1<<(superpage_number_start&0x7));
+                                                                  // superpage watched = 1
             if (check_seg_reg_level_unity(true))
-               seg_reg_watched = true;
+               seg_reg_watched = true;                            // seg_reg watched = 1
             return 1;
          }
          return page_number_end - page_number_start - 1 + firstpage_bitmap_change + lastpage_bitmap_change;
       }
       else {   // if not in the same superpage
          // set start and end superpage
-         if (check_superpage_level_unity(superpage_number_start, true)) {
-            superpage_watched[superpage_number_start>>BIT_MAP_OFFSET_LENGTH] |= (1<<(superpage_number_start&0x7));      // watched = 1
+         if (check_superpage_level_unity(superpage_number_start, true)) {  // start
+            superpage_watched[superpage_number_start>>BIT_MAP_OFFSET_LENGTH] |= (1<<(superpage_number_start&0x7));
+                                                                           // superpage watched = 1
             first_superpage_bitmap_change = 1;
          }
          else
             first_superpage_bitmap_change = ((superpage_number_start+1)<<SECOND_LEVEL_PAGE_NUM_LENGTH) - page_number_start;
-         if (check_superpage_level_unity(superpage_number_end, true)) {
-            superpage_watched[superpage_number_end>>BIT_MAP_OFFSET_LENGTH] |= (1<<(superpage_number_end&0x7));          // watched = 1
+         if (check_superpage_level_unity(superpage_number_end, true)) {    // end
+            superpage_watched[superpage_number_end>>BIT_MAP_OFFSET_LENGTH] |= (1<<(superpage_number_end&0x7));
+                                                                           // superpage watched = 1
             last_superpage_bitmap_change = 1;
          }
          else
             last_superpage_bitmap_change = page_number_end - (superpage_number_end<<SECOND_LEVEL_PAGE_NUM_LENGTH) + 1;
          // set all superpages in the middle
          for (ADDRESS i=superpage_number_start+1;i!=superpage_number_end;i++) {
-            superpage_watched[i>>BIT_MAP_OFFSET_LENGTH] |= (1<<(i&0x7));                                                // watched = 1
-            superpage_unwatched[i>>BIT_MAP_OFFSET_LENGTH] &= ~(1<<(i&0x7));                                             // unwatched = 0
+            superpage_watched[i>>BIT_MAP_OFFSET_LENGTH] |= (1<<(i&0x7));      // superpage watched = 1
+            superpage_unwatched[i>>BIT_MAP_OFFSET_LENGTH] &= ~(1<<(i&0x7));   // superpage unwatched = 0
          }
          if (check_seg_reg_level_unity(true)) {
-            seg_reg_watched = true;
+            seg_reg_watched = true;                                           // seg_reg watched = 1
             return 1;
          }
          return firstpage_bitmap_change + lastpage_bitmap_change 

@@ -14,6 +14,7 @@
 //#define PAGE_TABLE2_MULTI
 //#define PT2_BYTE_ACU_SINGLE
 //#define PT2_BYTE_ACU_MULTI
+#define WLB_BYTE_ACU
 #define RC_SINGLE
 #define RC_OCBM
 
@@ -66,6 +67,10 @@
 
 #ifdef PT2_BYTE_ACU_MULTI
 #include "pt2_byte_acu_single.h"
+#endif
+
+#ifdef WLB_BYTE_ACU
+#include "wlb_byte_acu.h"
 #endif
 
 #ifdef RC_SINGLE
@@ -139,6 +144,11 @@ struct statistics_t {
    long long pt2_byte_acu_multi_page_faults;
    long long pt2_byte_acu_multi_bitmap_faults;
    long long pt2_byte_acu_multi_changes;
+   #endif
+   #ifdef WLB_BYTE_ACU
+   long long wlb_read_miss;
+   long long wlb_write_miss;
+   long long mem_accesses;
    #endif
    #ifdef RC_SINGLE
    long long rc_read_hits;
@@ -260,6 +270,9 @@ private:
    #ifdef PT2_BYTE_ACU_MULTI
    PT2_byte_acu_single<ADDRESS, FLAGS>*                     pt2_byte_acu_multi;
    #endif
+   #ifdef WLB_BYTE_ACU
+   map<int32_t, WLB_byte_acu<ADDRESS>*>                     wlb_byte_acu;
+   #endif
    #ifdef RC_SINGLE
    map<int32_t, RangeCache<ADDRESS, FLAGS>* >               range_cache;
    #endif
@@ -275,19 +288,22 @@ private:
    map<int32_t, statistics_t>::iterator                      statistics_iter;
    map<int32_t, statistics_t>::iterator                      statistics_inactive_iter;
    #ifdef PAGE_TABLE
-   typename map<int32_t, PageTable1_single<ADDRESS, FLAGS>* >::iterator page_table_wp_iter;
+   typename map<int32_t, PageTable1_single<ADDRESS, FLAGS>* >::iterator   page_table_wp_iter;
    #endif
    #ifdef PAGE_TABLE2_SINGLE
-   typename map<int32_t, PageTable2_single<ADDRESS, FLAGS>* >::iterator page_table2_wp_iter;
+   typename map<int32_t, PageTable2_single<ADDRESS, FLAGS>* >::iterator   page_table2_wp_iter;
    #endif
    #ifdef PT2_BYTE_ACU_SINGLE
    typename map<int32_t, PT2_byte_acu_single<ADDRESS, FLAGS>* >::iterator pt2_byte_acu_iter;
    #endif
+   #ifdef WLB_BYTE_ACU
+   typename map<int32_t, WLB_byte_acu<ADDRESS>*>::iterator                wlb_byte_acu_iter;
+   #endif
    #ifdef RC_SINGLE
-   typename map<int32_t, RangeCache<ADDRESS, FLAGS>* >::iterator        range_cache_iter;
+   typename map<int32_t, RangeCache<ADDRESS, FLAGS>* >::iterator          range_cache_iter;
    #endif
    #ifdef RC_OCBM
-   typename map<int32_t, RangeCache<ADDRESS, FLAGS>* >::iterator        range_cache_ocbm_iter;
+   typename map<int32_t, RangeCache<ADDRESS, FLAGS>* >::iterator          range_cache_ocbm_iter;
    #endif
    /*
    #ifdef PAGE_TABLE_SINGLE
