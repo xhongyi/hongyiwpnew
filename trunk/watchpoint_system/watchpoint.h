@@ -14,7 +14,7 @@
 //#define PAGE_TABLE2_MULTI
 //#define PT2_BYTE_ACU_SINGLE
 //#define PT2_BYTE_ACU_MULTI
-#define WLB_BYTE_ACU
+#define MEM_TRACKER
 #define RC_SINGLE
 #define RC_OCBM
 
@@ -69,8 +69,8 @@
 #include "pt2_byte_acu_single.h"
 #endif
 
-#ifdef WLB_BYTE_ACU
-#include "wlb_byte_acu.h"
+#ifdef MEM_TRACKER
+#include "mem_tracker.h"
 #endif
 
 #ifdef RC_SINGLE
@@ -145,10 +145,10 @@ struct statistics_t {
    long long pt2_byte_acu_multi_bitmap_faults;
    long long pt2_byte_acu_multi_changes;
    #endif
-   #ifdef WLB_BYTE_ACU
-   long long wlb_read_miss;
-   long long wlb_write_miss;
-   long long mem_accesses;
+   #ifdef MEM_TRACKER
+   long long mem_tracker_read_miss;
+   long long mem_tracker_write_miss;
+   long long mem_tracker_mem_accesses;
    #endif
    #ifdef RC_SINGLE
    long long rc_read_hits;
@@ -270,8 +270,8 @@ private:
    #ifdef PT2_BYTE_ACU_MULTI
    PT2_byte_acu_single<ADDRESS, FLAGS>*                     pt2_byte_acu_multi;
    #endif
-   #ifdef WLB_BYTE_ACU
-   map<int32_t, WLB_byte_acu<ADDRESS>*>                     wlb_byte_acu;
+   #ifdef MEM_TRACKER
+   map<int32_t, MemTracker<ADDRESS>*>                       mem_tracker;
    #endif
    #ifdef RC_SINGLE
    map<int32_t, RangeCache<ADDRESS, FLAGS>* >               range_cache;
@@ -296,8 +296,8 @@ private:
    #ifdef PT2_BYTE_ACU_SINGLE
    typename map<int32_t, PT2_byte_acu_single<ADDRESS, FLAGS>* >::iterator pt2_byte_acu_iter;
    #endif
-   #ifdef WLB_BYTE_ACU
-   typename map<int32_t, WLB_byte_acu<ADDRESS>*>::iterator                wlb_byte_acu_iter;
+   #ifdef MEM_TRACKER
+   typename map<int32_t, MemTracker<ADDRESS>*>::iterator                mem_tracker_iter;
    #endif
    #ifdef RC_SINGLE
    typename map<int32_t, RangeCache<ADDRESS, FLAGS>* >::iterator          range_cache_iter;
