@@ -15,8 +15,8 @@
 //#define PT2_BYTE_ACU_SINGLE
 //#define PT2_BYTE_ACU_MULTI
 #define MEM_TRACKER
-#define RC_SINGLE
-#define RC_OCBM
+//#define RC_SINGLE
+//#define RC_OCBM
 
 #ifdef PAGE_TABLE2_MULTI
 #define PAGE_TABLE_MULTI
@@ -95,6 +95,7 @@ struct statistics_t {
    long long oracle_faults;            // total number of times that the Oracle get faults
    long long sets;                     // total number of times the API sets a watchpoint
    long long updates;                  // total number of times the API updates a watchpoint
+   long long write_size;               // total size of sets and updates
    long long sst_insertions;           // total number of data copies while doing SST insertions
    int max_size;                       // max size of the total watchpoint system
    long long sum_size;                 // the sum of all recorded sizes when updates and sets, 
