@@ -8,23 +8,14 @@ PageTable2_single<ADDRESS, FLAGS>::PageTable2_single(Virtual_wp<ADDRESS, FLAGS> 
    pt1 = pt1_ref;
    all_watched = false;
    all_unwatched = true;
-   for (int i=0;i<SUPER_PAGE_BIT_MAP_NUMBER;i++) {
-      superpage_watched[i] = 0x00;
-      superpage_unwatched[i] = 0xff;
-   }
+   superpage_watched.reset();
+   superpage_unwatched.set();
+   pagetable_watched.reset();
 }
 
 template<class ADDRESS, class FLAGS>
 PageTable2_single<ADDRESS, FLAGS>::PageTable2_single() {
    pt1 = NULL;
-   /*
-   all_watched = false;
-   all_unwatched = true;
-   for (int i=0;i<SUPER_PAGE_BIT_MAP_NUMBER;i++) {
-      superpage_watched[i] = 0x00;
-      superpage_unwatched[i] = 0xff;
-   }
-   */
 }
 
 template<class ADDRESS, class FLAGS>
@@ -44,9 +35,9 @@ int PageTable2_single<ADDRESS, FLAGS>::general_fault(ADDRESS start_addr, ADDRESS
       ADDRESS superpage_number_end = (end_addr>>SUPERPAGE_OFFSET_LENGTH);
       bool unwatched = true;
       for (ADDRESS i=superpage_number_start;i<=superpage_number_end;i++) {
-         if (superpage_watched[i>>BIT_MAP_OFFSET_LENGTH] & (1<<(i&0x7)) )
+         if (superpage_watched[i])
             return SUPERPAGE_WATCHED;
-         if (!(superpage_unwatched[i>>BIT_MAP_OFFSET_LENGTH] & (1<<(i&0x7)) ))
+         if (!superpage_unwatched[i])
             unwatched = false;
       }  // corner case here (mid = 00)
       if (unwatched)
@@ -78,92 +69,102 @@ int PageTable2_single<ADDRESS, FLAGS>::add_watchpoint(ADDRESS start_addr, ADDRES
    int changes = 0;
    ADDRESS superpage_number_start = (start_addr>>SUPERPAGE_OFFSET_LENGTH);
    ADDRESS superpage_number_end = (end_addr>>SUPERPAGE_OFFSET_LENGTH);
-   //   calculating the starting V.P.N. and the ending V.P.N.
-   ADDRESS page_number_start = (start_addr>>PAGE_OFFSET_LENGTH);
-   ADDRESS page_number_end = (end_addr>>PAGE_OFFSET_LENGTH);
-   if (superpage_number_end > superpage_number_start) {                                                              // if superpage: start != end
+   if (superpage_number_end > superpage_number_start) {        // if superpage: start != end
       // first superpage
-      if (check_unity(superpage_number_start, true)) {                                                               // if set to watched
-         if (   ( (superpage_watched[superpage_number_start>>BIT_MAP_OFFSET_LENGTH]   & (1<<(superpage_number_start&0x7))) == 0 )
-             || ( (superpage_unwatched[superpage_number_start>>BIT_MAP_OFFSET_LENGTH] & (1<<(superpage_number_start&0x7))) != 0 )   )
+      if (check_unity(superpage_number_start, true)) {         // if set to watched
+         if (!superpage_watched[superpage_number_start] || superpage_unwatched[superpage_number_start]) {
             changes++;
-         superpage_watched[superpage_number_start>>BIT_MAP_OFFSET_LENGTH] |= (1<<(superpage_number_start&0x7));      // watched = 1
-         superpage_unwatched[superpage_number_start>>BIT_MAP_OFFSET_LENGTH] &= ~(1<<(superpage_number_start&0x7));   // unwatched = 0
+            superpage_watched.set(superpage_number_start);     // watched = 1
+            superpage_unwatched.reset(superpage_number_start); // unwatched = 0
+         }
       }
-      else {                                                                                                         // if set to unknown
-         if (superpage_unwatched[superpage_number_start>>BIT_MAP_OFFSET_LENGTH] & (1<<(superpage_number_start&0x7)) )// if orig_unwatched
-            changes += (1<<SECOND_LEVEL_PAGE_NUM_LENGTH);                                                            // set all 4K bits again
-         else                                                                                                        // if orig_unknown
-            changes += ((superpage_number_start+1) << SECOND_LEVEL_PAGE_NUM_LENGTH) - page_number_start;
-         if ( (superpage_unwatched[superpage_number_start>>BIT_MAP_OFFSET_LENGTH] & (1<<(superpage_number_start&0x7))) != 0 )
+      else {                                                   // if set to unknown
+         if (superpage_unwatched[superpage_number_start]) {    // if orig_unwatched
+            set_unknown(superpage_number_start);
+            changes += (1<<SECOND_LEVEL_PAGE_NUM_LENGTH);      // set all 1K bits again
             changes++;
-         superpage_unwatched[superpage_number_start>>BIT_MAP_OFFSET_LENGTH] &= ~(1<<(superpage_number_start&0x7));   // unwatched = 0
+            superpage_unwatched.reset(superpage_number_start); // unwatched = 0
+         }
+         else                                                  // if orig_unknown
+            changes += set_unknown(superpage_number_start);
       }
       // middle superpages
       for (ADDRESS i=superpage_number_start+1;i<superpage_number_end;i++) {
-         if (   ( (superpage_watched[i>>BIT_MAP_OFFSET_LENGTH]   & (1<<(i&0x7))) == 0 )
-             || ( (superpage_unwatched[i>>BIT_MAP_OFFSET_LENGTH] & (1<<(i&0x7))) != 0 )   )
+         if (!superpage_watched[i] || superpage_unwatched[i]) {
             changes++;
-         superpage_watched[i>>BIT_MAP_OFFSET_LENGTH] |= (1<<(i&0x7));                                                // watched = 1
-         superpage_unwatched[i>>BIT_MAP_OFFSET_LENGTH] &= ~(1<<(i&0x7));                                             // unwatched = 0
+            superpage_watched.set(i);                          // watched = 1
+            superpage_unwatched.reset(i);                      // unwatched = 0
+         }
       }
       // last superpage
-      if (check_unity(superpage_number_end, true)) {                                                                 // if set to watched
-         if (   ( (superpage_watched[superpage_number_end>>BIT_MAP_OFFSET_LENGTH]   & (1<<(superpage_number_end&0x7))) == 0 )
-             || ( (superpage_unwatched[superpage_number_end>>BIT_MAP_OFFSET_LENGTH] & (1<<(superpage_number_end&0x7))) != 0 )   )
+      if (check_unity(superpage_number_end, true)) {           // if set to watched
+         if (!superpage_watched[superpage_number_end] || superpage_unwatched[superpage_number_end]) {
             changes++;
-         superpage_watched[superpage_number_end>>BIT_MAP_OFFSET_LENGTH] |= (1<<(superpage_number_end&0x7));          // watched = 1
-         superpage_unwatched[superpage_number_end>>BIT_MAP_OFFSET_LENGTH] &= ~(1<<(superpage_number_end&0x7));       // unwatched = 0
+            superpage_watched.set(superpage_number_end);       // watched = 1
+            superpage_unwatched.reset(superpage_number_end);   // unwatched = 0
+         }
       }
-      else {                                                                                                         // if set to unknown
-         if (superpage_unwatched[superpage_number_end>>BIT_MAP_OFFSET_LENGTH] & (1<<(superpage_number_end&0x7)) )    // if orig_unwatched
-            changes += (1<<SECOND_LEVEL_PAGE_NUM_LENGTH);                                                            // set all 4K bits again
-         else                                                                                                        // if orig_unknown
-            changes += page_number_end - (superpage_number_end << SECOND_LEVEL_PAGE_NUM_LENGTH) + 1;
-         if ( (superpage_unwatched[superpage_number_end>>BIT_MAP_OFFSET_LENGTH] & (1<<(superpage_number_end&0x7))) != 0 )
+      else {                                                   // if set to unknown
+         if (superpage_unwatched[superpage_number_end]) {      // if orig_unwatched
+            set_unknown(superpage_number_end);
+            changes += (1<<SECOND_LEVEL_PAGE_NUM_LENGTH);      // set all 1K bits again
             changes++;
-         superpage_unwatched[superpage_number_end>>BIT_MAP_OFFSET_LENGTH] &= ~(1<<(superpage_number_end&0x7));       // unwatched = 0
-      }
-   }
-   else {                                                                                                            // if superpage start == end
-      if (check_unity(superpage_number_start, true)) {                                                               // if set to watched
-         if (   ( (superpage_watched[superpage_number_end>>BIT_MAP_OFFSET_LENGTH]   & (1<<(superpage_number_end&0x7))) == 0 )
-             || ( (superpage_unwatched[superpage_number_end>>BIT_MAP_OFFSET_LENGTH] & (1<<(superpage_number_end&0x7))) != 0 )   )
-            changes++;
-         superpage_watched[superpage_number_end>>BIT_MAP_OFFSET_LENGTH] |= (1<<(superpage_number_end&0x7));          // watched = 1
-         superpage_unwatched[superpage_number_end>>BIT_MAP_OFFSET_LENGTH] &= ~(1<<(superpage_number_end&0x7));       // unwatched = 0
-      }
-      else {                                                                                                         // if set to unknown
-         if (superpage_unwatched[superpage_number_end>>BIT_MAP_OFFSET_LENGTH] & (1<<(superpage_number_end&0x7)) )    // if orig_unwatched
-            changes += (1<<SECOND_LEVEL_PAGE_NUM_LENGTH);                                                            // set all 4K bits again
-         else                                                                                                        // if orig_unknown
-            changes += page_number_end - page_number_start + 1;
-         if ( (superpage_unwatched[superpage_number_end>>BIT_MAP_OFFSET_LENGTH] & (1<<(superpage_number_end&0x7))) != 0 )
-            changes++;
-         superpage_unwatched[superpage_number_end>>BIT_MAP_OFFSET_LENGTH] &= ~(1<<(superpage_number_end&0x7));       // unwatched = 0
+            superpage_unwatched.reset(superpage_number_end);   // unwatched = 0
+         }
+         else                                                  // if orig_unknown
+            changes += set_unknown(superpage_number_end);
       }
    }
-   bool old_all_watched = all_watched;
-   bool old_all_unwatched = all_unwatched;
-   // all_watched/all_unwatched (check superpage unity)
-   all_watched = true;
-   all_unwatched = true;
-   for (int i=0;i<SUPER_PAGE_BIT_MAP_NUMBER;i++) {
-      if (superpage_watched[i] != 0xff)
-         all_watched = false;
-      if (superpage_unwatched[i] != 0xff)
+   else {                                                      // if superpage start == end
+      if (check_unity(superpage_number_start, true)) {         // if set to watched
+         if (!superpage_watched[superpage_number_end] || superpage_unwatched[superpage_number_end]) {
+            changes++;
+            superpage_watched.set(superpage_number_end);       // watched = 1
+            superpage_unwatched.reset(superpage_number_end);   // unwatched = 0
+         }
+      }
+      else {                                                   // if set to unknown
+         if (superpage_unwatched[superpage_number_end]) {      // if orig_unwatched
+            set_unknown(superpage_number_end);
+            changes += (1<<SECOND_LEVEL_PAGE_NUM_LENGTH);      // set all 1K bits again
+            changes++;
+            superpage_unwatched.reset(superpage_number_end);   // unwatched = 0
+         }
+         else                                                  // if orig_unknown
+            changes += set_unknown(superpage_number_end);
+      }
+   }
+   // check all_watched/unwatched
+   if (superpage_watched.count() == SUPERPAGE_NUM) {
+      if (!all_watched) {
+         changes = 1;
+         all_watched = true;
          all_unwatched = false;
-   }
-   if (all_watched || all_unwatched) {
-      if (old_all_watched != all_watched)
-         changes = 0;
+      }
       else
-         changes = 1;
-      if (old_all_unwatched != all_unwatched)
          changes = 0;
-      else
-         changes = 1;
    }
+   else if (superpage_unwatched.count() == SUPERPAGE_NUM) {
+      if (!all_unwatched) {
+         changes = 1;
+         all_watched = false;
+         all_unwatched = true;
+      }
+      else
+         changes = 0;
+   }
+   else {
+      if (all_watched || all_unwatched) {
+         changes += 1;
+         all_watched = false;
+         all_unwatched = false;
+      }
+   }
+   // refresh internal pagetable history (does not count)
+   ADDRESS pagetable_start = (start_addr>>PAGE_OFFSET_LENGTH);
+   ADDRESS pagetable_end = (end_addr>>PAGE_OFFSET_LENGTH);
+   for (ADDRESS i=pagetable_start;i<=pagetable_end;i++)
+      pagetable_watched.set(i);
    return changes;
 }
 
@@ -172,47 +173,51 @@ int PageTable2_single<ADDRESS, FLAGS>::rm_watchpoint(ADDRESS start_addr, ADDRESS
    int changes = 0;
    ADDRESS superpage_number_start = (start_addr>>SUPERPAGE_OFFSET_LENGTH);
    ADDRESS superpage_number_end = (end_addr>>SUPERPAGE_OFFSET_LENGTH)+1;
-   // superpages
-   ADDRESS page_number = ((start_addr>>PAGE_OFFSET_LENGTH)<<PAGE_OFFSET_LENGTH);
    for (ADDRESS i=superpage_number_start;i!=superpage_number_end;i++) {
-      if (check_unity(i, false)) {                                         // if set to unwatched  
-         if (   ( (superpage_watched[i>>BIT_MAP_OFFSET_LENGTH]   & (1<<(i&0x7))) != 0 )
-             || ( (superpage_unwatched[i>>BIT_MAP_OFFSET_LENGTH] & (1<<(i&0x7))) == 0 )   )
+      if (check_unity(i, false)) {                             // if set to unwatched  
+         if (superpage_watched[i] || !superpage_unwatched[i]) {
             changes++;
-         superpage_watched[i>>BIT_MAP_OFFSET_LENGTH] &= ~(1<<(i&0x7));     // watched = 0
-         superpage_unwatched[i>>BIT_MAP_OFFSET_LENGTH] |= (1<<(i&0x7));    // unwatched = 1
-         page_number = ((i+1)<<SUPERPAGE_OFFSET_LENGTH);
-      }
-      else {
-         while ((page_number != ((i+1)<<SUPERPAGE_OFFSET_LENGTH)) && (page_number <= end_addr)) { // for all pages within the range and this superpage
-            if (!(pt1->watch_fault(page_number, page_number)) ) {
-               changes++;
-               superpage_watched[i>>BIT_MAP_OFFSET_LENGTH] &= ~(1<<(i&0x7));     // watched = 0
-            }
-            page_number += PAGE_SIZE;
+            superpage_watched.reset(i);                        // watched = 0
+            superpage_unwatched.set(i);                        // unwatched = 1
          }
+         set_unknown(i);
+      }
+      else {                                                   // if set to unknown
+         if (superpage_watched[i]) {                           // if originally watched
+            set_unknown(i);
+            changes += (1<<SECOND_LEVEL_PAGE_NUM_LENGTH);      // set all 1K bits again
+            changes++;
+            superpage_watched.reset(superpage_number_end);     // watched = 0
+         }
+         else                                                  // if originally unknown
+            changes += set_unknown(i);
       }
    }
-   bool old_all_watched = all_watched;
-   bool old_all_unwatched = all_unwatched;
-   // all_watched/all_unwatched
-   all_watched = true;
-   all_unwatched = true;
-   for (int i=0;i<SUPER_PAGE_BIT_MAP_NUMBER;i++) {
-      if (superpage_watched[i] != 0xff)
-         all_watched = false;
-      if (superpage_unwatched[i] != 0xff)
+   // check all_watched/unwatched
+   if (superpage_watched.count() == SUPERPAGE_NUM) {
+      if (!all_watched) {
+         changes = 1;
+         all_watched = true;
          all_unwatched = false;
+      }
+      else
+         changes = 0;
    }
-   if (all_watched || all_unwatched) {
-      if (old_all_watched != all_watched)
-         changes = 0;
-      else
+   else if (superpage_unwatched.count() == SUPERPAGE_NUM) {
+      if (!all_unwatched) {
          changes = 1;
-      if (old_all_unwatched != all_unwatched)
-         changes = 0;
+         all_watched = false;
+         all_unwatched = true;
+      }
       else
-         changes = 1;
+         changes = 0;
+   }
+   else {
+      if (all_watched || all_unwatched) {
+         changes += 1;
+         all_watched = false;
+         all_unwatched = false;
+      }
    }
    return changes;
 }
@@ -230,6 +235,28 @@ bool PageTable2_single<ADDRESS, FLAGS>::check_unity(ADDRESS superpage_number, bo
 
 template<class ADDRESS, class FLAGS>
 void PageTable2_single<ADDRESS, FLAGS>::watch_print(ostream &output) {
+}
+
+template<class ADDRESS, class FLAGS>
+int PageTable2_single<ADDRESS, FLAGS>::set_unknown(ADDRESS superpage_number) {
+   int changes = 0;
+   for (ADDRESS i=(superpage_number<<SUPERPAGE_OFFSET_LENGTH);
+                i!=((superpage_number+1)<<SUPERPAGE_OFFSET_LENGTH);
+                i+=PAGE_SIZE) {                                // for all pages contains in this superpage
+      if (pt1->watch_fault(i, i)) {                            // if this page is watched
+         if (!pagetable_watched[i>>PAGE_OFFSET_LENGTH]) {
+            changes++;
+            pagetable_watched.set(i>>PAGE_OFFSET_LENGTH);      // watched = 1
+         }
+      }
+      else {
+         if (pagetable_watched[i>>PAGE_OFFSET_LENGTH]) {
+            changes++;
+            pagetable_watched.reset(i>>PAGE_OFFSET_LENGTH);
+         }
+      }
+   }
+   return changes;
 }
 
 #endif
