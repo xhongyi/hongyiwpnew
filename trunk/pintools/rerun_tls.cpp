@@ -16,6 +16,7 @@ limitations under the License. **/
 #include <deque>
 #define vector_H
 #endif
+#include <cstring>
 
 #define RERUN
 
@@ -293,7 +294,7 @@ VOID Instruction(INS ins, VOID *v)
 }
 
 typedef struct _FUNCTION_NAMES {
-        char *name;
+        const char *name;
 } FUNCTION_NAMES;
 typedef const FUNCTION_NAMES *FUNCTION_NAME_ARRAY;
 
@@ -355,7 +356,7 @@ void InstrumentFunctions(IMG img, const char *name, const FUNCTION_NAME_ARRAY *f
     void *faddr;
     SYM sym;
     RTN rtn;
-    char * pattern;
+    string local_name_copy;
     const FUNCTION_NAME_ARRAY *fnc;
 
     loadoffset = IMG_LoadOffset(img);
@@ -363,9 +364,9 @@ void InstrumentFunctions(IMG img, const char *name, const FUNCTION_NAME_ARRAY *f
         if ((faddr = (void *)(SYM_Value(sym) + loadoffset)) == 0)
             continue;
         rtn = RTN_FindByAddress((ADDRINT)faddr);
+        local_name_copy = SYM_Name(sym);
         // Check if function name matches the ptrheads stuff we care about.
-        if((pattern = strchr(SYM_Name(sym).c_str() , '@')) != NULL)
-            *pattern = '\0';
+        replace(local_name_copy.begin(), local_name_copy.end(), '@', '\0');
 
         // Probably only pthreads (unless we somehow link it twice), but let's look through the
         // array anyway.
@@ -373,9 +374,9 @@ void InstrumentFunctions(IMG img, const char *name, const FUNCTION_NAME_ARRAY *f
             const FUNCTION_NAMES *p;
             // Now to loop through the function names and instrument the ones in our list up there.
             for (p = *fnc; p->name != NULL; p++) {
-                if ((strcmp(PIN_UndecorateSymbolName(SYM_Name(sym), UNDECORATION_NAME_ONLY).c_str(), p->name) == 0) ||
-                        (strcmp(SYM_Name(sym).c_str(), p->name) == 0)) {
-                    InstrumentFunction(rtn, p, SYM_Name(sym).c_str(), name);
+                if ((strcmp(PIN_UndecorateSymbolName(local_name_copy, UNDECORATION_NAME_ONLY).c_str(), p->name) == 0) ||
+                        (strcmp(local_name_copy.c_str(), p->name) == 0)) {
+                    InstrumentFunction(rtn, p, local_name_copy.c_str(), name);
                     break;
                 }
             }
