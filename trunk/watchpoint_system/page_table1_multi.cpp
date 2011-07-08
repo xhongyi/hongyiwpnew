@@ -62,16 +62,19 @@ int PageTable1_multi<ADDRESS, FLAGS>::write_fault(ADDRESS start_addr, ADDRESS en
    return general_fault(start_addr, end_addr);
 }
 
-// version 2: count all related pages  (faster)  (do not add them up---change WatchPoint.general_change() )
 // add_watchpoint
 template<class ADDRESS, class FLAGS>
 int PageTable1_multi<ADDRESS, FLAGS>::add_watchpoint(ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags) {
+   int changes = 0;
    // calculating the starting V.P.N. and the ending V.P.N.
    ADDRESS page_number_start = (start_addr>>PAGE_OFFSET_LENGTH);
    ADDRESS page_number_end = (end_addr>>PAGE_OFFSET_LENGTH)+1;
-   for (ADDRESS i=page_number_start;i!=page_number_end;i++)       // for each page, 
-      bit_map[i>>BIT_MAP_OFFSET_LENGTH] |= (1<<(i&0x7));          // set the page watched. (overwrite)
-   return page_number_end - page_number_start;
+   for (ADDRESS i=page_number_start;i!=page_number_end;i++) {     // for each page, 
+      if ( (bit_map[i>>BIT_MAP_OFFSET_LENGTH] & (1<<(i&0x7))) == 0 )
+         changes++;
+      bit_map[i>>BIT_MAP_OFFSET_LENGTH] |= (1<<(i&0x7));          // set the page watched. (not overwrite anymore)
+   }
+   return changes;
 }
 
 // rm_watchpoint
@@ -91,8 +94,9 @@ int PageTable1_multi<ADDRESS, FLAGS>::rm_watchpoint(ADDRESS start_addr, ADDRESS 
          }
       }
       if (!multi_page_table_fault) {
-         bit_map[i>>BIT_MAP_OFFSET_LENGTH] &= ~(1<<(i&0x7));                           // set the page unwatched (overwrite)
-         changes++;
+         if ( (bit_map[i>>BIT_MAP_OFFSET_LENGTH] & (1<<(i&0x7))) != 0 )
+            changes++;
+         bit_map[i>>BIT_MAP_OFFSET_LENGTH] &= ~(1<<(i&0x7));                           // set the page unwatched
       }
    }
    return changes;
