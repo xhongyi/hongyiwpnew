@@ -342,7 +342,7 @@ void SynchronizationCall(THREADID threadid)
     ReleaseLock(&init_lock);
 }
 
-void InstrumentFunction(RTN rtn, const FUNCTION_NAMES *ppcep, const char *symname, const char *imgname)
+void InstrumentFunction(RTN rtn, const char *symname, const char *imgname)
 {
     RTN_Open(rtn);
     //cerr << "Instrumenting function " << symname << " in library " << imgname << endl;
@@ -376,7 +376,7 @@ void InstrumentFunctions(IMG img, const char *name, const FUNCTION_NAME_ARRAY *f
             for (p = *fnc; p->name != NULL; p++) {
                 if ((strcmp(PIN_UndecorateSymbolName(local_name_copy, UNDECORATION_NAME_ONLY).c_str(), p->name) == 0) ||
                         (strcmp(local_name_copy.c_str(), p->name) == 0)) {
-                    InstrumentFunction(rtn, p, local_name_copy.c_str(), name);
+                    InstrumentFunction(rtn, local_name_copy.c_str(), name);
                     break;
                 }
             }
