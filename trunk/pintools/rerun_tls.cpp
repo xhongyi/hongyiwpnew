@@ -17,6 +17,12 @@ limitations under the License. **/
 #define vector_H
 #endif
 
+#define RERUN
+
+#ifndef RERUN
+//#define UNSOUND_RACE_DETECTOR
+#endif
+
 #include <map>
 #include <iostream>
 #include <fstream>
@@ -138,6 +144,7 @@ VOID RecordMemRead(VOID * ip, ADDRINT addr, UINT32 size, THREADID threadid)
             for(live_iter = live_threads.begin(); live_iter != live_threads.end(); live_iter++) {
                 if (*live_iter != threadid) {
                     if (mem->write_fault(addr, (ADDRINT)(addr+size-1), *live_iter) ) {
+#ifdef RERUN
                        // In RERUN this causes an episode to end.
                        // We store off the read/write sets of this thread before
                        // the conflict for offline data-race detection.
@@ -146,19 +153,24 @@ VOID RecordMemRead(VOID * ip, ADDRINT addr, UINT32 size, THREADID threadid)
                        // Thread 2 must end its episode.
                        wp->set_watch(0, MEM_SIZE, *live_iter, STORE_STATS);
                        mem->rm_watch(0, MEM_SIZE, *live_iter, IGNORE_STATS);
-                       // Two threads could have this read in their write sets if this
-                       // overlaps with two different ranges. Keep on trucking through
-                       // this for-loop.
-
+#else
                        // In ONLINE DATA RACE DETECTION, this should just turn
                        // on the race detector and then return with the read/write
                        // ownerships changed.
                        // Only synchronization events should cause stuff to clear out
-                       // TODO 
+                       // Remove from the write set of the remote thread.
+                       wp->update_set_write(addr, (ADDRINT)(addr+size-1), *live_iter);
+                       mem->rm_write(addr, (ADDRINT)(addr+size-1), *live_iter, IGNORE_STATS);
+#endif
+                       // Two threads could have this read in their write sets if this
+                       // overlaps with two different ranges. Keep on trucking through
+                       // this for-loop. Even though no two threads will have an individual
+                       // byte in both their write-sets, our range could be in two things.
                     }
                 }
             }
 
+            // Add to our local read set.
             wp->rm_read(addr, (ADDRINT)(addr+size-1), threadid);
             mem->update_set_read(addr, (ADDRINT)(addr+size-1), threadid, IGNORE_STATS);
         }
@@ -184,6 +196,7 @@ VOID RecordMemWrite(VOID * ip, ADDRINT addr, UINT32 size, THREADID threadid)
             for(live_iter = live_threads.begin(); live_iter != live_threads.end(); live_iter++) {
                 if (*live_iter != threadid) {
                     if (mem->watch_fault(addr, (ADDRINT)(addr+size-1), *live_iter) ) {
+#ifdef RERUN
                        // In RERUN this causes an episode to end.
                        // We store off the read/write sets of this thread before
                        // the conflict for offline data-race detection.
@@ -192,15 +205,19 @@ VOID RecordMemWrite(VOID * ip, ADDRINT addr, UINT32 size, THREADID threadid)
                        // Thread 2 must end its episode.
                        wp->set_watch(0, MEM_SIZE, *live_iter, STORE_STATS);
                        mem->rm_watch(0, MEM_SIZE, *live_iter, IGNORE_STATS);
-                       // Two threads could have this read in their write sets if this
-                       // overlaps with two different ranges. Keep on trucking through
-                       // this for-loop.
-
+#else
                        // In ONLINE DATA RACE DETECTION, this should just turn
                        // on the race detector and then return with the read/write
                        // ownerships changed.
                        // Only synchronization events should cause stuff to clear out
-                       // TODO
+                       // Remove access from the remove thread. We own this puppy now.
+                       wp->set_watch(addr, (ADDRINT)(addr+size-1), *live_iter);
+                       mem->rm_watch(addr, (ADDRINT)(addr+size-1), *live_iter, IGNORE_STATS);
+#endif
+                       // Two threads could have this read in their write sets if this
+                       // overlaps with two different ranges. Keep on trucking through
+                       // this for-loop. Even though no two threads will have an individual
+                       // byte in both their write-sets, our range could be in two things.
                     }
                 }
             }
@@ -275,6 +292,119 @@ VOID Instruction(INS ins, VOID *v)
     }
 }
 
+typedef struct _FUNCTION_NAMES {
+        char *name;
+} FUNCTION_NAMES;
+typedef const FUNCTION_NAMES *FUNCTION_NAME_ARRAY;
+
+// Only LOCK instructions (which increase our local clock) cause us to remove
+// our own watchpoints. This way, anything we touch has its local clock
+// incremented at the very least.
+static const FUNCTION_NAMES __tcPthreadsPPCEPs[] = {
+    //{"pthread_mutex_init"},
+    //{"pthread_mutex_destroy"},
+    {"pthread_mutex_lock"},
+    //{"pthread_mutex_unlock"},
+    {"pthread_mutex_trylock"},
+    //{"pthread_spin_init"},
+    //{"pthread_spin_destroy"},
+    {"pthread_spin_lock"},
+    {"pthread_spin_trylock"},
+    //{"pthread_spin_unlock"},
+
+    //{"pthread_cond_init"},
+    //{"pthread_cond_destroy"},
+    //{"pthread_cond_broadcast"},
+    //{"pthread_cond_signal"},
+    {"pthread_cond_wait"},
+    {"pthread_cond_timedwait"},
+
+    //{"pthread_rwlock_init"},
+    //{"pthread_rwlock_destroy"},
+    {"pthread_rwlock_rdlock"},
+    {"pthread_rwlock_tryrdlock"},
+    {"pthread_rwlock_wrlock"},
+    {"pthread_rwlock_trywrlock"},
+    //{"pthread_rwlock_unlock"},
+
+    //{"pthread_barrier_init"},
+    //{"pthread_barrier_destroy"},
+    {"pthread_barrier_wait"},
+    { NULL}
+};
+
+void SynchronizationCall(THREADID threadid)
+{
+    GetLock(&init_lock, threadid+1);
+    wp->set_watch(0, MEM_SIZE, threadid, STORE_STATS);
+    mem->rm_watch(0, MEM_SIZE, threadid, IGNORE_STATS);
+    ReleaseLock(&init_lock);
+}
+
+void InstrumentFunction(RTN rtn, const FUNCTION_NAMES *ppcep, const char *symname, const char *imgname)
+{
+    RTN_Open(rtn);
+    //cerr << "Instrumenting function " << symname << " in library " << imgname << endl;
+    RTN_InsertCall(rtn, IPOINT_BEFORE, (AFUNPTR)SynchronizationCall, IARG_THREAD_ID, IARG_END);
+    RTN_Close(rtn);
+}
+
+void InstrumentFunctions(IMG img, const char *name, const FUNCTION_NAME_ARRAY *functions)
+{
+    unsigned long loadoffset;
+    void *faddr;
+    SYM sym;
+    RTN rtn;
+    char * pattern;
+    const FUNCTION_NAME_ARRAY *fnc;
+
+    loadoffset = IMG_LoadOffset(img);
+    for (sym = IMG_RegsymHead(img); SYM_Valid(sym); sym = SYM_Next(sym)) {
+        if ((faddr = (void *)(SYM_Value(sym) + loadoffset)) == 0)
+            continue;
+        rtn = RTN_FindByAddress((ADDRINT)faddr);
+        // Check if function name matches the ptrheads stuff we care about.
+        if((pattern = strchr(SYM_Name(sym).c_str() , '@')) != NULL)
+            *pattern = '\0';
+
+        // Probably only pthreads (unless we somehow link it twice), but let's look through the
+        // array anyway.
+        for (fnc = functions; *fnc != NULL; fnc++) {
+            const FUNCTION_NAMES *p;
+            // Now to loop through the function names and instrument the ones in our list up there.
+            for (p = *fnc; p->name != NULL; p++) {
+                if ((strcmp(PIN_UndecorateSymbolName(SYM_Name(sym), UNDECORATION_NAME_ONLY).c_str(), p->name) == 0) ||
+                        (strcmp(SYM_Name(sym).c_str(), p->name) == 0)) {
+                    InstrumentFunction(rtn, p, SYM_Name(sym).c_str(), name);
+                    break;
+                }
+            }
+        }
+    }
+}
+
+FUNCTION_NAME_ARRAY* FindPthreads(char *name, FUNCTION_NAME_ARRAY *functions)
+{
+    FUNCTION_NAME_ARRAY *f = functions;
+    *f = (FUNCTION_NAMES *)NULL;
+    if (!strcmp("/lib/libpthread.so.0", name)) {
+        *f++ = __tcPthreadsPPCEPs;
+    }
+    *f = NULL;
+    return ((f == functions) ? NULL : functions);
+}
+
+void ImageLoad(IMG img)
+{
+    char *name;
+    const FUNCTION_NAMES *function_table[10];
+
+    name = (char *)(IMG_Name(img).c_str());
+    if(FindPthreads(name, function_table) != 0) {
+        InstrumentFunctions(img, name, function_table);
+    }
+}
+
 // This function is called when the application exits
 VOID Fini(INT32 code, VOID *v)
 {
@@ -346,6 +476,9 @@ int main(int argc, char * argv[])
     // Register ThreadStart to be called when a thread starts.
     PIN_AddThreadStartFunction(ThreadStart, 0);
     PIN_AddThreadFiniFunction(ThreadFini, 0);
+#ifndef UNSOUND_RACE_DETECTOR
+    IMG_AddInstrumentFunction((IMAGECALLBACK)ImageLoad, 0);
+#endif
 
     TRACE_AddInstrumentFunction(Trace, 0);
 
