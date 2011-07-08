@@ -129,12 +129,12 @@ int RangeCache<ADDRESS, FLAGS>::wp_operation(ADDRESS start_addr, ADDRESS end_add
       }
       rm_range(start_addr, end_addr);
       // adding ranges
-      oracle_iter = oracle_wp->search_address(start_addr);        // merge start
+      oracle_iter = oracle_wp->search_address(start_addr);     // merge start
       temp = *oracle_iter;
       temp.flags |= DIRTY;
       if (oracle_iter->start_addr < start_addr) {
          rc_write_iter = search_address(start_addr-1);
-         if (rc_write_iter!=rc_data.end()) {
+         if (rc_write_iter!=rc_data.end() && (rc_write_iter->flags & WA_WA_OFFCBM == 0) ) {
             temp.start_addr = rc_write_iter->start_addr;
             rc_data.erase(rc_write_iter);
          }
@@ -143,7 +143,7 @@ int RangeCache<ADDRESS, FLAGS>::wp_operation(ADDRESS start_addr, ADDRESS end_add
       }
       if (oracle_iter->end_addr > end_addr) {
          rc_write_iter = search_address(end_addr+1);
-         if (rc_write_iter!=rc_data.end()) {
+         if (rc_write_iter!=rc_data.end() && (rc_write_iter->flags & WA_WA_OFFCBM == 0) ) {
             temp.end_addr = rc_write_iter->end_addr;
             rc_data.erase(rc_write_iter);
          }
@@ -157,10 +157,10 @@ int RangeCache<ADDRESS, FLAGS>::wp_operation(ADDRESS start_addr, ADDRESS end_add
             oracle_iter++;
             temp = *oracle_iter;
             temp.flags |= DIRTY;
-            if (oracle_iter->end_addr > end_addr) {               // merge end
+            if (oracle_iter->end_addr > end_addr) {            // merge end
                searching = false;
                rc_write_iter = search_address(end_addr+1);
-               if (rc_write_iter!=rc_data.end()) {
+               if (rc_write_iter!=rc_data.end() && (rc_write_iter->flags & WA_WA_OFFCBM == 0) ) {
                   temp.end_addr = rc_write_iter->end_addr;
                   rc_data.erase(rc_write_iter);
                }
@@ -177,9 +177,10 @@ int RangeCache<ADDRESS, FLAGS>::wp_operation(ADDRESS start_addr, ADDRESS end_add
       rm_range(start_addr, end_addr);
       oracle_iter = oracle_wp->search_address(start_addr);
       temp = *oracle_iter;
+      temp.flags |= DIRTY;
       if (oracle_iter->start_addr < start_addr) {     // merge start
          rc_write_iter = search_address(start_addr-1);
-         if (rc_write_iter!=rc_data.end()) {
+         if (rc_write_iter!=rc_data.end() && (rc_write_iter->flags & WA_WA_OFFCBM == 0) ) {
             temp.start_addr = rc_write_iter->start_addr;
             rc_data.erase(rc_write_iter);
          }
@@ -188,14 +189,13 @@ int RangeCache<ADDRESS, FLAGS>::wp_operation(ADDRESS start_addr, ADDRESS end_add
       }
       if (oracle_iter->end_addr > end_addr) {         // merge end
          rc_write_iter = search_address(end_addr+1);
-         if (rc_write_iter!=rc_data.end()) {
+         if (rc_write_iter!=rc_data.end() && (rc_write_iter->flags & WA_WA_OFFCBM == 0) ) {
             temp.end_addr = rc_write_iter->end_addr;
             rc_data.erase(rc_write_iter);
          }
          else
             temp.end_addr = end_addr;
       }
-      temp.flags |= DIRTY;
       rc_data.push_front(temp);
    }
    if (ocbm)
