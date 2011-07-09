@@ -306,14 +306,6 @@ private:
    #ifdef RC_OCBM
    typename map<int32_t, RangeCache<ADDRESS, FLAGS>* >::iterator          range_cache_ocbm_iter;
    #endif
-   /*
-   #ifdef PAGE_TABLE_SINGLE
-   int count_faults(ADDRESS start, ADDRESS end);                     // counting the number of pages that get a fault
-   #endif                                                            //    to calculate the number of bits changed
-   #ifdef PAGE_TABLE_MULTI
-   int count_faults(ADDRESS start, ADDRESS end, int32_t thread_id);
-   #endif
-   */
 };
 
 #include "watchpoint.cpp"
