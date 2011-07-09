@@ -203,7 +203,7 @@ WatchPoint<ADDRESS, FLAGS>::WatchPoint() {
  */
 template<class ADDRESS, class FLAGS>
 WatchPoint<ADDRESS, FLAGS>::WatchPoint(bool do_emulate_hardware) {
-    emulate_hardware = do_emulate_hardware;
+   emulate_hardware = do_emulate_hardware;
    if (emulate_hardware) {
 #ifdef ORACLE_MULTI
       oracle_multi = new Oracle_multi<ADDRESS, FLAGS>();
@@ -1210,45 +1210,4 @@ template<class ADDRESS, class FLAGS>
 void WatchPoint<ADDRESS, FLAGS>::print_size(int32_t thread_id, ostream &output) {
    output << oracle_wp[thread_id]->get_size() << endl;
 }
-
-#ifdef PAGE_TABLE_SINGLE
-/*
- * if we have only a single page_table for all threads, 
- * we have to check for faults for all threads. 
- *//*
-template<class ADDRESS, class FLAGS>
-int WatchPoint<ADDRESS, FLAGS>::count_faults(ADDRESS start, ADDRESS end) {
-   ADDRESS page_number_start = ((start>>PAGE_OFFSET_LENGTH)<<PAGE_OFFSET_LENGTH);
-   int change_count=0;
-   for (ADDRESS i=page_number_start;i<=end;i+=(1<<PAGE_OFFSET_LENGTH)) {
-      for (page_table_wp_iter=page_table_wp.begin();page_table_wp_iter!=page_table_wp.end();page_table_wp_iter++) {
-         if (page_table_wp_iter->second->watch_fault(i, i)) {
-            change_count++;
-            break;
-         }
-      }
-   }
-   return change_count;
-}*/
-#endif
-
-#ifdef PAGE_TABLE_MULTI
-/*
- * if we have different page_table each threads, 
- * we only check for faults in a certian thread. 
- *//*
-template<class ADDRESS, class FLAGS>
-int WatchPoint<ADDRESS, FLAGS>::count_faults(ADDRESS start, ADDRESS end, int32_t thread_id) {
-   ADDRESS page_number_start = ((start>>PAGE_OFFSET_LENGTH)<<PAGE_OFFSET_LENGTH);
-   int change_count=0;
-   page_table_wp_iter = page_table_wp.find(thread_id);
-   for (ADDRESS i=page_number_start;i<=end;i+=(1<<PAGE_OFFSET_LENGTH)) {
-      if (page_table_wp_iter->second->watch_fault(i, i)) {
-         change_count++;
-      }
-   }
-   return change_count;
-}*/
-#endif
-
 #endif /* WATCHPOINT_CPP_ */
