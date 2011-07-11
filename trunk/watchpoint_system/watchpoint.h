@@ -67,10 +67,10 @@
 
 #ifdef PT2_BYTE_ACU_SINGLE
 #include "pt2_byte_acu_single.h"
-#endif
-
+#else
 #ifdef PT2_BYTE_ACU_MULTI
 #include "pt2_byte_acu_single.h"
+#endif
 #endif
 
 #ifdef MEM_TRACKER
