@@ -344,21 +344,17 @@ int WatchPoint<ADDRESS, FLAGS>::end_thread(int32_t thread_id) {
 #endif
 #ifdef RC_SINGLE
          range_cache_iter = range_cache.find(thread_id);
-         long long kickout, kickout_dirty, complex_updates;
-         range_cache_iter->second->get_stats(kickout, kickout_dirty, complex_updates);
-         statistics_iter->second.rc_kickout_dirties += kickout_dirty;
-         statistics_iter->second.rc_kickouts += kickout;
-         statistics_iter->second.rc_complex_updates += complex_updates;
+         statistics_iter->second.rc_kickout_dirties += range_cache_iter->second->kickout_dirty;
+         statistics_iter->second.rc_kickouts += range_cache_iter->second->kickout;
+         statistics_iter->second.rc_complex_updates += range_cache_iter->second->complex_updates;
          delete range_cache_iter->second;
          range_cache.erase(range_cache_iter);
 #endif
 #ifdef RC_OCBM
          range_cache_ocbm_iter = range_cache_ocbm.find(thread_id);
-         long long kickout_ocbm, kickout_dirty_ocbm, complex_updates_ocbm;
-         range_cache_ocbm_iter->second->get_stats(kickout_ocbm, kickout_dirty_ocbm, complex_updates_ocbm);
-         statistics_iter->second.rc_ocbm_kickout_dirties += kickout_dirty_ocbm;
-         statistics_iter->second.rc_ocbm_kickouts += kickout_ocbm;
-         statistics_iter->second.rc_ocbm_complex_updates += complex_updates_ocbm;
+         statistics_iter->second.rc_ocbm_kickout_dirties += range_cache_ocbm_iter->second->kickout_dirty;
+         statistics_iter->second.rc_ocbm_kickouts += range_cache_ocbm_iter->second->kickout;
+         statistics_iter->second.rc_ocbm_complex_updates += range_cache_ocbm_iter->second->complex_updates;
          delete range_cache_ocbm_iter->second;
          range_cache_ocbm.erase(range_cache_ocbm_iter);
 #endif
@@ -730,8 +726,9 @@ int WatchPoint<ADDRESS, FLAGS>::general_change(ADDRESS start, ADDRESS end, int32
             change_count_multi = page_table_multi->add_watchpoint(start, end);
 #endif
 #ifdef PAGE_TABLE2_SINGLE
-            if (change_count)
+            //if (change_count)
                change_count2 = page_table2_wp[thread_id]->add_watchpoint(start, end);    // set page_table
+            if (!change_count && change_count2) cout <<"add "<<change_count2<<endl;
 #endif
 #ifdef PAGE_TABLE2_MULTI
             if (change_count_multi)
@@ -759,8 +756,9 @@ int WatchPoint<ADDRESS, FLAGS>::general_change(ADDRESS start, ADDRESS end, int32
             change_count_multi = page_table_multi->rm_watchpoint(start, end);
 #endif
 #ifdef PAGE_TABLE2_SINGLE
-            if (change_count)
+            //if (change_count)
                change_count2 = page_table2_wp[thread_id]->rm_watchpoint(start, end);     // set page_table
+            if (!change_count && change_count2) cout <<"rm "<<change_count2<<endl;
 #endif
 #ifdef PAGE_TABLE2_MULTI
             if (change_count_multi)

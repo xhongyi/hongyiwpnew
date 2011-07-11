@@ -2,8 +2,9 @@
 #define RANGE_CACHE_H_
 #include <deque>
 #include <algorithm>
-#include "virtual_wp.h"
+#include "oracle_wp.h"
 #include "wp_data_struct.h"
+#include "off_cbm.h"
 
 #define     CACHE_SIZE     64
 #define     OCBM_LEN       10
@@ -13,7 +14,7 @@
 template<class ADDRESS, class FLAGS>
 class RangeCache {
 public:
-   RangeCache(Virtual_wp<ADDRESS, FLAGS> *wp_ref, bool ocbm_in = false);
+   RangeCache(Oracle<ADDRESS, FLAGS> *wp_ref, bool ocbm_in = false, bool offcbm_in = false);
    RangeCache();
    ~RangeCache();
    // for all ranges referred to, update lru if found in rc; load from backing store if not found.
@@ -25,20 +26,21 @@ public:
    int   wp_operation   (ADDRESS start_addr, ADDRESS end_addr, bool is_update);
    int   add_watchpoint (ADDRESS start_addr, ADDRESS end_addr, bool is_update);
    int   rm_watchpoint  (ADDRESS start_addr, ADDRESS end_addr, bool is_update);
-   // for getting statistics
-   void  get_stats      (long long &kickout_out, long long &kickout_dirty_out, long long &complex_updates_out);
    // print for debugging
    void watch_print     (ostream &output = cout);
    // only for range_cache with ocbm function
    void check_ocbm      (ADDRESS start_addr, ADDRESS end_addr);
-private:
-   bool ocbm;
-   // data structure used in range cache
-   deque< watchpoint_t<ADDRESS, FLAGS> >  rc_data;       // cache data
-   Virtual_wp<ADDRESS, FLAGS>*            oracle_wp;     // storing a pointer to its corresponding oracle
-   long long                              kickout_dirty, 
+   long long                              offcbm_switch, 
+                                          range_switch, 
+                                          kickout_dirty, 
                                           kickout, 
                                           complex_updates;
+private:
+   bool ocbm, off_cbm;
+   // data structure used in range cache
+   deque< watchpoint_t<ADDRESS, FLAGS> >  rc_data;       // cache data
+   Oracle<ADDRESS, FLAGS>*                oracle_wp;     // storing a pointer to its corresponding oracle
+   Offcbm<ADDRESS, FLAGS>*                offcbm_wp;     // storing a pointer to its corresponding off-chip bitmap
    // private functions used in range cache
    typename deque<watchpoint_t<ADDRESS, FLAGS> >::iterator
       search_address    (ADDRESS target_addr);           // search for target addr in rc, return rc_data.end() if miss

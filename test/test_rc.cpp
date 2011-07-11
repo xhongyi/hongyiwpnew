@@ -7,9 +7,6 @@ int main(int argc, char *argv[]) {
 	unsigned int start, end;
 	string flag;
 	int rc_miss;
-	long long                              kickout_dirty, 
-                                          kickout, 
-                                          complex_updates;
 
 	ostream *output;
 	if (argc==1) {
@@ -84,11 +81,10 @@ int main(int argc, char *argv[]) {
 		   }
 	   }
 	   else if (instr == "stats") {
-	      rc_test.get_stats(kickout, kickout_dirty, complex_updates);
 	      cout <<"Printing internal statistics: "<<endl;
-	      cout <<setw(18)<<"kickouts dirty: "<<kickout_dirty<<endl;
-	      cout <<setw(18)<<"kickouts total: "<<kickout<<endl;
-	      cout <<setw(18)<<"complex updates: "<<complex_updates<<endl;
+	      cout <<setw(18)<<"kickouts dirty: "<<rc_test.kickout_dirty<<endl;
+	      cout <<setw(18)<<"kickouts total: "<<rc_test.kickout<<endl;
+	      cout <<setw(18)<<"complex updates: "<<rc_test.complex_updates<<endl;
 	   }
 	   else {
 	      cout <<endl<<"invalid instruction: "<<instr<<endl;
