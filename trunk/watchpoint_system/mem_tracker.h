@@ -1,6 +1,6 @@
 #ifndef MEM_TRACKER_H_
 #define MEM_TRACKER_H_
-
+// cache size for mem_tracker (can be modified for wlb in off-chip bitmap)
 #define LOG_CACHE_ENTRY_SIZE     8UL
 #define CACHE_ENTRY_SIZE         (1<<LOG_CACHE_ENTRY_SIZE) // 256
 #define CACHE_ASSOCIATIVITY      4UL
