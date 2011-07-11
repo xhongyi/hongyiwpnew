@@ -64,11 +64,10 @@ template<class ADDRESS, class FLAGS>
 int RangeCache<ADDRESS, FLAGS>::general_fault(ADDRESS start_addr, ADDRESS end_addr) {
    int rc_miss = 0;
    // assert start_addr and end_addr is in the same page (same off-chip bitmap)
-   /*
    if ((start_addr>>PAGE_OFFSET_LENGTH) != (end_addr>>PAGE_OFFSET_LENGTH)) {
       cerr <<"off-chip bitmap error: asserting start and end in the same page. ";
       assert(0);
-   }*/
+   }
    if (off_cbm && offcbm_wp->search_address(start_addr)->flags == WA_OFFCBM) {
                                                       // if off_cbm on, check if this range should be a off_cbm first
       typename std::deque< watchpoint_t<ADDRESS, FLAGS> >::iterator rc_write_iter, oracle_iter;
@@ -124,11 +123,10 @@ int RangeCache<ADDRESS, FLAGS>::wp_operation(ADDRESS start_addr, ADDRESS end_add
    int rc_miss = 0;
    if (off_cbm && offcbm_wp->search_address(start_addr)->flags == WA_OFFCBM) {
       // assert start_addr and end_addr is in the same page (same off-chip bitmap)
-      /*
       if ((start_addr>>PAGE_OFFSET_LENGTH) != (end_addr>>PAGE_OFFSET_LENGTH)) {
          cerr <<"off-chip bitmap error: asserting start and end in the same page. ";
          assert(0);
-      }*/
+      }
                                                       // if off_cbm on, check if this range should be a off_cbm first
       typename std::deque< watchpoint_t<ADDRESS, FLAGS> >::iterator rc_write_iter, oracle_iter;
       watchpoint_t<ADDRESS, FLAGS> temp;
@@ -152,11 +150,10 @@ int RangeCache<ADDRESS, FLAGS>::wp_operation(ADDRESS start_addr, ADDRESS end_add
       watchpoint_t<ADDRESS, FLAGS> temp;
       if (is_update) {
          // assert start_addr and end_addr is in the same page (same off-chip bitmap)
-         /*
          if ((start_addr>>PAGE_OFFSET_LENGTH) != (end_addr>>PAGE_OFFSET_LENGTH)) {
             cerr <<"off-chip bitmap error: asserting start and end in the same page. ";
             assert(0);
-         }*/
+         }
          // support for counting complex updates
          rc_write_iter = search_address(start_addr);
          if (rc_write_iter == rc_data.end())

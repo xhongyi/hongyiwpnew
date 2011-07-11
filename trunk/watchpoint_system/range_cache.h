@@ -13,7 +13,7 @@ using namespace std;
 #define  PAGE_OFFSET_LENGTH      12UL
 #endif
 
-#define     CACHE_SIZE     64
+#define     CACHE_SIZE     16
 #define     OCBM_LEN       10
 
 #define     DIRTY          16
