@@ -845,7 +845,10 @@ int WatchPoint<ADDRESS, FLAGS>::general_change(ADDRESS start, ADDRESS end, int32
             statistics_iter->second.sets++;                                   // sets++
          else
             statistics_iter->second.updates++;                                // updates++
-         statistics_iter->second.write_size += (end-start+1);
+         long long temp = statistics_iter->second.write_size;
+         statistics_iter->second.write_size += ((long long)end-(long long)start+1);
+         // If we roll over with a long long, we're in trouble.
+         assert(statistics_iter->second.write_size > temp);
          statistics_iter->second.sum_size += oracle_wp_iter->second->get_size();
 #ifdef PAGE_TABLE_SINGLE
          statistics_iter->second.change_count += change_count;
