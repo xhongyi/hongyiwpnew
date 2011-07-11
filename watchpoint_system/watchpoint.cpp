@@ -330,7 +330,7 @@ int WatchPoint<ADDRESS, FLAGS>::end_thread(int32_t thread_id) {
          page_table2_wp.erase(page_table2_wp_iter);
 #endif
 #ifdef PAGE_TABLE2_MULTI
-         page_table2_multi->rm_watchpoint(0, (ADDRESS)-1);                     // check all pages
+         page_table2_multi->rm_watchpoint(0, 0xffffffff);                     // check all pages
 #endif
 #ifdef PT2_BYTE_ACU_SINGLE
          pt2_byte_acu_iter = pt2_byte_acu.find(thread_id);

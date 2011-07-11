@@ -2,6 +2,7 @@
 #define PAGE_TABLE2_SINGLE_CPP_
 
 #include "page_table2_single.h"
+#include <assert.h>
 
 template<class ADDRESS, class FLAGS>
 PageTable2_single<ADDRESS, FLAGS>::PageTable2_single(Virtual_wp<ADDRESS, FLAGS> *pt1_ref) {
@@ -80,9 +81,8 @@ int PageTable2_single<ADDRESS, FLAGS>::add_watchpoint(ADDRESS start_addr, ADDRES
       }
       else {                                                   // if set to unknown
          if (superpage_unwatched[superpage_number_start]) {    // if orig_unwatched
-            set_unknown(superpage_number_start);
-            changes += (1<<SECOND_LEVEL_PAGE_NUM_LENGTH);      // set all 1K bits again
-            changes++;
+            changes += set_unknown(superpage_number_start);    // Everything was unwatched, now SOME of the
+                                                               // lower pages are changed to watched.
             superpage_unwatched.reset(superpage_number_start); // unwatched = 0
          }
          else                                                  // if orig_unknown
@@ -106,9 +106,8 @@ int PageTable2_single<ADDRESS, FLAGS>::add_watchpoint(ADDRESS start_addr, ADDRES
       }
       else {                                                   // if set to unknown
          if (superpage_unwatched[superpage_number_end]) {      // if orig_unwatched
-            set_unknown(superpage_number_end);
-            changes += (1<<SECOND_LEVEL_PAGE_NUM_LENGTH);      // set all 1K bits again
-            changes++;
+            changes += set_unknown(superpage_number_end);      // Everything was unwatched, now SOME of the
+                                                               // lower pages are changed to watched.
             superpage_unwatched.reset(superpage_number_end);   // unwatched = 0
          }
          else                                                  // if orig_unknown
@@ -125,9 +124,8 @@ int PageTable2_single<ADDRESS, FLAGS>::add_watchpoint(ADDRESS start_addr, ADDRES
       }
       else {                                                   // if set to unknown
          if (superpage_unwatched[superpage_number_end]) {      // if orig_unwatched
-            set_unknown(superpage_number_end);
-            changes += (1<<SECOND_LEVEL_PAGE_NUM_LENGTH);      // set all 1K bits again
-            changes++;
+            changes += set_unknown(superpage_number_end);      // Everything was unwatched, now SOME of the
+                                                               // lower pages are changed to watched.
             superpage_unwatched.reset(superpage_number_end);   // unwatched = 0
          }
          else                                                  // if orig_unknown
@@ -137,7 +135,12 @@ int PageTable2_single<ADDRESS, FLAGS>::add_watchpoint(ADDRESS start_addr, ADDRES
    // check all_watched/unwatched
    if (superpage_watched.count() == SUPERPAGE_NUM) {
       if (!all_watched) {
-         changes = 1;
+         // Technically, we should only set "1" here (top-most level).
+         // However, let's think of the case where we just set everyone to watched
+         // And next, below in rm_watchpoint, we remove one single page. In that case, we should
+         // set all the mid-levels in rm_watchpoint. What we'll calculate here, instead, is
+         // setting the middle levels here instead of there, to make the logic easier.
+         changes += 1; // We must still set the top-most level.
          all_watched = true;
          all_unwatched = false;
       }
@@ -145,17 +148,22 @@ int PageTable2_single<ADDRESS, FLAGS>::add_watchpoint(ADDRESS start_addr, ADDRES
          changes = 0;
    }
    else if (superpage_unwatched.count() == SUPERPAGE_NUM) {
-      if (!all_unwatched) {
+      /*if (!all_unwatched) {
          changes = 1;
          all_watched = false;
          all_unwatched = true;
       }
       else
          changes = 0;
+      Seriously, we should never get here. You can't set a watchpoint in a virtual memory system
+      and end up with no watchpoints. */
+      fprintf(stderr, "Somehow, SETTING watchpoints has caused us to say that nothing is watched..\n");
+      assert(0);
    }
    else {
       if (all_watched || all_unwatched) {
-         changes += 1;
+         if (all_watched) // all_unwatched doesn't mean much. However, all_watched means that CR3 was set unavail. It's not avail, so add one more change.
+            changes += 1;
          all_watched = false;
          all_unwatched = false;
       }
@@ -180,14 +188,18 @@ int PageTable2_single<ADDRESS, FLAGS>::rm_watchpoint(ADDRESS start_addr, ADDRESS
             superpage_watched.reset(i);                        // watched = 0
             superpage_unwatched.set(i);                        // unwatched = 1
          }
-         set_unknown(i);
+         changes += set_unknown(i);                            // Anything at the lower level needs to be cleared out so that our "unwatched" status goes through to the PTE.
       }
       else {                                                   // if set to unknown
          if (superpage_watched[i]) {                           // if originally watched
-            set_unknown(i);
-            changes += (1<<SECOND_LEVEL_PAGE_NUM_LENGTH);      // set all 1K bits again
-            changes++;
-            superpage_watched.reset(superpage_number_end);     // watched = 0
+             int temp_changes = set_unknown(i);                // Fixup for any pages that have changed.
+             if(temp_changes) {
+                 // If any over the lower-level pages changed, we need to count their bit removal
+                 changes+=temp_changes;
+                 // We also need to count setting this super-page to not-watched.
+                 changes++;
+                 superpage_watched.reset(i);                   // watched = 0
+             }
          }
          else                                                  // if originally unknown
             changes += set_unknown(i);
@@ -205,7 +217,7 @@ int PageTable2_single<ADDRESS, FLAGS>::rm_watchpoint(ADDRESS start_addr, ADDRESS
    }
    else if (superpage_unwatched.count() == SUPERPAGE_NUM) {
       if (!all_unwatched) {
-         changes = 1;
+         // changes = 1; // don't need to do this. Setting "everything unwatched" doesn't change any bits at the top level.
          all_watched = false;
          all_unwatched = true;
       }
@@ -213,8 +225,9 @@ int PageTable2_single<ADDRESS, FLAGS>::rm_watchpoint(ADDRESS start_addr, ADDRESS
          changes = 0;
    }
    else {
-      if (all_watched || all_unwatched) {
-         changes += 1;
+      if (all_watched && changes > 0) {
+         if (all_watched)
+            changes += 1;
          all_watched = false;
          all_unwatched = false;
       }
