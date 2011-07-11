@@ -34,7 +34,7 @@ RangeCache<ADDRESS, FLAGS>::RangeCache() {
 template<class ADDRESS, class FLAGS>
 RangeCache<ADDRESS, FLAGS>::~RangeCache() {
    if (off_cbm)
-      delete [] offcbm_wp;
+      delete offcbm_wp;
 }
 
 template<class ADDRESS, class FLAGS>
@@ -84,7 +84,7 @@ int RangeCache<ADDRESS, FLAGS>::general_fault(ADDRESS start_addr, ADDRESS end_ad
       rc_data.push_front(temp);
       rc_miss += offcbm_wp->wp_operation(start_addr, end_addr);  // refresh wlb
    }
-   else {
+   else {   // no off-cbm case
       typename std::deque< watchpoint_t<ADDRESS, FLAGS> >::iterator rc_read_iter;
       watchpoint_t<ADDRESS, FLAGS> temp;
       bool searching = true;     // searching = true until all ranges are covered

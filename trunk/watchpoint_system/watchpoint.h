@@ -8,15 +8,16 @@
 #ifndef WATCHPOINT_H_
 #define WATCHPOINT_H_
 
-#define PAGE_TABLE_SINGLE
-#define PAGE_TABLE_MULTI
-#define PAGE_TABLE2_SINGLE
-#define PAGE_TABLE2_MULTI
+//#define PAGE_TABLE_SINGLE
+//#define PAGE_TABLE_MULTI
+//#define PAGE_TABLE2_SINGLE
+//#define PAGE_TABLE2_MULTI
 //#define PT2_BYTE_ACU_SINGLE
 //#define PT2_BYTE_ACU_MULTI
-#define MEM_TRACKER
+//#define MEM_TRACKER
 #define RC_SINGLE
 #define RC_OCBM
+#define RC_OFFCBM
 
 #ifdef PAGE_TABLE2_MULTI
 #define PAGE_TABLE_MULTI
@@ -82,6 +83,10 @@
 #endif
 
 #ifdef RC_OCBM
+#include "range_cache.h"
+#endif
+
+#ifdef RC_OFFCBM
 #include "range_cache.h"
 #endif
 
@@ -174,6 +179,18 @@ struct statistics_t {
    long long rc_ocbm_kickout_dirties;
    long long rc_ocbm_kickouts;
    long long rc_ocbm_complex_updates;
+   #endif
+   #ifdef RC_OFFCBM
+   long long rc_offcbm_read_hits;
+   long long rc_offcbm_read_miss;
+   long long rc_offcbm_write_hits;
+   long long rc_offcbm_write_miss;
+   long long rc_offcbm_backing_store_accesses;
+   long long rc_offcbm_kickout_dirties;
+   long long rc_offcbm_kickouts;
+   long long rc_offcbm_complex_updates;
+   long long rc_offcbm_offcbm_switch;
+   long long rc_offcbm_range_switch;
    #endif
 };
 
@@ -284,6 +301,9 @@ private:
    #ifdef RC_OCBM
    map<int32_t, RangeCache<ADDRESS, FLAGS>* >               range_cache_ocbm;
    #endif
+   #ifdef RC_OFFCBM
+   map<int32_t, RangeCache<ADDRESS, FLAGS>* >               range_cache_offcbm;
+   #endif
 
    bool                                                     emulate_hardware;
    
@@ -309,6 +329,9 @@ private:
    #endif
    #ifdef RC_OCBM
    typename map<int32_t, RangeCache<ADDRESS, FLAGS>* >::iterator          range_cache_ocbm_iter;
+   #endif
+   #ifdef RC_OFFCBM
+   typename map<int32_t, RangeCache<ADDRESS, FLAGS>* >::iterator          range_cache_offcbm_iter;
    #endif
 };
 
