@@ -190,8 +190,10 @@ int PT2_byte_acu_single<ADDRESS, FLAGS>::rm_watchpoint(ADDRESS start_addr, ADDRE
             superpage_change++;
          }
          else if (page_change) {
-            pt_watched[page_number>>BIT_MAP_OFFSET_LENGTH] &= ~(1<<(page_number&0x7));       // watched = 0
-            superpage_change++;
+            if(pt_watched[page_number>>BIT_MAP_OFFSET_LENGTH]) {
+               pt_watched[page_number>>BIT_MAP_OFFSET_LENGTH] &= ~(1<<(page_number&0x7));       // watched = 0
+               superpage_change++;
+            }
             superpage_change += page_change;
          }
          page_change = 0;
@@ -204,8 +206,10 @@ int PT2_byte_acu_single<ADDRESS, FLAGS>::rm_watchpoint(ADDRESS start_addr, ADDRE
             total_change++;
          }
          else if (superpage_change) {
-            superpage_watched[superpage_number>>BIT_MAP_OFFSET_LENGTH] &= ~(1<<(superpage_number&0x7));     // watched = 0
-            total_change++;
+            if(superpage_watched[superpage_number>>BIT_MAP_OFFSET_LENGTH]) {
+               superpage_watched[superpage_number>>BIT_MAP_OFFSET_LENGTH] &= ~(1<<(superpage_number&0x7));     // watched = 0
+               total_change++;
+            }
             total_change += superpage_change;
          }
          superpage_change = 0;
@@ -224,7 +228,10 @@ int PT2_byte_acu_single<ADDRESS, FLAGS>::rm_watchpoint(ADDRESS start_addr, ADDRE
       }
    }
    if (superpage_change) {
-      superpage_watched[superpage_number>>BIT_MAP_OFFSET_LENGTH] &= ~(1<<(superpage_number&0x7));     // watched = 0
+      if(superpage_watched[superpage_number>>BIT_MAP_OFFSET_LENGTH]) {
+         superpage_watched[superpage_number>>BIT_MAP_OFFSET_LENGTH] &= ~(1<<(superpage_number&0x7));     // watched = 0
+         total_change++;
+      }
       if (check_superpage_level_unity(superpage_number, false)) {
          superpage_unwatched[superpage_number>>BIT_MAP_OFFSET_LENGTH] |= (1<<(superpage_number&0x7));    // unwatched = 1
          total_change++;
