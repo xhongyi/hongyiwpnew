@@ -72,7 +72,7 @@ void Offcbm<ADDRESS, FLAGS>::rm_offcbm(ADDRESS start_addr, ADDRESS end_addr) {
    ADDRESS start_idx = (start_addr>>LOG_OFF_CBM_SIZE);
    ADDRESS end_idx = (start_addr>>LOG_OFF_CBM_SIZE);
    typename deque<ADDRESS>::iterator i = offcbm_pages.begin();
-   while (i == offcbm_pages.end()) {
+   while (i != offcbm_pages.end()) {
       for (i=offcbm_pages.begin();i!=offcbm_pages.end();i++) {
          if (*i < end_idx && *i > start_idx) {
             offcbm_pages.erase(i);

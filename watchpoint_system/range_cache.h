@@ -2,9 +2,16 @@
 #define RANGE_CACHE_H_
 #include <deque>
 #include <algorithm>
+#include <cassert>
+#include <iostream>
 #include "oracle_wp.h"
 #include "wp_data_struct.h"
 #include "off_cbm.h"
+using namespace std;
+
+#ifndef PAGE_OFFSET_LENGTH
+#define  PAGE_OFFSET_LENGTH      12UL
+#endif
 
 #define     CACHE_SIZE     64
 #define     OCBM_LEN       10
