@@ -224,6 +224,8 @@ int RangeCache<ADDRESS, FLAGS>::wp_operation(ADDRESS start_addr, ADDRESS end_add
       }
       else {      // sets can create only one range
          rm_range(start_addr, end_addr);
+         if (off_cbm)
+            offcbm_wp->rm_offcbm(start_addr, end_addr);
          oracle_iter = oracle_wp->search_address(start_addr);
          temp = *oracle_iter;
          temp.flags |= DIRTY;
@@ -352,7 +354,10 @@ void RangeCache<ADDRESS, FLAGS>::watch_print(ostream &output) {
    for (unsigned int i = 0; i < rc_data.size() ; i++) {
       output << "start_addr = " << setw(10) << rc_data[i].start_addr << " ";
       output << "end_addr = " << setw(10) << rc_data[i].end_addr << " ";
-      if (rc_data[i].flags & WA_OCBM) {
+      if (rc_data[i].flags & WA_OFFCBM) {
+         output << "OFFCBM";
+      }
+      else if (rc_data[i].flags & WA_OCBM) {
          output << "OCBM";
       }
       else {

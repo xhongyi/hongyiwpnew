@@ -25,6 +25,8 @@ public:
    // for updating the wlb
    //    only call these function when we are sure the range is within the off-cbm region
    int  wp_operation    (ADDRESS start_addr, ADDRESS end_addr);
+   // for removing off-chip bitmap within a range
+   void rm_offcbm       (ADDRESS start_addr, ADDRESS end_addr);
    // only on a kickout, decide whether to switch a page to off-cbm or to range or doing nothing
    //    return value: 1=off-cbm; 2=range;
    int  kickout_dirty   (ADDRESS target_addr);

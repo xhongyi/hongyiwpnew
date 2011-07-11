@@ -1,18 +1,18 @@
 #ifndef MEM_TRACKER_H_
 #define MEM_TRACKER_H_
-// cache size for mem_tracker (can be modified for wlb in off-chip bitmap)
-/*
+// cache size for mem_tracker (can be modified for wlb in off-chip bitmap)/*
 #define LOG_CACHE_ENTRY_SIZE     8UL
 #define CACHE_ENTRY_SIZE         (1<<LOG_CACHE_ENTRY_SIZE) // 256
 #define CACHE_ASSOCIATIVITY      4UL
 #define CACHE_SET_IDX_LEN        4UL
 #define CACHE_SET_NUM            (1<<CACHE_SET_IDX_LEN)    // 16*/
 // cache size for range_cache watchpoint lookaside buffer(RC WLB)
+/*
 #define LOG_CACHE_ENTRY_SIZE     8UL
 #define CACHE_ENTRY_SIZE         (1<<LOG_CACHE_ENTRY_SIZE) // 2^8 = 256 entry size
 #define CACHE_ASSOCIATIVITY      32UL                      // 32 entries fully associative
 #define CACHE_SET_IDX_LEN        0UL
-#define CACHE_SET_NUM            (1<<CACHE_SET_IDX_LEN)    // 1 set
+#define CACHE_SET_NUM            (1<<CACHE_SET_IDX_LEN)    // 1 set*/
 
 #include <deque>
 using namespace std;

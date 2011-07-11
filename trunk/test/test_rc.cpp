@@ -2,7 +2,7 @@
 
 int main(int argc, char *argv[]) {
    Oracle<unsigned int, unsigned int> oracle_wp;
-	RangeCache<unsigned int, unsigned int> rc_test(&oracle_wp);
+	RangeCache<unsigned int, unsigned int> rc_test(&oracle_wp, true, true);
 	string instr;
 	unsigned int start, end;
 	string flag;
