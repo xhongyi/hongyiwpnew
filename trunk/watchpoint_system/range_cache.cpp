@@ -285,7 +285,7 @@ void RangeCache<ADDRESS, FLAGS>::cache_kickout() {
       kickout++;
       if (rc_data.back().flags & DIRTY) {
          kickout_dirty++;
-         bool check_switch = offcbm_wp->kickout_dirty(rc_data.back().start_addr);
+         int check_switch = offcbm_wp->kickout_dirty(rc_data.back().start_addr);
          if (check_switch == 1) {      // switch to offcbm
             offcbm_switch++;
             general_fault(rc_data.back().start_addr, rc_data.back().start_addr);
