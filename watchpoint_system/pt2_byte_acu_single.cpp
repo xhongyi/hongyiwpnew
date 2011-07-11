@@ -190,7 +190,7 @@ int PT2_byte_acu_single<ADDRESS, FLAGS>::rm_watchpoint(ADDRESS start_addr, ADDRE
             superpage_change++;
          }
          else if (page_change) {
-            if(pt_watched[page_number>>BIT_MAP_OFFSET_LENGTH]) {
+            if(pt_watched[page_number>>BIT_MAP_OFFSET_LENGTH] & (1<<(page_number&0x7))) {
                pt_watched[page_number>>BIT_MAP_OFFSET_LENGTH] &= ~(1<<(page_number&0x7));       // watched = 0
                superpage_change++;
             }
@@ -206,7 +206,7 @@ int PT2_byte_acu_single<ADDRESS, FLAGS>::rm_watchpoint(ADDRESS start_addr, ADDRE
             total_change++;
          }
          else if (superpage_change) {
-            if(superpage_watched[superpage_number>>BIT_MAP_OFFSET_LENGTH]) {
+            if(superpage_watched[superpage_number>>BIT_MAP_OFFSET_LENGTH] & (1<<(superpage_number&0x7))) {
                superpage_watched[superpage_number>>BIT_MAP_OFFSET_LENGTH] &= ~(1<<(superpage_number&0x7));     // watched = 0
                total_change++;
             }
@@ -228,7 +228,7 @@ int PT2_byte_acu_single<ADDRESS, FLAGS>::rm_watchpoint(ADDRESS start_addr, ADDRE
       }
    }
    if (superpage_change) {
-      if(superpage_watched[superpage_number>>BIT_MAP_OFFSET_LENGTH]) {
+      if(superpage_watched[superpage_number>>BIT_MAP_OFFSET_LENGTH] & (1<<(superpage_number&0x7))) {
          superpage_watched[superpage_number>>BIT_MAP_OFFSET_LENGTH] &= ~(1<<(superpage_number&0x7));     // watched = 0
          total_change++;
       }
