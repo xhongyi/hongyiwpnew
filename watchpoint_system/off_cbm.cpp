@@ -36,7 +36,7 @@ Offcbm<ADDRESS, FLAGS>::search_address(ADDRESS target_addr) {
       if (*i == tag) {
          ret_deq.clear();
          temp.start_addr = (tag<<LOG_OFF_CBM_SIZE);
-         temp.end_addr   = (tag<<LOG_OFF_CBM_SIZE);
+         temp.end_addr   = (((tag+1)<<LOG_OFF_CBM_SIZE)-1);
          temp.flags      = WA_OFFCBM;
          ret_deq.push_front(temp);
          return ret_deq.begin();
