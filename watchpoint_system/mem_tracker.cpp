@@ -19,8 +19,8 @@ int MemTracker<ADDRESS>::general_fault(ADDRESS start_addr, ADDRESS end_addr) {
 template<class ADDRESS>
 int MemTracker<ADDRESS>::wp_operation(ADDRESS start_addr, ADDRESS end_addr) {
    int miss = 0;
-   ADDRESS start_idx = (start_addr>>LOG_CACHE_ENTRY_SIZE);
-   ADDRESS end_idx   = (end_addr  >>LOG_CACHE_ENTRY_SIZE)+1;
+   ADDRESS start_idx = (start_addr>>LOG_CACHE_LINE_SIZE);
+   ADDRESS end_idx   = (end_addr  >>LOG_CACHE_LINE_SIZE)+1;
    if ( (start_idx + CACHE_ASSOCIATIVITY*CACHE_SET_NUM) < end_idx )
       start_idx = end_idx - CACHE_ASSOCIATIVITY*CACHE_SET_NUM;
    for (ADDRESS i=start_idx;i!=end_idx;i++) {
@@ -50,12 +50,12 @@ bool MemTracker<ADDRESS>::check_and_update(ADDRESS target_index) {
 }
 
 template<class ADDRESS>
-bool MemTracker<ADDRESS>::cache_overflow(ADDRESS set) {
+inline bool MemTracker<ADDRESS>::cache_overflow(ADDRESS set) {
    return (cache[set].size() > CACHE_ASSOCIATIVITY);
 }
 
 template<class ADDRESS>
-void MemTracker<ADDRESS>::cache_kickout(ADDRESS set) {
+inline void MemTracker<ADDRESS>::cache_kickout(ADDRESS set) {
    cache[set].pop_back();
 }
 
