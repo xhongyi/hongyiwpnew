@@ -64,10 +64,12 @@ template<class ADDRESS, class FLAGS>
 int RangeCache<ADDRESS, FLAGS>::general_fault(ADDRESS start_addr, ADDRESS end_addr) {
    int rc_miss = 0;
    // assert start_addr and end_addr is in the same page (same off-chip bitmap)
+#ifdef RC_OFFCBM
    if ((start_addr>>PAGE_OFFSET_LENGTH) != (end_addr>>PAGE_OFFSET_LENGTH)) {
       cerr <<"off-chip bitmap error: asserting start and end in the same page. ";
       assert(0);
    }
+#endif
    if (off_cbm && offcbm_wp->search_address(start_addr)->flags == WA_OFFCBM) {
                                                       // if off_cbm on, check if this range should be a off_cbm first
       typename std::deque< watchpoint_t<ADDRESS, FLAGS> >::iterator rc_write_iter, oracle_iter;
@@ -150,19 +152,25 @@ int RangeCache<ADDRESS, FLAGS>::wp_operation(ADDRESS start_addr, ADDRESS end_add
       watchpoint_t<ADDRESS, FLAGS> temp;
       if (is_update) {
          // assert start_addr and end_addr is in the same page (same off-chip bitmap)
+#ifdef RC_OFFCBM
          if ((start_addr>>PAGE_OFFSET_LENGTH) != (end_addr>>PAGE_OFFSET_LENGTH)) {
             cerr <<"off-chip bitmap error: asserting start and end in the same page. ";
             assert(0);
          }
+#endif
          // support for counting complex updates
          rc_write_iter = search_address(start_addr);
          if (rc_write_iter == rc_data.end())
             complex_update = true;
-         rc_write_iter = search_address(end_addr);
-         if (rc_write_iter == rc_data.end())
-            complex_update = true;
-         if ( (oracle_wp->search_address(start_addr)+1)->end_addr < end_addr)
-            complex_update = true;
+         else {
+            rc_write_iter = search_address(end_addr);
+            if (rc_write_iter == rc_data.end())
+               complex_update = true;
+            else {
+               if ( (oracle_wp->search_address(start_addr)+1)->end_addr < end_addr)
+                  complex_update = true;
+            }
+         }
          if (complex_update)
             complex_updates++;
          // counting rc_miss
@@ -170,7 +178,6 @@ int RangeCache<ADDRESS, FLAGS>::wp_operation(ADDRESS start_addr, ADDRESS end_add
          ADDRESS search_addr = start_addr;
          while (searching) {
             rc_write_iter = search_address(search_addr);             // search starts from the start_addr
-            oracle_iter = oracle_wp->search_address(search_addr);
             if (rc_write_iter != rc_data.end()) {                    // if cache hit
                if (rc_write_iter->end_addr >= end_addr)
                   searching = false;
@@ -178,6 +185,7 @@ int RangeCache<ADDRESS, FLAGS>::wp_operation(ADDRESS start_addr, ADDRESS end_add
                   search_addr = rc_write_iter->end_addr+1;
             }
             else {
+               oracle_iter = oracle_wp->search_address(search_addr);
                if (oracle_iter->end_addr >= end_addr) {
                   rc_miss += rm_range(search_addr, end_addr);
                   searching = false;
