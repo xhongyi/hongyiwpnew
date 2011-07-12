@@ -16,8 +16,8 @@
 //#define PT2_BYTE_ACU_MULTI
 //#define MEM_TRACKER
 #define RC_SINGLE
-#define RC_OCBM
-#define RC_OFFCBM
+//#define RC_OCBM
+//#define RC_OFFCBM
 
 #ifdef PAGE_TABLE2_MULTI
 #define PAGE_TABLE_MULTI
@@ -260,6 +260,7 @@ public:
    
    //Hardware Emulation Statistic Functions
    statistics_t get_statistics   (int32_t thread_id);
+   statistics_t update_active_stats (int32_t thread_id);
    int          set_statistics   (int32_t thread_id, statistics_t input);
    statistics_t clear_statistics ();
    void         print_statistics (ostream &output = cout, bool active = false);
