@@ -325,11 +325,49 @@ int WatchPoint<ADDRESS, FLAGS>::start_thread(int32_t thread_id) {
    return -1;                                                           // abnormal start: starting active thread again, return -1
 }
 
+template<class ADDRESS, class FLAGS>
+statistics_t WatchPoint<ADDRESS, FLAGS>::update_active_stats(int32_t thread_id) {
+   statistics_t local_stats;
+   statistics_iter = statistics.find(thread_id);
+   if(statistics_iter != statistics.end()) {
+      local_stats = statistics_iter->second;
+      oracle_wp_iter = oracle_wp.find(thread_id);
+      local_stats.sst_insertions += oracle_wp_iter->second->sst_insertions;
+      local_stats.max_size = max(local_stats.max_size, oracle_wp_iter->second->max_size);
+      if (emulate_hardware) {
+#ifdef RC_SINGLE
+         range_cache_iter = range_cache.find(thread_id);
+         local_stats.rc_kickout_dirties += range_cache_iter->second->kickout_dirty;
+         local_stats.rc_kickouts += range_cache_iter->second->kickout;
+         local_stats.rc_complex_updates += range_cache_iter->second->complex_updates;
+#endif
+#ifdef RC_OCBM
+         range_cache_ocbm_iter = range_cache_ocbm.find(thread_id);
+         statistics_iter->second.rc_ocbm_kickout_dirties += range_cache_ocbm_iter->second->kickout_dirty;
+         statistics_iter->second.rc_ocbm_kickouts += range_cache_ocbm_iter->second->kickout;
+         statistics_iter->second.rc_ocbm_complex_updates += range_cache_ocbm_iter->second->complex_updates;
+#endif
+#ifdef RC_OFFCBM
+         range_cache_offcbm_iter = range_cache_offcbm.find(thread_id);
+         statistics_iter->second.rc_offcbm_kickout_dirties += range_cache_offcbm_iter->second->kickout_dirty;
+         statistics_iter->second.rc_offcbm_kickouts += range_cache_offcbm_iter->second->kickout;
+         statistics_iter->second.rc_offcbm_complex_updates += range_cache_offcbm_iter->second->complex_updates;
+         statistics_iter->second.rc_offcbm_offcbm_switch += range_cache_offcbm_iter->second->offcbm_switch;
+         statistics_iter->second.rc_offcbm_range_switch += range_cache_offcbm_iter->second->range_switch;
+#endif
+      }
+   }
+   else
+      local_stats = clear_statistics();
+   return local_stats;
+}
+
 /*
  * Ending an active thread
  */
 template<class ADDRESS, class FLAGS>
 int WatchPoint<ADDRESS, FLAGS>::end_thread(int32_t thread_id) {
+   statistics_t local_stats = update_active_stats(thread_id);
    statistics_iter = statistics.find(thread_id);
    if (statistics_iter != statistics.end()) {                           // if thread_id is active
       if (emulate_hardware){
@@ -338,8 +376,6 @@ int WatchPoint<ADDRESS, FLAGS>::end_thread(int32_t thread_id) {
 #endif
       }
       oracle_wp_iter = oracle_wp.find(thread_id);
-      statistics_iter->second.sst_insertions += oracle_wp_iter->second->sst_insertions;
-      statistics_iter->second.max_size = max(statistics_iter->second.max_size, oracle_wp_iter->second->max_size);
       delete oracle_wp_iter->second;
       oracle_wp.erase(oracle_wp_iter);                                  // remove its Oracle watchpoint data
       if (emulate_hardware) {
@@ -371,32 +407,21 @@ int WatchPoint<ADDRESS, FLAGS>::end_thread(int32_t thread_id) {
 #endif
 #ifdef RC_SINGLE
          range_cache_iter = range_cache.find(thread_id);
-         statistics_iter->second.rc_kickout_dirties += range_cache_iter->second->kickout_dirty;
-         statistics_iter->second.rc_kickouts += range_cache_iter->second->kickout;
-         statistics_iter->second.rc_complex_updates += range_cache_iter->second->complex_updates;
          delete range_cache_iter->second;
          range_cache.erase(range_cache_iter);
 #endif
 #ifdef RC_OCBM
          range_cache_ocbm_iter = range_cache_ocbm.find(thread_id);
-         statistics_iter->second.rc_ocbm_kickout_dirties += range_cache_ocbm_iter->second->kickout_dirty;
-         statistics_iter->second.rc_ocbm_kickouts += range_cache_ocbm_iter->second->kickout;
-         statistics_iter->second.rc_ocbm_complex_updates += range_cache_ocbm_iter->second->complex_updates;
          delete range_cache_ocbm_iter->second;
          range_cache_ocbm.erase(range_cache_ocbm_iter);
 #endif
 #ifdef RC_OFFCBM
          range_cache_offcbm_iter = range_cache_offcbm.find(thread_id);
-         statistics_iter->second.rc_offcbm_kickout_dirties += range_cache_offcbm_iter->second->kickout_dirty;
-         statistics_iter->second.rc_offcbm_kickouts += range_cache_offcbm_iter->second->kickout;
-         statistics_iter->second.rc_offcbm_complex_updates += range_cache_offcbm_iter->second->complex_updates;
-         statistics_iter->second.rc_offcbm_offcbm_switch += range_cache_offcbm_iter->second->offcbm_switch;
-         statistics_iter->second.rc_offcbm_range_switch += range_cache_offcbm_iter->second->range_switch;
          delete range_cache_offcbm_iter->second;
          range_cache_offcbm.erase(range_cache_offcbm_iter);
 #endif
       }
-      statistics_inactive[thread_id] = statistics_iter->second;        // move its statistics to inactive
+      statistics_inactive[thread_id] = local_stats;                     // move its statistics to inactive
       statistics.erase(statistics_iter);                                // remove it from active statistics
       return 0;                                                         // normal end: return 0
    }
@@ -1155,11 +1180,13 @@ statistics_t WatchPoint<ADDRESS, FLAGS>::clear_statistics() {
  */
 template<class ADDRESS, class FLAGS>
 void WatchPoint<ADDRESS, FLAGS>::print_statistics(ostream &output, bool active) {
+   statistics_t local_stats; 
    if (active) {        // if active, only print active threads' statistics only
       output << "Printing statistics for all active threads: " << endl;
       for (statistics_iter = statistics.begin();statistics_iter != statistics.end();statistics_iter++) {
          output << "Thread " << statistics_iter->first << " statistics: " << endl;
-         print_statistics(statistics_iter->second, output);
+         local_stats = update_active_stats(statistics_iter->first);
+         print_statistics(local_stats, output);
       }
    }
    else {               // if !active, print all threads' statistics
@@ -1169,7 +1196,8 @@ void WatchPoint<ADDRESS, FLAGS>::print_statistics(ostream &output, bool active) 
       while (statistics_iter != statistics.end() || statistics_inactive_iter != statistics_inactive.end()) {
          if (statistics_inactive_iter == statistics_inactive.end()) {
             output << "Active Thread " << statistics_iter->first << " statistics: " << endl;
-            print_statistics(statistics_iter->second, output);
+            local_stats = update_active_stats(statistics_iter->first);
+            print_statistics(local_stats, output);
             statistics_iter++;
          }
          else if (statistics_iter == statistics.end()) {
@@ -1180,7 +1208,8 @@ void WatchPoint<ADDRESS, FLAGS>::print_statistics(ostream &output, bool active) 
          else {
             if (statistics_iter->first <= statistics_inactive_iter->first) {
                output << "Active Thread " <<statistics_iter->first << " statistics: " << endl;
-               print_statistics(statistics_iter->second, output);
+               local_stats = update_active_stats(statistics_iter->first);
+               print_statistics(local_stats, output);
                statistics_iter++;
             }
             else {
