@@ -3,8 +3,8 @@
 
 #define LOG_OFF_CBM_SIZE         12UL
 #define OFF_CBM_SIZE             (1<<LOG_OFF_CBM_SIZE)   // = one page = 4KB
-#define OFF_CBM_UPPER_THREASHOLD 8
-#define OFF_CBM_LOWER_THREASHOLD 2
+#define OFF_CBM_UPPER_THREASHOLD 128
+#define OFF_CBM_LOWER_THREASHOLD 16
 
 #include <deque>
 #include "mem_tracker.h"
@@ -18,7 +18,7 @@ public:
    ~Offcbm();
    // for updating the wlb
    //    only call these function when we are sure the range is within the off-cbm region
-   int  general_fault   (ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags);
+   int  general_fault   (ADDRESS start_addr, ADDRESS end_addr);
    // special search function, search in offcbm_pages first and then the oracle
    typename deque<watchpoint_t<ADDRESS, FLAGS> >::iterator
       search_address    (ADDRESS target_addr);

@@ -12,7 +12,7 @@
 //#define PAGE_TABLE_MULTI
 //#define PAGE_TABLE2_SINGLE
 //#define PAGE_TABLE2_MULTI
-#define PT2_BYTE_ACU_SINGLE
+//#define PT2_BYTE_ACU_SINGLE
 //#define PT2_BYTE_ACU_MULTI
 //#define MEM_TRACKER
 #define RC_SINGLE
