@@ -279,9 +279,7 @@ int RangeCache<ADDRESS, FLAGS>::wp_operation(ADDRESS start_addr, ADDRESS end_add
 
 template<class ADDRESS, class FLAGS>
 bool RangeCache<ADDRESS, FLAGS>::cache_overflow() {
-   if (rc_data.size() > CACHE_SIZE)
-      return true;
-   return false;
+   return (rc_data.size() > CACHE_SIZE);
 }
 
 template<class ADDRESS, class FLAGS>
