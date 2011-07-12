@@ -12,10 +12,10 @@
 //#define PAGE_TABLE_MULTI
 //#define PAGE_TABLE2_SINGLE
 //#define PAGE_TABLE2_MULTI
-//#define PT2_BYTE_ACU_SINGLE
+#define PT2_BYTE_ACU_SINGLE
 //#define PT2_BYTE_ACU_MULTI
 //#define MEM_TRACKER
-#define RC_SINGLE
+//#define RC_SINGLE
 //#define RC_OCBM
 //#define RC_OFFCBM
 
@@ -144,6 +144,7 @@ struct statistics_t {
    long long pt2_byte_acu_page_faults;
    long long pt2_byte_acu_bitmap_faults;
    long long pt2_byte_acu_changes;
+   long long pt2_byte_acu_plb_misses;
    #endif
    #ifdef PT2_BYTE_ACU_MULTI
    long long pt2_byte_acu_multi_seg_reg_hits;
@@ -154,6 +155,7 @@ struct statistics_t {
    long long pt2_byte_acu_multi_page_faults;
    long long pt2_byte_acu_multi_bitmap_faults;
    long long pt2_byte_acu_multi_changes;
+   long long pt2_byte_acu_multi_plb_misses;
    #endif
    #ifdef MEM_TRACKER
    long long mem_tracker_read_miss;

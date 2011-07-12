@@ -12,6 +12,7 @@
 #define BITMAP_WATCHED     6
 #define BITMAP_UNWATCHED   7
 
+#include "plb.h"
 #include "virtual_wp.h"
 #include "page_table2_single.h"
 
@@ -42,7 +43,8 @@ public:
    typename deque<watchpoint_t<ADDRESS, FLAGS> >::iterator
       search_address             (ADDRESS target_addr)
       {return wp->search_address(target_addr);}
-   
+   // extra statistics
+   long long plb_misses;
 private:
    /*
     * initialized when constructing
@@ -68,6 +70,8 @@ private:
     */
    unsigned char pt_watched[BIT_MAP_NUMBER];
    unsigned char pt_unwatched[BIT_MAP_NUMBER];
+   // protection lookaside buffer
+   PLB<ADDRESS>  plb;
 };
 
 #include "pt2_byte_acu_single.cpp"
