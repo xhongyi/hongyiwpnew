@@ -12,22 +12,25 @@ MemTracker<ADDRESS>::~MemTracker() {
 }
 
 template<class ADDRESS>
-int MemTracker<ADDRESS>::general_fault(ADDRESS start_addr, ADDRESS end_addr) {
+unsigned int MemTracker<ADDRESS>::general_fault(ADDRESS start_addr, ADDRESS end_addr) {
    return wp_operation(start_addr, end_addr);
 }
 
 template<class ADDRESS>
-int MemTracker<ADDRESS>::wp_operation(ADDRESS start_addr, ADDRESS end_addr) {
-   int miss = 0;
+unsigned int MemTracker<ADDRESS>::wp_operation(ADDRESS start_addr, ADDRESS end_addr) {
+   unsigned int miss = 0;
    ADDRESS start_idx = (start_addr>>LOG_CACHE_LINE_SIZE);
    ADDRESS end_idx   = (end_addr  >>LOG_CACHE_LINE_SIZE)+1;
-   if ( (start_idx + CACHE_ASSOCIATIVITY*CACHE_SET_NUM) < end_idx )
-      start_idx = end_idx - CACHE_ASSOCIATIVITY*CACHE_SET_NUM;
    for (ADDRESS i=start_idx;i!=end_idx;i++) {
       if (!check_and_update(i))
          miss++;
    }
-   return miss;
+   // Each cache line fill takes 8 loads from main memory to complete.
+   if (NUM_MEMORY_CYCLES*miss >= miss) // we use the = because miss might be 0
+      return NUM_MEMORY_CYCLES*miss;
+   else {
+       return 0xffffffff;
+   }
 }
 
 template<class ADDRESS>

@@ -483,7 +483,7 @@ bool  WatchPoint<ADDRESS, FLAGS>::general_fault(ADDRESS start, ADDRESS end, int3
       int pt2_byte_acu_multi_fault = 0;
 #endif
 #ifdef MEM_TRACKER
-      int mem_tracker_read_mises = 0;
+      unsigned int mem_tracker_read_mises = 0;
 #endif
 #ifdef RC_SINGLE
       int range_cache_misses = 0;
@@ -743,7 +743,7 @@ int WatchPoint<ADDRESS, FLAGS>::general_change(ADDRESS start, ADDRESS end, int32
    int change_count2_byte_acu_multi = 0;
 #endif
 #ifdef MEM_TRACKER
-   int mem_tracker_write_mises = 0;
+   unsigned int mem_tracker_write_mises = 0;
 #endif
 #ifdef RC_SINGLE
    int range_cache_write_misses = 0;
