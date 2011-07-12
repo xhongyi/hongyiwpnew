@@ -63,43 +63,57 @@ int RangeCache<ADDRESS, FLAGS>::rm_watchpoint(ADDRESS start_addr, ADDRESS end_ad
 template<class ADDRESS, class FLAGS>
 int RangeCache<ADDRESS, FLAGS>::general_fault(ADDRESS start_addr, ADDRESS end_addr) {
    int rc_miss = 0;
-   typename std::deque< watchpoint_t<ADDRESS, FLAGS> >::iterator rc_read_iter;
-   watchpoint_t<ADDRESS, FLAGS> temp;
-   bool searching = true;     // searching = true until all ranges are covered
-   ADDRESS search_addr = start_addr;
-   while (searching) {
-      rc_read_iter = search_address(search_addr);              // search starts from the start_addr
-      if (rc_read_iter == rc_data.end()) {                     // if cache miss
-         // get new range from backing store
-         /* added for off-cbm */
-         if (off_cbm)
-            rc_read_iter = offcbm_wp->search_address(search_addr);
-         else
-         /* added for off-cbm */
-            rc_read_iter = oracle_wp->search_address(search_addr);
-         rc_miss += rm_range(rc_read_iter->start_addr, rc_read_iter->end_addr);
-         /* added for off-cbm */
-         if (off_cbm && (rc_read_iter->flags & WA_OFFCBM)) {
-            rc_miss += offcbm_wp->general_fault(  max(search_addr, rc_read_iter->start_addr)
-                                                , min(end_addr,    rc_read_iter->end_addr  ) );  // refresh wlb
-         }
-         /* added for off-cbm */
-         rc_data.push_front(*rc_read_iter);                    // push the new range to range cache
-         rc_read_iter = search_address(search_addr);
-      }
-      if (rc_read_iter->end_addr >= end_addr)                  // if all ranges are covered
-         searching = false;
-      // refresh start_addr
-      temp = *rc_read_iter;
-      search_addr = temp.end_addr+1;
-      // refresh lru
-      rc_data.erase(rc_read_iter);                             // refresh this entry as most recently used
-      rc_data.push_front(temp);
+   // assert start_addr and end_addr is in the same page (same off-chip bitmap)
+   if ((start_addr>>PAGE_OFFSET_LENGTH) != (end_addr>>PAGE_OFFSET_LENGTH)) {
+      cerr <<"off-chip bitmap error: asserting start and end in the same page. ";
+      assert(0);
    }
-   if (ocbm)
-      check_ocbm(start_addr, end_addr);
-   while (cache_overflow())                                    // kick out redundant cache entries
-      cache_kickout();
+   if (off_cbm && offcbm_wp->search_address(start_addr)->flags == WA_OFFCBM) {
+                                                      // if off_cbm on, check if this range should be a off_cbm first
+      typename std::deque< watchpoint_t<ADDRESS, FLAGS> >::iterator rc_write_iter, oracle_iter;
+      watchpoint_t<ADDRESS, FLAGS> temp;
+      rc_write_iter = search_address(start_addr);     // check hit or miss in range cache
+      if (rc_write_iter != rc_data.end() && (rc_write_iter->flags & WA_OFFCBM)) {           // refresh lru
+         temp = *rc_write_iter;
+         rc_data.erase(rc_write_iter);
+      }
+      else {
+         temp = *(offcbm_wp->search_address(start_addr));
+         rm_range(temp.start_addr, temp.end_addr);
+         temp.flags |= DIRTY;
+         rc_miss++;
+      }
+      rc_data.push_front(temp);
+      rc_miss += offcbm_wp->wp_operation(start_addr, end_addr);  // refresh wlb
+   }
+   else {   // no off-cbm case
+      typename std::deque< watchpoint_t<ADDRESS, FLAGS> >::iterator rc_read_iter;
+      watchpoint_t<ADDRESS, FLAGS> temp;
+      bool searching = true;     // searching = true until all ranges are covered
+      ADDRESS search_addr = start_addr;
+      while (searching) {
+         rc_read_iter = search_address(search_addr);              // search starts from the start_addr
+         if (rc_read_iter == rc_data.end()) {                     // if cache miss
+            // get new range from backing store
+            rc_read_iter = oracle_wp->search_address(search_addr);
+            rc_miss += rm_range(rc_read_iter->start_addr, rc_read_iter->end_addr);
+            rc_data.push_front(*rc_read_iter);                    // push the new range to range cache
+            rc_read_iter = search_address(search_addr);
+         }
+         if (rc_read_iter->end_addr >= end_addr)                  // if all ranges are covered
+            searching = false;
+         // refresh start_addr
+         temp = *rc_read_iter;
+         search_addr = temp.end_addr+1;
+         // refresh lru
+         rc_data.erase(rc_read_iter);                             // refresh this entry as most recently used
+         rc_data.push_front(temp);
+      }
+      if (ocbm)
+         check_ocbm(start_addr, end_addr);
+      while (cache_overflow())                                    // kick out redundant cache entries
+         cache_kickout();
+   }
    return rc_miss;
 }
 // wp_operation is same for add or rm a watchpoint, 
@@ -107,131 +121,149 @@ int RangeCache<ADDRESS, FLAGS>::general_fault(ADDRESS start_addr, ADDRESS end_ad
 template<class ADDRESS, class FLAGS>
 int RangeCache<ADDRESS, FLAGS>::wp_operation(ADDRESS start_addr, ADDRESS end_addr, bool is_update) {
    int rc_miss = 0;
-   bool complex_update = false;
-   typename std::deque< watchpoint_t<ADDRESS, FLAGS> >::iterator rc_write_iter, oracle_iter;
-   watchpoint_t<ADDRESS, FLAGS> temp;
-   if (is_update) {
-      // support for counting complex updates
-      rc_write_iter = search_address(start_addr);
-      if (rc_write_iter == rc_data.end())
-         complex_update = true;
-      rc_write_iter = search_address(end_addr);
-      if (rc_write_iter == rc_data.end())
-         complex_update = true;
-      if ( (oracle_wp->search_address(start_addr)+1)->end_addr < end_addr)
-         complex_update = true;
-      if (complex_update)
-         complex_updates++;
-      // counting rc_miss
-      bool searching = true;     // searching = true until all ranges are covered
-      ADDRESS search_addr = start_addr;
-      while (searching) {
-         rc_write_iter = search_address(search_addr);             // search starts from the start_addr
-         /* added for off-cbm */
-         if (off_cbm)
-            oracle_iter = offcbm_wp->search_address(search_addr);
-         else
-         /* added for off-cbm */
+   if (off_cbm && offcbm_wp->search_address(start_addr)->flags == WA_OFFCBM) {
+      // assert start_addr and end_addr is in the same page (same off-chip bitmap)
+      if ((start_addr>>PAGE_OFFSET_LENGTH) != (end_addr>>PAGE_OFFSET_LENGTH)) {
+         cerr <<"off-chip bitmap error: asserting start and end in the same page. ";
+         assert(0);
+      }
+                                                      // if off_cbm on, check if this range should be a off_cbm first
+      typename std::deque< watchpoint_t<ADDRESS, FLAGS> >::iterator rc_write_iter, oracle_iter;
+      watchpoint_t<ADDRESS, FLAGS> temp;
+      rc_write_iter = search_address(start_addr);     // check hit or miss in range cache
+      if (rc_write_iter != rc_data.end() && (rc_write_iter->flags & WA_OFFCBM)) {           // refresh lru
+         temp = *rc_write_iter;
+         rc_data.erase(rc_write_iter);
+      }
+      else {
+         temp = *(offcbm_wp->search_address(start_addr));
+         rm_range(temp.start_addr, temp.end_addr);
+         temp.flags |= DIRTY;
+         rc_miss++;
+      }
+      rc_data.push_front(temp);
+      rc_miss += offcbm_wp->wp_operation(start_addr, end_addr);  // refresh wlb
+   }
+   else {
+      bool complex_update = false;
+      typename std::deque< watchpoint_t<ADDRESS, FLAGS> >::iterator rc_write_iter, oracle_iter;
+      watchpoint_t<ADDRESS, FLAGS> temp;
+      if (is_update) {
+         // assert start_addr and end_addr is in the same page (same off-chip bitmap)
+         if ((start_addr>>PAGE_OFFSET_LENGTH) != (end_addr>>PAGE_OFFSET_LENGTH)) {
+            cerr <<"off-chip bitmap error: asserting start and end in the same page. ";
+            assert(0);
+         }
+         // support for counting complex updates
+         rc_write_iter = search_address(start_addr);
+         if (rc_write_iter == rc_data.end())
+            complex_update = true;
+         rc_write_iter = search_address(end_addr);
+         if (rc_write_iter == rc_data.end())
+            complex_update = true;
+         if ( (oracle_wp->search_address(start_addr)+1)->end_addr < end_addr)
+            complex_update = true;
+         if (complex_update)
+            complex_updates++;
+         // counting rc_miss
+         bool searching = true;     // searching = true until all ranges are covered
+         ADDRESS search_addr = start_addr;
+         while (searching) {
+            rc_write_iter = search_address(search_addr);             // search starts from the start_addr
             oracle_iter = oracle_wp->search_address(search_addr);
-         /* added for off-cbm */
-         if (off_cbm && (oracle_iter->flags & WA_OFFCBM)) {
-            rc_miss += offcbm_wp->general_fault(  max(search_addr, oracle_iter->start_addr)
-                                                , min(end_addr,    oracle_iter->end_addr  ) );  // refresh wlb
-         }
-         /* added for off-cbm */
-         if (rc_write_iter != rc_data.end()) {                    // if cache hit
-            if (rc_write_iter->end_addr >= end_addr)
-               searching = false;
-            else
-               search_addr = rc_write_iter->end_addr+1;
-         }
-         else {
-            if (oracle_iter->end_addr >= end_addr) {
-               rc_miss += rm_range(search_addr, end_addr);
-               searching = false;
+            if (rc_write_iter != rc_data.end()) {                    // if cache hit
+               if (rc_write_iter->end_addr >= end_addr)
+                  searching = false;
+               else
+                  search_addr = rc_write_iter->end_addr+1;
             }
             else {
-               rc_miss += rm_range(search_addr, oracle_iter->end_addr);
-               search_addr = oracle_iter->end_addr+1;
-            }
-         }
-      }
-      rm_range(start_addr, end_addr);
-      // adding ranges
-      oracle_iter = oracle_wp->search_address(start_addr);     // merge start
-      temp = *oracle_iter;
-      temp.flags |= DIRTY;
-      if (oracle_iter->start_addr < start_addr) {
-         rc_write_iter = search_address(start_addr-1);
-         if (rc_write_iter!=rc_data.end() && ((rc_write_iter->flags & WA_OFFCBM) == 0) ) {
-            temp.start_addr = rc_write_iter->start_addr;
-            rc_data.erase(rc_write_iter);
-         }
-         else
-            temp.start_addr = start_addr;
-      }
-      if (oracle_iter->end_addr > end_addr) {
-         rc_write_iter = search_address(end_addr+1);
-         if (rc_write_iter!=rc_data.end() && ((rc_write_iter->flags & WA_OFFCBM) == 0) ) {
-            temp.end_addr = rc_write_iter->end_addr;
-            rc_data.erase(rc_write_iter);
-         }
-         else
-            temp.end_addr = end_addr;
-      }
-      rc_data.push_front(temp);
-      if (oracle_iter->end_addr < end_addr) {
-         searching = true;
-         while (searching) {
-            oracle_iter++;
-            temp = *oracle_iter;
-            temp.flags |= DIRTY;
-            if (oracle_iter->end_addr > end_addr) {            // merge end
-               searching = false;
-               rc_write_iter = search_address(end_addr+1);
-               if (rc_write_iter!=rc_data.end() && ((rc_write_iter->flags & WA_OFFCBM) == 0) ) {
-                  temp.end_addr = rc_write_iter->end_addr;
-                  rc_data.erase(rc_write_iter);
+               if (oracle_iter->end_addr >= end_addr) {
+                  rc_miss += rm_range(search_addr, end_addr);
+                  searching = false;
                }
-               else
-                  temp.end_addr = end_addr;
+               else {
+                  rc_miss += rm_range(search_addr, oracle_iter->end_addr);
+                  search_addr = oracle_iter->end_addr+1;
+               }
             }
-            else if (oracle_iter->end_addr == end_addr)
-               searching = false;
-            rc_data.push_front(temp);
+         }
+         rm_range(start_addr, end_addr);
+         // adding ranges
+         oracle_iter = oracle_wp->search_address(start_addr);     // merge start
+         temp = *oracle_iter;
+         temp.flags |= DIRTY;
+         if (oracle_iter->start_addr < start_addr) {
+            rc_write_iter = search_address(start_addr-1);
+            if (rc_write_iter!=rc_data.end() && ((rc_write_iter->flags & WA_OFFCBM) == 0) ) {
+               temp.start_addr = rc_write_iter->start_addr;
+               rc_data.erase(rc_write_iter);
+            }
+            else
+               temp.start_addr = start_addr;
+         }
+         if (oracle_iter->end_addr > end_addr) {
+            rc_write_iter = search_address(end_addr+1);
+            if (rc_write_iter!=rc_data.end() && ((rc_write_iter->flags & WA_OFFCBM) == 0) ) {
+               temp.end_addr = rc_write_iter->end_addr;
+               rc_data.erase(rc_write_iter);
+            }
+            else
+               temp.end_addr = end_addr;
+         }
+         rc_data.push_front(temp);
+         if (oracle_iter->end_addr < end_addr) {
+            searching = true;
+            while (searching) {
+               oracle_iter++;
+               temp = *oracle_iter;
+               temp.flags |= DIRTY;
+               if (oracle_iter->end_addr > end_addr) {            // merge end
+                  searching = false;
+                  rc_write_iter = search_address(end_addr+1);
+                  if (rc_write_iter!=rc_data.end() && ((rc_write_iter->flags & WA_OFFCBM) == 0) ) {
+                     temp.end_addr = rc_write_iter->end_addr;
+                     rc_data.erase(rc_write_iter);
+                  }
+                  else
+                     temp.end_addr = end_addr;
+               }
+               else if (oracle_iter->end_addr == end_addr)
+                  searching = false;
+               rc_data.push_front(temp);
+            }
          }
       }
+      else {      // sets can create only one range
+         rm_range(start_addr, end_addr);
+         if (off_cbm)
+            offcbm_wp->rm_offcbm(start_addr, end_addr);
+         oracle_iter = oracle_wp->search_address(start_addr);
+         temp = *oracle_iter;
+         temp.flags |= DIRTY;
+         if (oracle_iter->start_addr < start_addr) {     // merge start
+            rc_write_iter = search_address(start_addr-1);
+            if (rc_write_iter!=rc_data.end() && ((rc_write_iter->flags & WA_OFFCBM) == 0) ) {
+               temp.start_addr = rc_write_iter->start_addr;
+               rc_data.erase(rc_write_iter);
+            }
+            else
+               temp.start_addr = start_addr;
+         }
+         if (oracle_iter->end_addr > end_addr) {         // merge end
+            rc_write_iter = search_address(end_addr+1);
+            if (rc_write_iter!=rc_data.end() && ((rc_write_iter->flags & WA_OFFCBM) == 0) ) {
+               temp.end_addr = rc_write_iter->end_addr;
+               rc_data.erase(rc_write_iter);
+            }
+            else
+               temp.end_addr = end_addr;
+         }
+         rc_data.push_front(temp);
+      }
+      if (ocbm)
+         check_ocbm(start_addr, end_addr);
    }
-   else {      // sets can create only one range
-      rm_range(start_addr, end_addr);
-      if (off_cbm)
-         offcbm_wp->rm_offcbm(start_addr, end_addr);  // after a set watchpoint, everything within 
-                                                      // the range should better become a range
-      oracle_iter = oracle_wp->search_address(start_addr);
-      temp = *oracle_iter;
-      temp.flags |= DIRTY;
-      if (oracle_iter->start_addr < start_addr) {     // merge start
-         rc_write_iter = search_address(start_addr-1);
-         if (rc_write_iter!=rc_data.end() && ((rc_write_iter->flags & WA_OFFCBM) == 0) ) {
-            temp.start_addr = rc_write_iter->start_addr;
-            rc_data.erase(rc_write_iter);
-         }
-         else
-            temp.start_addr = start_addr;
-      }
-      if (oracle_iter->end_addr > end_addr) {         // merge end
-         rc_write_iter = search_address(end_addr+1);
-         if (rc_write_iter!=rc_data.end() && ((rc_write_iter->flags & WA_OFFCBM) == 0) ) {
-            temp.end_addr = rc_write_iter->end_addr;
-            rc_data.erase(rc_write_iter);
-         }
-         else
-            temp.end_addr = end_addr;
-      }
-      rc_data.push_front(temp);
-   }
-   if (ocbm)
-      check_ocbm(start_addr, end_addr);
    while (cache_overflow())                           // kick out redundant cache entries
       cache_kickout();
    return rc_miss;

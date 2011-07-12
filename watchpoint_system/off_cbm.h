@@ -18,7 +18,7 @@ public:
    ~Offcbm();
    // for updating the wlb
    //    only call these function when we are sure the range is within the off-cbm region
-   int  general_fault   (ADDRESS start_addr, ADDRESS end_addr);
+   int  general_fault   (ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags);
    // special search function, search in offcbm_pages first and then the oracle
    typename deque<watchpoint_t<ADDRESS, FLAGS> >::iterator
       search_address    (ADDRESS target_addr);
