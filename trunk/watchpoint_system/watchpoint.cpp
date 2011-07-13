@@ -1,6 +1,7 @@
 #ifndef WATCHPOINT_CPP_
 #define WATCHPOINT_CPP_
 
+#include <assert.h>
 #include "watchpoint.h"
 
 /*
@@ -1255,91 +1256,91 @@ void WatchPoint<ADDRESS, FLAGS>::print_statistics(const statistics_t& to_print, 
    output << setw(45) << "average size: " << ( (double)to_print.sum_size/(to_print.sets+to_print.updates) ) << endl;
    #ifdef PAGE_TABLE_SINGLE
    output << setw(45) << "Page table (single) faults taken: " << to_print.page_table_faults << endl;
-   output << setw(45) << "Page table bitmap changes: " << to_print.change_count << endl;
+   output << setw(45) << "Page table (single) bitmap changes: " << to_print.change_count << endl;
    #endif
    #ifdef PAGE_TABLE_MULTI
    output << setw(45) << "Page table (multi) faults taken: " << to_print.page_table_multi_faults << endl;
-   output << setw(45) << "Page table bitmap changes: " << to_print.change_count_multi << endl;
+   output << setw(45) << "Page table (multi) bitmap changes: " << to_print.change_count_multi << endl;
    #endif
    #ifdef PAGE_TABLE2_SINGLE
-   output << setw(45) << "2_level Page table (single) quick hit: " << to_print.highest_hits << endl;
-   output << setw(45) << "quick fault: " << to_print.highest_faults << endl;
-   output << setw(45) << "superpage hit: " << to_print.superpage_hits << endl;
-   output << setw(45) << "superpage fault: " << to_print.superpage_faults << endl;
-   output << setw(45) << "superpage miss: " << to_print.superpage_miss << endl;
-   output << setw(45) << "low level page fault: " << to_print.superpage_miss_faults << endl;
-   output << setw(45) << "bit changes: " << to_print.change_count2 << endl;
+   output << setw(45) << "2 level PT (single) quick hit: " << to_print.highest_hits << endl;
+   output << setw(45) << "2 level PT (single) quick fault: " << to_print.highest_faults << endl;
+   output << setw(45) << "2 level PT (single) superpage hit: " << to_print.superpage_hits << endl;
+   output << setw(45) << "2 level PT (single) superpage fault: " << to_print.superpage_faults << endl;
+   output << setw(45) << "2 level PT (single) superpage miss: " << to_print.superpage_miss << endl;
+   output << setw(45) << "2 level PT (single) low level page fault: " << to_print.superpage_miss_faults << endl;
+   output << setw(45) << "2 level PT (single) bit changes: " << to_print.change_count2 << endl;
    #endif
    #ifdef PAGE_TABLE2_MULTI
-   output << setw(45) << "2_level Page table (multi) quick hit: " << to_print.highest_hits_multi << endl;
-   output << setw(45) << "quick fault: " << to_print.highest_faults_multi << endl;
-   output << setw(45) << "superpage hit: " << to_print.superpage_hits_multi << endl;
-   output << setw(45) << "superpage fault: " << to_print.superpage_faults_multi << endl;
-   output << setw(45) << "superpage miss: " << to_print.superpage_miss_multi << endl;
-   output << setw(45) << "low level page fault: " << to_print.superpage_miss_faults_multi << endl;
-   output << setw(45) << "bit changes: " << to_print.change_count2_multi << endl;
+   output << setw(45) << "2 level PT (multi) quick hit: " << to_print.highest_hits_multi << endl;
+   output << setw(45) << "2 level PT (multi) quick fault: " << to_print.highest_faults_multi << endl;
+   output << setw(45) << "2 level PT (multi) superpage hit: " << to_print.superpage_hits_multi << endl;
+   output << setw(45) << "2 level PT (multi) superpage fault: " << to_print.superpage_faults_multi << endl;
+   output << setw(45) << "2 level PT (multi) superpage miss: " << to_print.superpage_miss_multi << endl;
+   output << setw(45) << "2 level PT (multi) low level page fault: " << to_print.superpage_miss_faults_multi << endl;
+   output << setw(45) << "2 level PT (multi) bit changes: " << to_print.change_count2_multi << endl;
    #endif
    #ifdef PT2_BYTE_ACU_SINGLE
-   output << setw(45) << "2_level Page table trie (single) quick hit: " << to_print.pt2_byte_acu_seg_reg_hits << endl;
-   output << setw(45) << "quick fault: " << to_print.pt2_byte_acu_seg_reg_faults << endl;
-   output << setw(45) << "superpage hit: " << to_print.pt2_byte_acu_superpage_hits << endl;
-   output << setw(45) << "superpage fault: " << to_print.pt2_byte_acu_superpage_faults << endl;
-   output << setw(45) << "pagetable hit: " << to_print.pt2_byte_acu_page_hits << endl;
-   output << setw(45) << "pagetable fault: " << to_print.pt2_byte_acu_page_faults << endl;
-   output << setw(45) << "bitmap fault: " << to_print.pt2_byte_acu_bitmap_faults << endl;
-   output << setw(45) << "total fault: " << to_print.pt2_byte_acu_bitmap_faults+to_print.pt2_byte_acu_page_faults+to_print.pt2_byte_acu_superpage_faults+to_print.pt2_byte_acu_seg_reg_faults << endl;
-   output << setw(45) << "bit changes: " << to_print.pt2_byte_acu_changes << endl;
+   output << setw(45) << "2 level PT trie (single) quick hit: " << to_print.pt2_byte_acu_seg_reg_hits << endl;
+   output << setw(45) << "2 level PT trie (single) quick fault: " << to_print.pt2_byte_acu_seg_reg_faults << endl;
+   output << setw(45) << "2 level PT trie (single) superpage hit: " << to_print.pt2_byte_acu_superpage_hits << endl;
+   output << setw(45) << "2 level PT trie (single) superpage fault: " << to_print.pt2_byte_acu_superpage_faults << endl;
+   output << setw(45) << "2 level PT trie (single) pagetable hit: " << to_print.pt2_byte_acu_page_hits << endl;
+   output << setw(45) << "2 level PT trie (single) pagetable fault: " << to_print.pt2_byte_acu_page_faults << endl;
+   output << setw(45) << "2 level PT trie (single) bitmap fault: " << to_print.pt2_byte_acu_bitmap_faults << endl;
+   output << setw(45) << "2 level PT trie (single) total fault: " << to_print.pt2_byte_acu_bitmap_faults+to_print.pt2_byte_acu_page_faults+to_print.pt2_byte_acu_superpage_faults+to_print.pt2_byte_acu_seg_reg_faults << endl;
+   output << setw(45) << "2 level PT trie (single) bit changes: " << to_print.pt2_byte_acu_changes << endl;
    output << setw(45) << "plb misses: " << to_print.pt2_byte_acu_plb_misses << endl;
    #endif
    #ifdef PT2_BYTE_ACU_MULTI
-   output << setw(45) << "2_level Page table trie (multi) quick hit: " << to_print.pt2_byte_acu_multi_seg_reg_hits << endl;
-   output << setw(45) << "quick fault: " << to_print.pt2_byte_acu_multi_seg_reg_faults << endl;
-   output << setw(45) << "superpage hit: " << to_print.pt2_byte_acu_multi_superpage_hits << endl;
-   output << setw(45) << "superpage fault: " << to_print.pt2_byte_acu_multi_superpage_faults << endl;
-   output << setw(45) << "pagetable hit: " << to_print.pt2_byte_acu_multi_page_hits << endl;
-   output << setw(45) << "pagetable fault: " << to_print.pt2_byte_acu_multi_page_faults << endl;
-   output << setw(45) << "bitmap fault: " << to_print.pt2_byte_acu_multi_bitmap_faults << endl;
-   output << setw(45) << "total fault: " << to_print.pt2_byte_acu_multi_bitmap_faults+to_print.pt2_byte_acu_multi_page_faults+to_print.pt2_byte_acu_multi_superpage_faults+to_print.pt2_byte_acu_multi_seg_reg_faults << endl;
-   output << setw(45) << "bit changes: " << to_print.pt2_byte_acu_multi_changes << endl;
+   output << setw(45) << "2 level PT trie (multi) quick hit: " << to_print.pt2_byte_acu_multi_seg_reg_hits << endl;
+   output << setw(45) << "2 level PT trie (multi) quick fault: " << to_print.pt2_byte_acu_multi_seg_reg_faults << endl;
+   output << setw(45) << "2 level PT trie (multi) superpage hit: " << to_print.pt2_byte_acu_multi_superpage_hits << endl;
+   output << setw(45) << "2 level PT trie (multi) superpage fault: " << to_print.pt2_byte_acu_multi_superpage_faults << endl;
+   output << setw(45) << "2 level PT trie (multi) pagetable hit: " << to_print.pt2_byte_acu_multi_page_hits << endl;
+   output << setw(45) << "2 level PT trie (multi) pagetable fault: " << to_print.pt2_byte_acu_multi_page_faults << endl;
+   output << setw(45) << "2 level PT trie (multi) bitmap fault: " << to_print.pt2_byte_acu_multi_bitmap_faults << endl;
+   output << setw(45) << "2 level PT trie (multi) total fault: " << to_print.pt2_byte_acu_multi_bitmap_faults+to_print.pt2_byte_acu_multi_page_faults+to_print.pt2_byte_acu_multi_superpage_faults+to_print.pt2_byte_acu_multi_seg_reg_faults << endl;
+   output << setw(45) << "2 level PT trie (multi) bit changes: " << to_print.pt2_byte_acu_multi_changes << endl;
    output << setw(45) << "plb misses: " << to_print.pt2_byte_acu_multi_plb_misses << endl;
    #endif
    #ifdef MEM_TRACKER
-   output << setw(45) << "mem tracker read misses: " << to_print.mem_tracker_read_miss << endl;
-   output << setw(45) << "mem tracker write misses: " << to_print.mem_tracker_write_miss << endl;
-   output << setw(45) << "mem tracker total bitmap reads: " << to_print.mem_tracker_mem_accesses << endl;
+   output << setw(45) << "MemTracker read misses: " << to_print.mem_tracker_read_miss << endl;
+   output << setw(45) << "MemTracker write misses: " << to_print.mem_tracker_write_miss << endl;
+   output << setw(45) << "MemTracker total bitmap reads: " << to_print.mem_tracker_mem_accesses << endl;
    output << setw(45) << "mem tracker total 32bit blocks modified: " << to_print.mem_tracker_write_blocks << endl;
    #endif
    #ifdef RC_SINGLE
-   output << setw(45) << "range cache (single) read hit: " << to_print.rc_read_hits << endl;
-   output << setw(45) << "read miss: " << to_print.rc_read_miss << endl;
-   output << setw(45) << "write hit: " << to_print.rc_write_hits << endl;
-   output << setw(45) << "write miss: " << to_print.rc_write_miss << endl;
-   output << setw(45) << "backing store access: " << to_print.rc_backing_store_accesses <<  endl;
-   output << setw(45) << "kickouts dirty: " << to_print.rc_kickout_dirties << endl;
-   output << setw(45) << "kickouts total: " << to_print.rc_kickouts << endl;
-   output << setw(45) << "complex update: " << to_print.rc_complex_updates << endl;
+   output << setw(45) << "Range Cache (single) read hit: " << to_print.rc_read_hits << endl;
+   output << setw(45) << "Range Cache (single) read miss: " << to_print.rc_read_miss << endl;
+   output << setw(45) << "Range Cache (single) write hit: " << to_print.rc_write_hits << endl;
+   output << setw(45) << "Range Cache (single) write miss: " << to_print.rc_write_miss << endl;
+   output << setw(45) << "Range Cache (single) backing store access: " << to_print.rc_backing_store_accesses <<  endl;
+   output << setw(45) << "Range Cache (single) kickouts dirty: " << to_print.rc_kickout_dirties << endl;
+   output << setw(45) << "Range Cache (single) kickouts total: " << to_print.rc_kickouts << endl;
+   output << setw(45) << "Range Cache (single) complex update: " << to_print.rc_complex_updates << endl;
    #endif
    #ifdef RC_OCBM
-   output << setw(45) << "range cache (with ocbm) read hit: " << to_print.rc_ocbm_read_hits << endl;
-   output << setw(45) << "read miss: " << to_print.rc_ocbm_read_miss << endl;
-   output << setw(45) << "write hit: " << to_print.rc_ocbm_write_hits << endl;
-   output << setw(45) << "write miss: " << to_print.rc_ocbm_write_miss << endl;
-   output << setw(45) << "backing store access: " << to_print.rc_ocbm_backing_store_accesses << endl;
-   output << setw(45) << "kickouts dirty: " << to_print.rc_ocbm_kickout_dirties << endl;
-   output << setw(45) << "kickouts total: " << to_print.rc_ocbm_kickouts << endl;
-   output << setw(45) << "complex update: " << to_print.rc_ocbm_complex_updates << endl;
+   output << setw(45) << "Range Cache (OCBM) read hit: " << to_print.rc_ocbm_read_hits << endl;
+   output << setw(45) << "Range Cache (OCBM) read miss: " << to_print.rc_ocbm_read_miss << endl;
+   output << setw(45) << "Range Cache (OCBM) write hit: " << to_print.rc_ocbm_write_hits << endl;
+   output << setw(45) << "Range Cache (OCBM) write miss: " << to_print.rc_ocbm_write_miss << endl;
+   output << setw(45) << "Range Cache (OCBM) backing store access: " << to_print.rc_ocbm_backing_store_accesses << endl;
+   output << setw(45) << "Range Cache (OCBM) kickouts dirty: " << to_print.rc_ocbm_kickout_dirties << endl;
+   output << setw(45) << "Range Cache (OCBM) kickouts total: " << to_print.rc_ocbm_kickouts << endl;
+   output << setw(45) << "Range Cache (OCBM) complex update: " << to_print.rc_ocbm_complex_updates << endl;
    #endif
    #ifdef RC_OFFCBM
-   output << setw(45) << "range cache (with offcbm) read hit: " << to_print.rc_offcbm_read_hits << endl;
-   output << setw(45) << "read miss: " << to_print.rc_offcbm_read_miss << endl;
-   output << setw(45) << "write hit: " << to_print.rc_offcbm_write_hits << endl;
-   output << setw(45) << "write miss: " << to_print.rc_offcbm_write_miss << endl;
-   output << setw(45) << "backing store access: " << to_print.rc_offcbm_backing_store_accesses << endl;
-   output << setw(45) << "kickouts dirty: " << to_print.rc_offcbm_kickout_dirties << endl;
-   output << setw(45) << "kickouts total: " << to_print.rc_offcbm_kickouts << endl;
-   output << setw(45) << "complex update: " << to_print.rc_offcbm_complex_updates << endl;
-   output << setw(45) << "switches to offcbm: " << to_print.rc_offcbm_offcbm_switch << endl;
-   output << setw(45) << "switches to ranges: " << to_print.rc_offcbm_range_switch << endl;
+   output << setw(45) << "Range Cache (OffCBM) read hit: " << to_print.rc_offcbm_read_hits << endl;
+   output << setw(45) << "Range Cache (OffCBM) read miss: " << to_print.rc_offcbm_read_miss << endl;
+   output << setw(45) << "Range Cache (OffCBM) write hit: " << to_print.rc_offcbm_write_hits << endl;
+   output << setw(45) << "Range Cache (OffCBM) write miss: " << to_print.rc_offcbm_write_miss << endl;
+   output << setw(45) << "Range Cache (OffCBM) backing store access: " << to_print.rc_offcbm_backing_store_accesses << endl;
+   output << setw(45) << "Range Cache (OffCBM) kickouts dirty: " << to_print.rc_offcbm_kickout_dirties << endl;
+   output << setw(45) << "Range Cache (OffCBM) kickouts total: " << to_print.rc_offcbm_kickouts << endl;
+   output << setw(45) << "Range Cache (OffCBM) complex update: " << to_print.rc_offcbm_complex_updates << endl;
+   output << setw(45) << "Range Cache (OffCBM) switches to offcbm: " << to_print.rc_offcbm_offcbm_switch << endl;
+   output << setw(45) << "Range Cache (OffCBM) switches to ranges: " << to_print.rc_offcbm_range_switch << endl;
    #endif
    output << endl;
    return;
