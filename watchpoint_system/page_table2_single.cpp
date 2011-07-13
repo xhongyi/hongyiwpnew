@@ -2,7 +2,6 @@
 #define PAGE_TABLE2_SINGLE_CPP_
 
 #include "page_table2_single.h"
-#include <assert.h>
 
 template<class ADDRESS, class FLAGS>
 PageTable2_single<ADDRESS, FLAGS>::PageTable2_single(Virtual_wp<ADDRESS, FLAGS> *pt1_ref) {
