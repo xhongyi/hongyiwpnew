@@ -68,6 +68,7 @@ inline statistics_t& operator +=(statistics_t &a, const statistics_t &b) { // no
    a.mem_tracker_read_miss += b.mem_tracker_read_miss;
    a.mem_tracker_write_miss += b.mem_tracker_write_miss;
    a.mem_tracker_mem_accesses += b.mem_tracker_mem_accesses;
+   a.mem_tracker_write_blocks += b.mem_tracker_write_blocks;
    #endif
    #ifdef RC_SINGLE
    a.rc_read_hits += b.rc_read_hits;
@@ -170,6 +171,7 @@ inline statistics_t operator +(const statistics_t &a, const statistics_t &b) {
    result.mem_tracker_read_miss = a.mem_tracker_read_miss + b.mem_tracker_read_miss;
    result.mem_tracker_write_miss = a.mem_tracker_write_miss + b.mem_tracker_write_miss;
    result.mem_tracker_mem_accesses = a.mem_tracker_mem_accesses + b.mem_tracker_mem_accesses;
+   result.mem_tracker_write_blocks = a.mem_tracker_write_blocks + b.mem_tracker_write_blocks;
    #endif
    #ifdef RC_SINGLE
    result.rc_read_hits = a.rc_read_hits + b.rc_read_hits;
@@ -904,6 +906,7 @@ int WatchPoint<ADDRESS, FLAGS>::general_change(ADDRESS start, ADDRESS end, int32
          statistics_iter->second.pt2_byte_acu_multi_changes += change_count2_byte_acu_multi;
 #endif
 #ifdef MEM_TRACKER
+         statistics_iter->second.mem_tracker_write_blocks += ((end-start)/16+1);
          if (mem_tracker_write_mises) {
             statistics_iter->second.mem_tracker_mem_accesses += mem_tracker_write_mises;
             statistics_iter->second.mem_tracker_write_miss++;
@@ -1151,6 +1154,7 @@ statistics_t WatchPoint<ADDRESS, FLAGS>::clear_statistics() {
    empty.mem_tracker_read_miss=0;
    empty.mem_tracker_write_miss=0;
    empty.mem_tracker_mem_accesses=0;
+   empty.mem_tracker_write_blocks=0;
    #endif
    #ifdef RC_SINGLE
    empty.rc_read_hits=0;
@@ -1303,6 +1307,7 @@ void WatchPoint<ADDRESS, FLAGS>::print_statistics(const statistics_t& to_print, 
    output << setw(45) << "mem tracker read misses: " << to_print.mem_tracker_read_miss << endl;
    output << setw(45) << "mem tracker write misses: " << to_print.mem_tracker_write_miss << endl;
    output << setw(45) << "mem tracker total bitmap reads: " << to_print.mem_tracker_mem_accesses << endl;
+   output << setw(45) << "mem tracker total 32bit blocks modified: " << to_print.mem_tracker_write_blocks << endl;
    #endif
    #ifdef RC_SINGLE
    output << setw(45) << "range cache (single) read hit: " << to_print.rc_read_hits << endl;

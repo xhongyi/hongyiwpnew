@@ -12,9 +12,9 @@
 //#define PAGE_TABLE_MULTI
 //#define PAGE_TABLE2_SINGLE
 //#define PAGE_TABLE2_MULTI
-#define PT2_BYTE_ACU_SINGLE
+//#define PT2_BYTE_ACU_SINGLE
 //#define PT2_BYTE_ACU_MULTI
-//#define MEM_TRACKER
+#define MEM_TRACKER
 //#define RC_SINGLE
 //#define RC_OCBM
 //#define RC_OFFCBM
@@ -43,6 +43,7 @@
 #include <algorithm>
 #include <cstdlib>
 #include <string>
+#include <cassert>
 #include <map>
 #include "oracle_wp.h"
 
@@ -161,6 +162,7 @@ struct statistics_t {
    long long mem_tracker_read_miss;
    long long mem_tracker_write_miss;
    long long mem_tracker_mem_accesses;
+   long long mem_tracker_write_blocks;
    #endif
    #ifdef RC_SINGLE
    long long rc_read_hits;
