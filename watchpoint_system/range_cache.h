@@ -21,7 +21,8 @@ using namespace std;
 template<class ADDRESS, class FLAGS>
 class RangeCache {
 public:
-   RangeCache(Oracle<ADDRESS, FLAGS> *wp_ref, bool ocbm_in = false, bool offcbm_in = false);
+   RangeCache(Oracle<ADDRESS, FLAGS> *wp_ref, int thread_id, bool ocbm_in = false, bool offcbm_in = false);
+   RangeCache(ostream &output_stream, Oracle<ADDRESS, FLAGS> *wp_ref, int tid, bool ocbm_in = false, bool offcbm_in = false);
    RangeCache();
    ~RangeCache();
    // for all ranges referred to, update lru if found in rc; load from backing store if not found.
@@ -44,6 +45,8 @@ public:
                                           complex_updates;
 private:
    bool ocbm, off_cbm;
+   ostream &trace_output;
+   int thread_id;
    // data structure used in range cache
    deque< watchpoint_t<ADDRESS, FLAGS> >  rc_data;       // cache data
    Oracle<ADDRESS, FLAGS>*                oracle_wp;     // storing a pointer to its corresponding oracle
@@ -54,6 +57,7 @@ private:
    int rm_range(ADDRESS start_addr, ADDRESS end_addr);  // remove all entries within the range
    bool cache_overflow();
    void cache_kickout();   // kickout one lru entry at a time
+   void print_trace(int command, int thread_id, unsigned int starter, unsigned int ender);
 };
 
 #include "range_cache.cpp"

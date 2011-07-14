@@ -4,7 +4,10 @@
 #include "range_cache.h"
 
 template<class ADDRESS, class FLAGS>
-RangeCache<ADDRESS, FLAGS>::RangeCache(Oracle<ADDRESS, FLAGS> *wp_ref, bool ocbm_in, bool offcbm_in) {
+RangeCache<ADDRESS, FLAGS>::RangeCache(Oracle<ADDRESS, FLAGS> *wp_ref, int tid, bool ocbm_in, bool offcbm_in) :
+    trace_output(cout)
+{
+   thread_id = tid;
    ocbm = ocbm_in;
    off_cbm = offcbm_in;
    oracle_wp = wp_ref;
@@ -18,7 +21,27 @@ RangeCache<ADDRESS, FLAGS>::RangeCache(Oracle<ADDRESS, FLAGS> *wp_ref, bool ocbm
 }
 
 template<class ADDRESS, class FLAGS>
-RangeCache<ADDRESS, FLAGS>::RangeCache() {
+RangeCache<ADDRESS, FLAGS>::RangeCache(ostream &output_stream, Oracle<ADDRESS, FLAGS> *wp_ref, int tid, bool ocbm_in, bool offcbm_in) :
+    trace_output(output_stream)
+{
+   thread_id = tid;
+   ocbm = ocbm_in;
+   off_cbm = offcbm_in;
+   oracle_wp = wp_ref;
+   if (off_cbm)
+      offcbm_wp = new Offcbm<ADDRESS, FLAGS>(oracle_wp);
+   kickout_dirty=0;
+   kickout=0;
+   complex_updates=0;
+   offcbm_switch=0;
+   range_switch=0;
+}
+
+template<class ADDRESS, class FLAGS>
+RangeCache<ADDRESS, FLAGS>::RangeCache() :
+    trace_output(cout)
+{
+   thread_id = 0;
    ocbm = false;
    off_cbm = false;
    kickout_dirty=0;
@@ -32,6 +55,23 @@ template<class ADDRESS, class FLAGS>
 RangeCache<ADDRESS, FLAGS>::~RangeCache() {
    if (off_cbm)
       delete offcbm_wp;
+}
+
+template<class ADDRESS, class FLAGS>
+void RangeCache<ADDRESS, FLAGS>::print_trace(int command, int thread_id, unsigned int starter, unsigned int ender)
+{
+   char command_char;
+   if(command == (WA_WRITE|WA_READ))
+       command_char = 'd';
+   else if (command == WA_WRITE)
+       command_char = 'b';
+   else if (command == WA_READ)
+       command_char = 'c';
+   else
+       command_char = 'a';
+#ifdef PRINT_RANGE_TRACE
+   trace_output << command_char << setw(5) << thread_id << setw(8) << starter << setw(8) << ender << endl;
+#endif
 }
 
 template<class ADDRESS, class FLAGS>
@@ -305,8 +345,10 @@ void RangeCache<ADDRESS, FLAGS>::cache_kickout() {
    }
    else {
       kickout++;
-      if (rc_data.back().flags & DIRTY)
+      if (rc_data.back().flags & DIRTY) {
+         print_trace(rc_data.back().flags & (WA_READ|WA_WRITE), thread_id, rc_data.back().start_addr, rc_data.back().end_addr);
          kickout_dirty++;
+      }
       rc_data.pop_back();
    }
 }

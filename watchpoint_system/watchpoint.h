@@ -9,7 +9,7 @@
 #define WATCHPOINT_H_
 
 // Turn on a page table PER THREAD
-#define PAGE_TABLE_SINGLE
+//#define PAGE_TABLE_SINGLE
 // Turn on a single page table shared between ALL THREADS
 //#define PAGE_TABLE_MULTI
 // Turn on a multi-level page table PER THREAD
@@ -21,7 +21,7 @@
 // Turn on a byte accureate system shared between ALL THREADS
 //#define PT2_BYTE_ACU_MULTI
 //#define MEM_TRACKER
-//#define RC_SINGLE
+#define RC_SINGLE
 //#define RC_OCBM
 //#define RC_OFFCBM
 
@@ -43,6 +43,14 @@
 
 #ifdef PAGE_TABLE
 #define PRINT_VM_TRACE // Do you want to print out a trace of backing store ops?
+#endif
+
+#if defined(RC_SINGLE) || defined(RC_OCBM) || defined(RC_OFFCBM)
+#define PRINT_RANGE_TRACE // Do you want to print out a trace of the backing store ops for the RC?
+#endif
+
+#if defined(PRINT_VM_TRACE) || defined (PRINT_RANGE_TRACE)
+#define PRINT_TRACE
 #endif
 
 #ifdef PT2_BYTE_ACU_MULTI

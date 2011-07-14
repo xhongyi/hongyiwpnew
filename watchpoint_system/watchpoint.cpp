@@ -212,7 +212,7 @@ inline statistics_t operator +(const statistics_t &a, const statistics_t &b) {
 template<class ADDRESS, class FLAGS>
 void WatchPoint<ADDRESS, FLAGS>::print_trace(char command, int thread_id, unsigned int starter, unsigned int ender)
 {
-#ifdef PRINT_VM_TRACE
+#ifdef PRINT_TRACE
    trace_output << command << setw(5) << thread_id << setw(8) << starter << setw(8) << ender << endl;
 #endif
 }
@@ -271,7 +271,7 @@ WatchPoint<ADDRESS, FLAGS>::WatchPoint(ostream &trace_file) :
     trace_output(trace_file)
 {
     emulate_hardware=true;
-#ifdef PRINT_VM_TRACE
+#ifdef PRINT_TRACE
     trace_output << setfill('0');
     trace_output << hex;
 #endif
@@ -341,7 +341,7 @@ int WatchPoint<ADDRESS, FLAGS>::start_thread(int32_t thread_id) {
 #ifdef ORACLE_MULTI
          oracle_multi->start_thread(thread_id, oracle_wp[thread_id]);
 #endif
-#ifdef PRINT_VM_TRACE
+#ifdef PRINT_TRACE
          print_trace('i', thread_id, 0, 0);
 #endif
 #ifdef PAGE_TABLE
@@ -360,13 +360,13 @@ int WatchPoint<ADDRESS, FLAGS>::start_thread(int32_t thread_id) {
          mem_tracker[thread_id] = new MemTracker<ADDRESS>();
 #endif
 #ifdef RC_SINGLE
-         range_cache[thread_id] = new RangeCache<ADDRESS, FLAGS>(oracle_wp.find(thread_id)->second);
+         range_cache[thread_id] = new RangeCache<ADDRESS, FLAGS>(trace_output, oracle_wp.find(thread_id)->second, thread_id);
 #endif
 #ifdef RC_OCBM
-         range_cache_ocbm[thread_id] = new RangeCache<ADDRESS, FLAGS>(oracle_wp.find(thread_id)->second, true);
+         range_cache_ocbm[thread_id] = new RangeCache<ADDRESS, FLAGS>(trace_output, oracle_wp.find(thread_id)->second, thread_id, true);
 #endif
 #ifdef RC_OFFCBM
-         range_cache_offcbm[thread_id] = new RangeCache<ADDRESS, FLAGS>(oracle_wp.find(thread_id)->second, true, true);
+         range_cache_offcbm[thread_id] = new RangeCache<ADDRESS, FLAGS>(trace_output, oracle_wp.find(thread_id)->second, thread_id, true, true);
 #endif
       }
       return 0;                                                         // normal start: return 0
@@ -547,6 +547,9 @@ bool  WatchPoint<ADDRESS, FLAGS>::general_fault(ADDRESS start, ADDRESS end, int3
 #ifdef PRINT_VM_TRACE
       bool print_me_vm = false;
 #endif
+#ifdef PRINT_RANGE_TRACE
+      bool print_me_rc = false;
+#endif
 #ifdef PAGE_TABLE_SINGLE
       bool page_table_fault = false;
 #endif
@@ -593,18 +596,24 @@ bool  WatchPoint<ADDRESS, FLAGS>::general_fault(ADDRESS start, ADDRESS end, int3
 #endif
 #ifdef PAGE_TABLE_MULTI
          page_table_multi_fault = page_table_multi->watch_fault(start, end);
+#ifdef PRINT_VM_TRACE
          if(page_table_multi_fault)
              print_me_vm = true;
 #endif
+#endif
 #ifdef PAGE_TABLE2_SINGLE
          page_table2_fault = page_table2_wp[thread_id]->watch_fault(start, end);
+#ifdef PRINT_VM_TRACE
          if(page_table2_fault)
              print_me_vm = true;
 #endif
+#endif
 #ifdef PAGE_TABLE2_MULTI
          page_table2_multi_fault = page_table2_multi->watch_fault(start, end);
+#ifdef PRINT_VM_TRACE
          if(page_table2_multi_fault)
              print_me_vm = true;
+#endif
 #endif
 #ifdef PRINT_VM_TRACE
          if(print_me_vm)
@@ -621,12 +630,28 @@ bool  WatchPoint<ADDRESS, FLAGS>::general_fault(ADDRESS start, ADDRESS end, int3
 #endif
 #ifdef RC_SINGLE
          range_cache_misses = range_cache[thread_id]->watch_fault(start, end);
+#ifdef PRINT_RANGE_TRACE
+         if(range_cache_misses)
+             print_me_rc = true;
+#endif
 #endif
 #ifdef RC_OCBM
          range_cache_ocbm_misses = range_cache_ocbm[thread_id]->watch_fault(start, end);
+#ifdef PRINT_RANGE_TRACE
+         if(range_cache_ocbm_misses)
+             print_me_rc = true;
+#endif
 #endif
 #ifdef RC_OFFCBM
          range_cache_offcbm_misses = range_cache_offcbm[thread_id]->watch_fault(start, end);
+#ifdef PRINT_RANGE_TRACE
+         if(range_cache_offcbm_misses)
+             print_me_rc = true;
+#endif
+#endif
+#ifdef PRINT_RANGE_TRACE
+         if(print_me_rc)
+             print_trace('k', thread_id, start, end);
 #endif
       }
       /*
