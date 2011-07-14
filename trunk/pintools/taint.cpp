@@ -20,13 +20,20 @@
 
 using std::deque;
 //My own data
+#ifdef PRINT_VM_TRACE
+ofstream TraceFile;
+WatchPoint<ADDRINT, UINT32> wp(TraceFile);
+#else
 WatchPoint<ADDRINT, UINT32> wp;
+#endif
 
 UINT64 number_of_instructions;
 
 //My own data
 KNOB<string> KnobOutputFile(KNOB_MODE_WRITEONCE, "pintool",
-    "o", "taint.out", "specify output file name");
+        "o", "taint.out", "specify output file name");
+KNOB<string> KnobTraceFile(KNOB_MODE_WRITEONCE, "pintool",
+        "r", "taint.trace", "specify the name for the trace file");
 
 #define REGS_AVAIL 225
 #define REG_READ  0x01
@@ -4361,6 +4368,7 @@ void FlagRtn(RTN rtn, void* v)
 }
 
 VOID DataInit() {
+    TraceFile.open(KnobTraceFile.Value().c_str());
     wp.start_thread(0);
     number_of_instructions=0;
 }
