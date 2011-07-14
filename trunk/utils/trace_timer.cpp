@@ -110,8 +110,11 @@ void add_range(map<unsigned int, unsigned int> &range_cache, unsigned int start_
         // The question now becomes: Did part of the range we deleted above
         // need to actually stay? If so, add it backin.
         // TODO: modify this to save time.
-        if(first_addr != start_addr && first_flags != flag) {
-            range_cache[first_addr] = first_flags;
+        if(first_addr != start_addr) {
+            if(first_flags != flag)
+                range_cache[first_addr] = first_flags;
+            else
+                start_addr = first_addr;
         }
     }
 
