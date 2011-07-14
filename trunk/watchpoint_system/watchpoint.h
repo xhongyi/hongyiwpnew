@@ -8,12 +8,18 @@
 #ifndef WATCHPOINT_H_
 #define WATCHPOINT_H_
 
-//#define PAGE_TABLE_SINGLE
+// Turn on a page table PER THREAD
+#define PAGE_TABLE_SINGLE
+// Turn on a single page table shared between ALL THREADS
 //#define PAGE_TABLE_MULTI
+// Turn on a multi-level page table PER THREAD
 //#define PAGE_TABLE2_SINGLE
+// Turn on a multi-level page tabled shared between ALL THREADS
 //#define PAGE_TABLE2_MULTI
-#define PT2_BYTE_ACU_SINGLE
-#define PT2_BYTE_ACU_MULTI
+// Turn on a byte accurate system PER THREAD
+//#define PT2_BYTE_ACU_SINGLE
+// Turn on a byte accureate system shared between ALL THREADS
+//#define PT2_BYTE_ACU_MULTI
 //#define MEM_TRACKER
 //#define RC_SINGLE
 //#define RC_OCBM
@@ -33,6 +39,10 @@
 
 #ifdef PAGE_TABLE2_SINGLE
 #define PAGE_TABLE      // common part of page_table_single and page_table_multi
+#endif
+
+#ifdef PAGE_TABLE
+#define PRINT_VM_TRACE // Do you want to print out a trace of backing store ops?
 #endif
 
 #ifdef PT2_BYTE_ACU_MULTI
@@ -216,7 +226,8 @@ template<class ADDRESS, class FLAGS>
 class WatchPoint {
 public:
    WatchPoint();              // Constructor
-   WatchPoint(bool);         // Constructor that turns off hardware emulation.
+   WatchPoint(bool);          // Constructor that turns off hardware emulation.
+   WatchPoint(ostream&);      // Constructor that enables trace outputting.
    ~WatchPoint();             // Destructor
    
    //Threading Calls
@@ -311,6 +322,8 @@ private:
    #endif
 
    bool                                                     emulate_hardware;
+   ostream                                                  &trace_output;
+   void         print_trace (char command, int thread_id, unsigned int starter, unsigned int ender);
    
    //Useful iterators
    typename map<int32_t, Oracle<ADDRESS, FLAGS>* >::iterator oracle_wp_iter;
