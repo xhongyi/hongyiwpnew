@@ -71,9 +71,15 @@ map<OS_THREAD_ID,thread_wp_data_t*>::iterator   thread_map_iter;
 
 UINT64 instruction_total;
 
+#ifdef PRINT_VM_TRACE
+ofstream TraceFile;
+#endif
+
 //My own data
 KNOB<string> KnobOutputFile(KNOB_MODE_WRITEONCE, "pintool",
-    "o", "grace_tls.out", "specify output file name");
+        "o", "grace_omp.out", "specify output file name");
+KNOB<string> KnobTraceFile(KNOB_MODE_WRITEONCE, "pintool",
+        "r", "grace_omp.trace", "specify the name for the trace file");
 
 PIN_LOCK init_lock;
 
@@ -530,7 +536,12 @@ VOID Fini(INT32 code, VOID *v)
 }
 
 VOID DataInit() {
-    wp = new WatchPoint<ADDRINT, UINT32>;
+#ifdef PRINT_VM_TRACE
+    TraceFile.open(KnobTraceFile.Value().c_str());
+    wp = new WatchPoint<ADDRINT, UINT32>(TraceFile);
+#else
+    wp = new WatchPoint<ADDRINT, UINT32>();
+#endif
     mem = new WatchPoint<ADDRINT, UINT32>(false);
     instruction_total = 0;
 }
