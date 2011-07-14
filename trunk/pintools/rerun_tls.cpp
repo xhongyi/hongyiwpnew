@@ -64,7 +64,7 @@ deque<THREADID> live_threads;
 UINT64 instruction_total;
 statistics_t all_threads_stats;
 
-#ifdef PRINT_VM_TRACE
+#if defined(PRINT_TRACE)
 ofstream TraceFile;
 #endif
 
@@ -442,7 +442,7 @@ VOID Fini(INT32 code, VOID *v)
 }
 
 VOID DataInit() {
-#ifdef PRINT_VM_TRACE
+#ifdef PRINT_TRACE
     TraceFile.open(KnobTraceFile.Value().c_str());
     wp = new WatchPoint<ADDRINT, UINT32>(TraceFile);
 #else

@@ -20,7 +20,7 @@
 
 using std::deque;
 //My own data
-#ifdef PRINT_VM_TRACE
+#ifdef PRINT_TRACE
 ofstream TraceFile;
 WatchPoint<ADDRINT, UINT32> wp(TraceFile);
 #else
@@ -4368,7 +4368,9 @@ void FlagRtn(RTN rtn, void* v)
 }
 
 VOID DataInit() {
+#ifdef PRINT_TRACE
     TraceFile.open(KnobTraceFile.Value().c_str());
+#endif
     wp.start_thread(0);
     number_of_instructions=0;
 }

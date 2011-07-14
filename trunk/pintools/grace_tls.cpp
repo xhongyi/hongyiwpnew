@@ -71,7 +71,7 @@ map<OS_THREAD_ID,thread_wp_data_t*>::iterator   thread_map_iter;
 
 UINT64 instruction_total;
 
-#ifdef PRINT_VM_TRACE
+#ifdef PRINT_TRACE
 ofstream TraceFile;
 #endif
 
@@ -409,7 +409,7 @@ VOID Fini(INT32 code, VOID *v)
 }
 
 VOID DataInit() {
-#ifdef PRINT_VM_TRACE
+#ifdef PRINT_TRACE
     TraceFile.open(KnobTraceFile.Value().c_str());
     wp = new WatchPoint<ADDRINT, UINT32>(TraceFile);
 #else
