@@ -209,11 +209,21 @@ inline statistics_t operator +(const statistics_t &a, const statistics_t &b) {
    return result;
 }
 
+template<class ADDRESS, class FLAGS>
+void WatchPoint<ADDRESS, FLAGS>::print_trace(char command, int thread_id, unsigned int starter, unsigned int ender)
+{
+#ifdef PRINT_VM_TRACE
+   trace_output << command << setw(5) << thread_id << setw(8) << starter << setw(8) << ender << endl;
+#endif
+}
+
 /*
  * Constructor
  */
 template<class ADDRESS, class FLAGS>
-WatchPoint<ADDRESS, FLAGS>::WatchPoint() {
+WatchPoint<ADDRESS, FLAGS>::WatchPoint() :
+    trace_output(std::cout)
+{
    emulate_hardware = true;
 #ifdef ORACLE_MULTI
    oracle_multi = new Oracle_multi<ADDRESS, FLAGS>();
@@ -233,7 +243,9 @@ WatchPoint<ADDRESS, FLAGS>::WatchPoint() {
  * Constructor that turns off hardware emulation
  */
 template<class ADDRESS, class FLAGS>
-WatchPoint<ADDRESS, FLAGS>::WatchPoint(bool do_emulate_hardware) {
+WatchPoint<ADDRESS, FLAGS>::WatchPoint(bool do_emulate_hardware) :
+    trace_output(std::cout)
+{
    emulate_hardware = do_emulate_hardware;
    if (emulate_hardware) {
 #ifdef ORACLE_MULTI
@@ -249,6 +261,32 @@ WatchPoint<ADDRESS, FLAGS>::WatchPoint(bool do_emulate_hardware) {
       pt2_byte_acu_multi = new PT2_byte_acu_single<ADDRESS, FLAGS>(oracle_multi);
 #endif
    }
+}
+
+/*
+ * Constructor that allows us to print backing store traces to a file.
+ */
+template<class ADDRESS, class FLAGS>
+WatchPoint<ADDRESS, FLAGS>::WatchPoint(ostream &trace_file) :
+    trace_output(trace_file)
+{
+    emulate_hardware=true;
+#ifdef PRINT_VM_TRACE
+    trace_output << setfill('0');
+    trace_output << hex;
+#endif
+#ifdef ORACLE_MULTI
+    oracle_multi = new Oracle_multi<ADDRESS, FLAGS>();
+#endif
+#ifdef PAGE_TABLE_MULTI
+    page_table_multi = new PageTable1_multi<ADDRESS, FLAGS>();
+#endif
+#ifdef PAGE_TABLE2_MULTI
+    page_table2_multi = new PageTable2_single<ADDRESS, FLAGS>(page_table_multi);
+#endif
+#ifdef PT2_BYTE_ACU_MULTI
+    pt2_byte_acu_multi = new PT2_byte_acu_single<ADDRESS, FLAGS>(oracle_multi);
+#endif
 }
 
 /*
@@ -299,8 +337,12 @@ int WatchPoint<ADDRESS, FLAGS>::start_thread(int32_t thread_id) {
        * Initiating Page Table
        */
       if (emulate_hardware) {
+    if(emulate_hardware)
 #ifdef ORACLE_MULTI
          oracle_multi->start_thread(thread_id, oracle_wp[thread_id]);
+#endif
+#ifdef PRINT_VM_TRACE
+         print_trace('i', thread_id, 0, 0);
 #endif
 #ifdef PAGE_TABLE
          page_table_wp[thread_id] = new PageTable1_single<ADDRESS, FLAGS>(oracle_wp.find(thread_id)->second);
@@ -502,6 +544,9 @@ bool  WatchPoint<ADDRESS, FLAGS>::general_fault(ADDRESS start, ADDRESS end, int3
       /*
        * declaring variables
        */
+#ifdef PRINT_VM_TRACE
+      bool print_me_vm = false;
+#endif
 #ifdef PAGE_TABLE_SINGLE
       bool page_table_fault = false;
 #endif
@@ -541,15 +586,29 @@ bool  WatchPoint<ADDRESS, FLAGS>::general_fault(ADDRESS start, ADDRESS end, int3
            */
 #ifdef PAGE_TABLE_SINGLE
          page_table_fault = page_table_wp[thread_id]->watch_fault(start, end);        // check if fault in thread_id page_table
+#ifdef PRINT_VM_TRACE
+         if(page_table_fault)
+             print_me_vm = true;
+#endif
 #endif
 #ifdef PAGE_TABLE_MULTI
          page_table_multi_fault = page_table_multi->watch_fault(start, end);
+         if(page_table_multi_fault)
+             print_me_vm = true;
 #endif
 #ifdef PAGE_TABLE2_SINGLE
          page_table2_fault = page_table2_wp[thread_id]->watch_fault(start, end);
+         if(page_table2_fault)
+             print_me_vm = true;
 #endif
 #ifdef PAGE_TABLE2_MULTI
          page_table2_multi_fault = page_table2_multi->watch_fault(start, end);
+         if(page_table2_multi_fault)
+             print_me_vm = true;
+#endif
+#ifdef PRINT_VM_TRACE
+         if(print_me_vm)
+             print_trace('k', thread_id, start, end);
 #endif
 #ifdef PT2_BYTE_ACU_SINGLE
          pt2_byte_acu_fault = pt2_byte_acu[thread_id]->general_fault(start, end, target_flags);
@@ -964,48 +1023,80 @@ int WatchPoint<ADDRESS, FLAGS>::general_change(ADDRESS start, ADDRESS end, int32
 //set  11   (r/w)
 template<class ADDRESS, class FLAGS>
 int WatchPoint<ADDRESS, FLAGS>::set_watch(ADDRESS start, ADDRESS end, int32_t thread_id, bool ignore_statistics) {
+#ifdef PRINT_VM_TRACE
+   if(emulate_hardware)
+      print_trace('d', thread_id, start, end);
+#endif
    return general_change(start, end, thread_id, "11", ignore_statistics);
 }
 
 //set  10
 template<class ADDRESS, class FLAGS>
 int WatchPoint<ADDRESS, FLAGS>::set_read(ADDRESS start, ADDRESS end, int32_t thread_id, bool ignore_statistics) {
+#ifdef PRINT_VM_TRACE
+   if(emulate_hardware)
+      print_trace('b', thread_id, start, end);
+#endif
    return general_change(start, end, thread_id, "10", ignore_statistics);
 }
 
 //set  01
 template<class ADDRESS, class FLAGS>
 int WatchPoint<ADDRESS, FLAGS>::set_write(ADDRESS start, ADDRESS end, int32_t thread_id, bool ignore_statistics) {
+#ifdef PRINT_VM_TRACE
+   if(emulate_hardware)
+      print_trace('c', thread_id, start, end);
+#endif
    return general_change(start, end, thread_id, "01", ignore_statistics);
 }
 
 //set  00
 template<class ADDRESS, class FLAGS>
 int WatchPoint<ADDRESS, FLAGS>::rm_watch(ADDRESS start, ADDRESS end, int32_t thread_id, bool ignore_statistics) {
+#ifdef PRINT_VM_TRACE
+   if(emulate_hardware)
+      print_trace('a', thread_id, start, end);
+#endif
    return general_change(start, end, thread_id, "00", ignore_statistics);
 }
 
 //update 1x
 template<class ADDRESS, class FLAGS>
 int WatchPoint<ADDRESS, FLAGS>::update_set_read(ADDRESS start, ADDRESS end, int32_t thread_id, bool ignore_statistics) {
+#ifdef PRINT_VM_TRACE
+   if(emulate_hardware)
+      print_trace('e', thread_id, start, end);
+#endif
    return general_change(start, end, thread_id, "1x", ignore_statistics);
 }
 
 //update x1
 template<class ADDRESS, class FLAGS>
 int WatchPoint<ADDRESS, FLAGS>::update_set_write(ADDRESS start, ADDRESS end, int32_t thread_id, bool ignore_statistics) {
+#ifdef PRINT_VM_TRACE
+   if(emulate_hardware)
+      print_trace('f', thread_id, start, end);
+#endif
    return general_change(start, end, thread_id, "x1", ignore_statistics);
 }
 
 //update 0x
 template<class ADDRESS, class FLAGS>
 int WatchPoint<ADDRESS, FLAGS>::rm_read(ADDRESS start, ADDRESS end, int32_t thread_id, bool ignore_statistics) {
+#ifdef PRINT_VM_TRACE
+   if(emulate_hardware)
+      print_trace('g', thread_id, start, end);
+#endif
    return general_change(start, end, thread_id, "0x", ignore_statistics);
 }
 
 //update x0
 template<class ADDRESS, class FLAGS>
 int WatchPoint<ADDRESS, FLAGS>::rm_write(ADDRESS start, ADDRESS end, int32_t thread_id, bool ignore_statistics) {
+#ifdef PRINT_VM_TRACE
+   if(emulate_hardware)
+      print_trace('h', thread_id, start, end);
+#endif
    return general_change(start, end, thread_id, "x0", ignore_statistics);
 }
 

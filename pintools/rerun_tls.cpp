@@ -21,7 +21,7 @@ limitations under the License. **/
 #define RERUN
 
 #ifndef RERUN
-//#define UNSOUND_RACE_DETECTOR
+#define UNSOUND_RACE_DETECTOR
 #endif
 
 #include <map>
@@ -64,9 +64,15 @@ deque<THREADID> live_threads;
 UINT64 instruction_total;
 statistics_t all_threads_stats;
 
+#ifdef PRINT_VM_TRACE
+ofstream TraceFile;
+#endif
+
 //My own data
 KNOB<string> KnobOutputFile(KNOB_MODE_WRITEONCE, "pintool",
-    "o", "rerun_tls.out", "specify output file name");
+        "o", "rerun_tls.out", "specify output file name");
+KNOB<string> KnobTraceFile(KNOB_MODE_WRITEONCE, "pintool",
+        "r", "rerun_tls.trace", "specify the name for the trace file");
 
 // This is "the big lock". You must hold this if you're going to
 // touch the thread map. However, if you're just going to grab
@@ -436,7 +442,12 @@ VOID Fini(INT32 code, VOID *v)
 }
 
 VOID DataInit() {
-    wp = new WatchPoint<ADDRINT, UINT32>;
+#ifdef PRINT_VM_TRACE
+    TraceFile.open(KnobTraceFile.Value().c_str());
+    wp = new WatchPoint<ADDRINT, UINT32>(TraceFile);
+#else
+    wp = new WatchPoint<ADDRINT, UINT32>();
+#endif
     mem = new WatchPoint<ADDRINT, UINT32>(false);
     instruction_total = 0;
     all_threads_stats = wp->clear_statistics();
@@ -453,6 +464,8 @@ INT32 Usage()
     cerr << "  Just give this a parallel program to run." << endl;
     cerr << "Will give output data in rerun_tls.out unless you give ";
     cerr << "it a -o {name} option." << endl;
+    cerr << "Will potentially give a trace of operations to the backing store ";
+    cerr << "into a file. Use -r {name} to change this location." << endl;
     cerr << endl << KNOB_BASE::StringKnobSummary() << endl;
     return -1;
 }
