@@ -552,10 +552,10 @@ bool  WatchPoint<ADDRESS, FLAGS>::general_fault(ADDRESS start, ADDRESS end, int3
          page_table2_multi_fault = page_table2_multi->watch_fault(start, end);
 #endif
 #ifdef PT2_BYTE_ACU_SINGLE
-         pt2_byte_acu_fault = pt2_byte_acu[thread_id]->watch_fault(start, end);
+         pt2_byte_acu_fault = pt2_byte_acu[thread_id]->general_fault(start, end, target_flags);
 #endif
 #ifdef PT2_BYTE_ACU_MULTI
-         pt2_byte_acu_multi_fault = pt2_byte_acu_multi->watch_fault(start, end);
+         pt2_byte_acu_multi_fault = pt2_byte_acu_multi->general_fault(start, end, target_flags);
 #endif
 #ifdef MEM_TRACKER
          mem_tracker_read_mises = mem_tracker[thread_id]->general_fault(start, end);
@@ -826,10 +826,26 @@ int WatchPoint<ADDRESS, FLAGS>::general_change(ADDRESS start, ADDRESS end, int32
                change_count2_multi = page_table2_multi->add_watchpoint(start, end);     // set page_table
 #endif
 #ifdef PT2_BYTE_ACU_SINGLE
-            change_count2_byte_acu = pt2_byte_acu[thread_id]->add_watchpoint(start, end);
+            if (rm_flag) {
+               pt2_byte_acu[thread_id]->add_watchpoint(start, end, add_flag);
+               change_count2_byte_acu = pt2_byte_acu[thread_id]->rm_watchpoint(start, end, rm_flag);
+               pt2_byte_acu[thread_id]->general_fault(start, end, add_flag | rm_flag);
+            }
+            else {
+               change_count2_byte_acu = pt2_byte_acu[thread_id]->add_watchpoint(start, end, add_flag);
+               pt2_byte_acu[thread_id]->general_fault(start, end, add_flag);
+            }
 #endif
 #ifdef PT2_BYTE_ACU_MULTI
-            change_count2_byte_acu_multi = pt2_byte_acu_multi->add_watchpoint(start, end);
+            if (rm_flag) {
+               pt2_byte_acu_multi->add_watchpoint(start, end, add_flag);
+               change_count2_byte_acu_multi = pt2_byte_acu_multi->add_watchpoint(start, end, rm_flag);
+               pt2_byte_acu_multi->general_fault(start, end, add_flag | rm_flag);
+            }
+            else {
+               change_count2_byte_acu_multi = pt2_byte_acu_multi->add_watchpoint(start, end, add_flag);
+               pt2_byte_acu_multi->general_fault(start, end, add_flag);
+            }
 #endif
 #ifdef RC_SINGLE
             range_cache_write_misses = range_cache[thread_id]->add_watchpoint(start, end, (target_flags.find("x")!=string::npos));
@@ -858,10 +874,12 @@ int WatchPoint<ADDRESS, FLAGS>::general_change(ADDRESS start, ADDRESS end, int32
                change_count2_multi = page_table2_multi->rm_watchpoint(start, end);    // set page_table
 #endif
 #ifdef PT2_BYTE_ACU_SINGLE
-            change_count2_byte_acu = pt2_byte_acu[thread_id]->rm_watchpoint(start, end);
+            change_count2_byte_acu = pt2_byte_acu[thread_id]->rm_watchpoint(start, end, rm_flag);
+            pt2_byte_acu[thread_id]->general_fault(start, end, rm_flag);
 #endif
 #ifdef PT2_BYTE_ACU_MULTI
-            change_count2_byte_acu_multi = pt2_byte_acu_multi->rm_watchpoint(start, end);
+            change_count2_byte_acu_multi = pt2_byte_acu_multi->rm_watchpoint(start, end, rm_flag);
+            pt2_byte_acu_multi->general_fault(start, end, rm_flag);
 #endif
 #ifdef RC_SINGLE
             range_cache_write_misses = range_cache[thread_id]->rm_watchpoint(start, end, (target_flags.find("x")!=string::npos));
@@ -1149,7 +1167,7 @@ statistics_t WatchPoint<ADDRESS, FLAGS>::clear_statistics() {
    empty.pt2_byte_acu_multi_page_faults=0;
    empty.pt2_byte_acu_multi_bitmap_faults=0;
    empty.pt2_byte_acu_multi_changes=0;
-   empty.pt2_byte_acu_multi_plb_misses=0
+   empty.pt2_byte_acu_multi_plb_misses=0;
    #endif
    #ifdef MEM_TRACKER
    empty.mem_tracker_read_miss=0;

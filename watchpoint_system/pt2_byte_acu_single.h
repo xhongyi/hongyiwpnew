@@ -27,7 +27,7 @@ public:
    /*
     * this function tells all pages covered by this range is watched or not
     */
-   int     general_fault  (ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags = 0);
+   int     general_fault  (ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags);
    int     watch_fault    (ADDRESS start_addr, ADDRESS end_addr);
    int     read_fault     (ADDRESS start_addr, ADDRESS end_addr);
    int     write_fault    (ADDRESS start_addr, ADDRESS end_addr);
@@ -35,12 +35,15 @@ public:
     * returns the number of changes it does on bit_map
     * for counting the number of changes: changes = add or rm;
     */
-   int      add_watchpoint (ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags = 0);
-   int      rm_watchpoint  (ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags = 0);
+   int      add_watchpoint (ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags);
+   int      rm_watchpoint  (ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags);
    
-   bool     check_page_level_unity        (ADDRESS page_number,      bool watched);
-   bool     check_superpage_level_unity   (ADDRESS superpage_number, bool watched);
-   bool     check_seg_reg_level_unity     (bool watched);
+   bool     check_page_level_consistency        (ADDRESS page_number,      FLAGS target_flags, bool watched);
+   bool     check_superpage_level_consistency   (ADDRESS superpage_number, FLAGS target_flags, bool watched);
+   bool     check_seg_reg_level_consistency     (                          FLAGS target_flags, bool watched);
+   bool     check_page_level_consistency        (ADDRESS page_number);
+   bool     check_superpage_level_consistency   (ADDRESS superpage_number);
+   bool     check_seg_reg_level_consistency     ();
    // this is just an empty function
    typename deque<watchpoint_t<ADDRESS, FLAGS> >::iterator
       search_address             (ADDRESS target_addr)
