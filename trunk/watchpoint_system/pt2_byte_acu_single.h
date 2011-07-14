@@ -12,9 +12,11 @@
 #define BITMAP_WATCHED     6
 #define BITMAP_UNWATCHED   7
 
+#include <bitset>
 #include "plb.h"
 #include "virtual_wp.h"
 #include "page_table2_single.h"
+using namespace std;
 
 template<class ADDRESS, class FLAGS>
 class PT2_byte_acu_single : public Virtual_wp<ADDRESS, FLAGS> {
@@ -55,21 +57,21 @@ private:
     * two bits for all pages (in segmentation register)
     * watched(10), unwatched(01) or missed(00)
     */
-   bool seg_reg_watched;
-   bool seg_reg_unwatched;
+   bool seg_reg_read_watched;
+   bool seg_reg_write_watched;
+   bool seg_reg_unknown;
    /*
     * two bits for each 2nd_level_page
-    * watched(10), unwatched(01) or missed(00)
     */
-   unsigned char superpage_watched[SUPER_PAGE_BIT_MAP_NUMBER];
-   unsigned char superpage_unwatched[SUPER_PAGE_BIT_MAP_NUMBER];
+   bitset<SUPERPAGE_NUM> superpage_read_watched;
+   bitset<SUPERPAGE_NUM> superpage_write_watched;
+   bitset<SUPERPAGE_NUM> superpage_unknown;
    /*
-    * two bit for each page
-    * keeping track of whether this page is watched(10) or 
-    * unwatched(01) or bitmap(00)
+    * two bits for each page
     */
-   unsigned char pt_watched[BIT_MAP_NUMBER];
-   unsigned char pt_unwatched[BIT_MAP_NUMBER];
+   bitset<PAGE_NUMBER> pt_read_watched;
+   bitset<PAGE_NUMBER> pt_write_watched;
+   bitset<PAGE_NUMBER> pt_unknown;
    // protection lookaside buffer
    PLB<ADDRESS>  plb;
 };
