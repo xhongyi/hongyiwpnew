@@ -18,7 +18,7 @@ Offcbm<ADDRESS, FLAGS>::~Offcbm() {
 
 template<class ADDRESS, class FLAGS>
 int Offcbm<ADDRESS, FLAGS>::general_fault(ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags) {
-   return wlb.wp_operation(start_addr, end_addr);
+   return wlb.general_fault(start_addr, end_addr);
 }
 
 template<class ADDRESS, class FLAGS>
