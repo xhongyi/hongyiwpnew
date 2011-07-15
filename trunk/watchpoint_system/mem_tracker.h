@@ -30,12 +30,15 @@ public:
    MemTracker();
    ~MemTracker();
    // returns the number of misses in WLB
-   unsigned int general_fault (ADDRESS start_addr, ADDRESS end_addr);
-   unsigned int wp_operation  (ADDRESS start_addr, ADDRESS end_addr);
+   unsigned int general_fault     (ADDRESS start_addr, ADDRESS end_addr);
+   unsigned int wp_operation      (ADDRESS start_addr, ADDRESS end_addr);
+   unsigned int update_watchpoint (ADDRESS start_addr, ADDRESS end_addr);
+   unsigned int set_watchpoint    (ADDRESS start_addr, ADDRESS end_addr);
 private:
    deque<ADDRESS>      cache[CACHE_SET_NUM];
    // returns true if it is a hit
    bool check_and_update (ADDRESS target_index);
+   void update_if_exist  (ADDRESS target_index);
    // for keeping the size of the WLB
    bool cache_overflow (ADDRESS set);
    void cache_kickout  (ADDRESS set);
