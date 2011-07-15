@@ -24,8 +24,7 @@ public:
       search_address    (ADDRESS target_addr);
    // for updating the wlb
    //    only call these function when we are sure the range is within the off-cbm region
-   unsigned int  update_wp       (ADDRESS start_addr, ADDRESS end_addr);
-   unsigned int  set_wp          (ADDRESS start_addr, ADDRESS end_addr);
+   unsigned int  wp_operation    (ADDRESS start_addr, ADDRESS end_addr);
    // for removing off-chip bitmap within a range
    void rm_offcbm       (ADDRESS start_addr, ADDRESS end_addr);
    // only on a kickout, decide whether to switch a page to off-cbm or to range or doing nothing

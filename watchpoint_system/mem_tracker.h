@@ -25,8 +25,6 @@ public:
    // returns the number of misses in WLB
    unsigned int general_fault     (ADDRESS start_addr, ADDRESS end_addr);
    unsigned int wp_operation      (ADDRESS start_addr, ADDRESS end_addr);
-   unsigned int update_watchpoint (ADDRESS start_addr, ADDRESS end_addr);
-   unsigned int set_watchpoint    (ADDRESS start_addr, ADDRESS end_addr);
 private:
    deque<ADDRESS>      cache[CACHE_SET_NUM];
    // returns true if it is a hit
