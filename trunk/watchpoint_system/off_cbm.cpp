@@ -17,13 +17,18 @@ Offcbm<ADDRESS, FLAGS>::~Offcbm() {
 }
 
 template<class ADDRESS, class FLAGS>
-int Offcbm<ADDRESS, FLAGS>::general_fault(ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags) {
+unsigned int Offcbm<ADDRESS, FLAGS>::general_fault(ADDRESS start_addr, ADDRESS end_addr) {
    return wlb.general_fault(start_addr, end_addr);
 }
 
 template<class ADDRESS, class FLAGS>
-int Offcbm<ADDRESS, FLAGS>::wp_operation(ADDRESS start_addr, ADDRESS end_addr) {
-   return wlb.wp_operation(start_addr, end_addr);
+unsigned int Offcbm<ADDRESS, FLAGS>::update_wp(ADDRESS start_addr, ADDRESS end_addr) {
+   return wlb.update_watchpoint(start_addr, end_addr);
+}
+
+template<class ADDRESS, class FLAGS>
+unsigned int Offcbm<ADDRESS, FLAGS>::set_wp(ADDRESS start_addr, ADDRESS end_addr) {
+   return wlb.set_watchpoint(start_addr, end_addr);
 }
 
 template<class ADDRESS, class FLAGS>
@@ -46,7 +51,7 @@ Offcbm<ADDRESS, FLAGS>::search_address(ADDRESS target_addr) {
 }
 
 template<class ADDRESS, class FLAGS>
-int Offcbm<ADDRESS, FLAGS>::kickout_dirty(ADDRESS target_addr) {
+unsigned int Offcbm<ADDRESS, FLAGS>::kickout_dirty(ADDRESS target_addr) {
    ADDRESS tag = (target_addr>>LOG_OFF_CBM_SIZE);
    typename deque<ADDRESS>::iterator i;
    for (i=offcbm_pages.begin();i!=offcbm_pages.end();i++) {
@@ -71,13 +76,15 @@ template<class ADDRESS, class FLAGS>
 void Offcbm<ADDRESS, FLAGS>::rm_offcbm(ADDRESS start_addr, ADDRESS end_addr) {
    ADDRESS start_idx = (start_addr>>LOG_OFF_CBM_SIZE);
    ADDRESS end_idx = (start_addr>>LOG_OFF_CBM_SIZE);
-   typename deque<ADDRESS>::iterator i = offcbm_pages.begin();
-   while (i != offcbm_pages.end()) {
-      for (i=offcbm_pages.begin();i!=offcbm_pages.end();i++) {
-         if (*i < end_idx && *i > start_idx) {
-            offcbm_pages.erase(i);
-            i=offcbm_pages.begin();
-            break;
+   if (start_idx != end_idx) {
+      typename deque<ADDRESS>::iterator i = offcbm_pages.begin();
+      while (i != offcbm_pages.end()) {
+         for (i=offcbm_pages.begin();i!=offcbm_pages.end();i++) {
+            if (*i < end_idx && *i > start_idx) {                 // does not remove start and end page offcbm
+               offcbm_pages.erase(i);
+               i=offcbm_pages.begin();
+               break;
+            }
          }
       }
    }

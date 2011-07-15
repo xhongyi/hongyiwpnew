@@ -208,6 +208,7 @@ struct statistics_t {
    long long rc_offcbm_write_hits;
    long long rc_offcbm_write_miss;
    long long rc_offcbm_wlb_miss;
+   long long rc_offcbm_wlb_miss_size;
    long long rc_offcbm_backing_store_accesses;
    long long rc_offcbm_kickout_dirties;
    long long rc_offcbm_kickouts;

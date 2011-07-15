@@ -19,6 +19,7 @@ RangeCache<ADDRESS, FLAGS>::RangeCache(Oracle<ADDRESS, FLAGS> *wp_ref, int tid, 
    offcbm_switch=0;
    range_switch=0;
    wlb_miss=0;
+   wlb_miss_size=0;
 }
 
 template<class ADDRESS, class FLAGS>
@@ -37,6 +38,7 @@ RangeCache<ADDRESS, FLAGS>::RangeCache(ostream &output_stream, Oracle<ADDRESS, F
    offcbm_switch=0;
    range_switch=0;
    wlb_miss=0;
+   wlb_miss_size=0;
 }
 
 template<class ADDRESS, class FLAGS>
@@ -52,6 +54,7 @@ RangeCache<ADDRESS, FLAGS>::RangeCache() :
    offcbm_switch=0;
    range_switch=0;
    wlb_miss=0;
+   wlb_miss_size=0;
 }
 
 template<class ADDRESS, class FLAGS>
@@ -78,34 +81,34 @@ void RangeCache<ADDRESS, FLAGS>::print_trace(int command, int thread_id, unsigne
 }
 
 template<class ADDRESS, class FLAGS>
-int RangeCache<ADDRESS, FLAGS>::watch_fault(ADDRESS start_addr, ADDRESS end_addr) {
+unsigned int RangeCache<ADDRESS, FLAGS>::watch_fault(ADDRESS start_addr, ADDRESS end_addr) {
    return general_fault(start_addr, end_addr);
 }
 
 template<class ADDRESS, class FLAGS>
-int RangeCache<ADDRESS, FLAGS>::read_fault(ADDRESS start_addr, ADDRESS end_addr) {
+unsigned int RangeCache<ADDRESS, FLAGS>::read_fault(ADDRESS start_addr, ADDRESS end_addr) {
    return general_fault(start_addr, end_addr);
 }
 
 template<class ADDRESS, class FLAGS>
-int RangeCache<ADDRESS, FLAGS>::write_fault(ADDRESS start_addr, ADDRESS end_addr) {
+unsigned int RangeCache<ADDRESS, FLAGS>::write_fault(ADDRESS start_addr, ADDRESS end_addr) {
    return general_fault(start_addr, end_addr);
 }
 
 template<class ADDRESS, class FLAGS>
-int RangeCache<ADDRESS, FLAGS>::add_watchpoint(ADDRESS start_addr, ADDRESS end_addr, bool is_update) {
+unsigned int RangeCache<ADDRESS, FLAGS>::add_watchpoint(ADDRESS start_addr, ADDRESS end_addr, bool is_update) {
    return wp_operation(start_addr, end_addr, is_update);
 }
 
 template<class ADDRESS, class FLAGS>
-int RangeCache<ADDRESS, FLAGS>::rm_watchpoint(ADDRESS start_addr, ADDRESS end_addr, bool is_update) {
+unsigned int RangeCache<ADDRESS, FLAGS>::rm_watchpoint(ADDRESS start_addr, ADDRESS end_addr, bool is_update) {
    return wp_operation(start_addr, end_addr, is_update);
 }
 // we only need to know if it is a hit or miss in a range cache
 //    so it is regardless of the checked flags
 template<class ADDRESS, class FLAGS>
-int RangeCache<ADDRESS, FLAGS>::general_fault(ADDRESS start_addr, ADDRESS end_addr) {
-   int rc_miss = 0;
+unsigned int RangeCache<ADDRESS, FLAGS>::general_fault(ADDRESS start_addr, ADDRESS end_addr) {
+   unsigned int rc_miss = 0;
    // assert start_addr and end_addr is in the same page (same off-chip bitmap)
 #ifdef RC_OFFCBM
    if ((start_addr>>PAGE_OFFSET_LENGTH) != (end_addr>>PAGE_OFFSET_LENGTH)) {
@@ -129,7 +132,10 @@ int RangeCache<ADDRESS, FLAGS>::general_fault(ADDRESS start_addr, ADDRESS end_ad
          rc_miss++;
       }
       rc_data.push_front(temp);
-      wlb_miss += offcbm_wp->wp_operation(start_addr, end_addr);  // refresh wlb
+      unsigned int new_miss_size = offcbm_wp->general_fault(start_addr, end_addr);  // refresh wlb
+      wlb_miss_size += new_miss_size;
+      if (new_miss_size)
+         wlb_miss++;
    }
    else {   // no off-cbm case
       typename std::deque< watchpoint_t<ADDRESS, FLAGS> >::iterator rc_read_iter;
@@ -164,8 +170,8 @@ int RangeCache<ADDRESS, FLAGS>::general_fault(ADDRESS start_addr, ADDRESS end_ad
 // wp_operation is same for add or rm a watchpoint, 
 //    both simulated by removing all covered ranges and then getting new ranges from backing store
 template<class ADDRESS, class FLAGS>
-int RangeCache<ADDRESS, FLAGS>::wp_operation(ADDRESS start_addr, ADDRESS end_addr, bool is_update) {
-   int rc_miss = 0;
+unsigned int RangeCache<ADDRESS, FLAGS>::wp_operation(ADDRESS start_addr, ADDRESS end_addr, bool is_update) {
+   unsigned int rc_miss = 0;
    if (off_cbm && offcbm_wp->search_address(start_addr)->flags == WA_OFFCBM) {
       // assert start_addr and end_addr is in the same page (same off-chip bitmap)
       if ((start_addr>>PAGE_OFFSET_LENGTH) != (end_addr>>PAGE_OFFSET_LENGTH)) {
@@ -187,7 +193,14 @@ int RangeCache<ADDRESS, FLAGS>::wp_operation(ADDRESS start_addr, ADDRESS end_add
          rc_miss++;
       }
       rc_data.push_front(temp);
-      wlb_miss += offcbm_wp->wp_operation(start_addr, end_addr);  // refresh wlb
+      if (is_update) {
+         unsigned int new_miss_size = offcbm_wp->update_wp(start_addr, end_addr);  // refresh wlb
+         wlb_miss_size += new_miss_size;
+         if (new_miss_size)
+            wlb_miss++;
+      }
+      else
+         wlb_miss_size += offcbm_wp->set_wp(start_addr, end_addr);     // refresh wlb
    }
    else {
       bool complex_update = false;
@@ -287,8 +300,9 @@ int RangeCache<ADDRESS, FLAGS>::wp_operation(ADDRESS start_addr, ADDRESS end_add
       }
       else {      // sets can create only one range
          rm_range(start_addr, end_addr);
-         if (off_cbm)
+         if (off_cbm) {
             offcbm_wp->rm_offcbm(start_addr, end_addr);
+         }
          oracle_iter = oracle_wp->search_address(start_addr);
          temp = *oracle_iter;
          temp.flags |= DIRTY;
@@ -331,7 +345,7 @@ void RangeCache<ADDRESS, FLAGS>::cache_kickout() {
       kickout++;
       if (rc_data.back().flags & DIRTY) {
          kickout_dirty++;
-         int check_switch = offcbm_wp->kickout_dirty(rc_data.back().start_addr);
+         unsigned int check_switch = offcbm_wp->kickout_dirty(rc_data.back().start_addr);
          if (check_switch == 1) {      // switch to offcbm
             offcbm_switch++;
             general_fault(rc_data.back().start_addr, rc_data.back().start_addr);
@@ -351,8 +365,8 @@ void RangeCache<ADDRESS, FLAGS>::cache_kickout() {
       if (rc_data.back().flags & DIRTY) {
          if(rc_data.back().flags & WA_OCBM) {
              typename std::deque< watchpoint_t<ADDRESS, FLAGS> >::iterator find_iter;
-             int print_flags;
-             unsigned int print_start, print_end;
+             FLAGS print_flags;
+             ADDRESS print_start, print_end;
              ADDRESS iter_addr = rc_data.back().start_addr;
              find_iter = oracle_wp->search_address(iter_addr);
              print_start = iter_addr;
@@ -388,8 +402,8 @@ typename std::deque< watchpoint_t<ADDRESS, FLAGS> >::iterator
 }
 
 template<class ADDRESS, class FLAGS>
-int RangeCache<ADDRESS, FLAGS>::rm_range(ADDRESS start_addr, ADDRESS end_addr) {
-   int rc_miss = 0;
+unsigned int RangeCache<ADDRESS, FLAGS>::rm_range(ADDRESS start_addr, ADDRESS end_addr) {
+   unsigned int rc_miss = 0;
    typename std::deque< watchpoint_t<ADDRESS, FLAGS> >::iterator rc_rm_iter;
    watchpoint_t<ADDRESS, FLAGS> temp;
    rc_rm_iter = search_address(start_addr);

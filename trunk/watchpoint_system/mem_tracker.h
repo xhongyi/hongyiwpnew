@@ -1,6 +1,6 @@
 #ifndef MEM_TRACKER_H_
 #define MEM_TRACKER_H_
-// cache size for mem_tracker (can be modified for wlb in off-chip bitmap)/*
+// cache size for mem_tracker (can be modified for wlb in off-chip bitmap)
 // Each line in the TL1 is 64-bytes long. Because it takes 2 bits to hold
 // a watchpoint for a byte in memory, each line holds 256 words of watchpoints.
 #define LOG_CACHE_LINE_SIZE      8UL
@@ -9,14 +9,7 @@
 #define CACHE_ASSOCIATIVITY      4UL
 // 4KB, 4-way SA cache with 64byte lines means 16 lines per way.
 #define CACHE_SET_IDX_LEN        4UL
-#define CACHE_SET_NUM            (1<<CACHE_SET_IDX_LEN)    // 16*/
-// cache size for range_cache watchpoint lookaside buffer(RC WLB)
-/*
-#define LOG_CACHE_LINE_SIZE      8UL
-#define CACHE_LINE_SIZE          (1<<LOG_CACHE_LINE_SIZE) // 2^8 = 256 entry size
-#define CACHE_ASSOCIATIVITY      32UL                      // 32 entries fully associative
-#define CACHE_SET_IDX_LEN        0UL
-#define CACHE_SET_NUM            (1<<CACHE_SET_IDX_LEN)    // 1 set*/
+#define CACHE_SET_NUM            (1<<CACHE_SET_IDX_LEN)    // 16
 // Size of the bus to memory, in bytes, to count how many loads it takes to fill a cache line.
 #define MEM_BUS_SIZE             8UL
 #define NUM_MEMORY_CYCLES        (CACHE_LINE_SIZE>>2)/MEM_BUS_SIZE
