@@ -18,18 +18,19 @@ public:
    ~Offcbm();
    // for updating the wlb
    //    only call these function when we are sure the range is within the off-cbm region
-   int  general_fault   (ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags);
+   unsigned int  general_fault   (ADDRESS start_addr, ADDRESS end_addr);
    // special search function, search in offcbm_pages first and then the oracle
    typename deque<watchpoint_t<ADDRESS, FLAGS> >::iterator
       search_address    (ADDRESS target_addr);
    // for updating the wlb
    //    only call these function when we are sure the range is within the off-cbm region
-   int  wp_operation    (ADDRESS start_addr, ADDRESS end_addr);
+   unsigned int  update_wp       (ADDRESS start_addr, ADDRESS end_addr);
+   unsigned int  set_wp          (ADDRESS start_addr, ADDRESS end_addr);
    // for removing off-chip bitmap within a range
    void rm_offcbm       (ADDRESS start_addr, ADDRESS end_addr);
    // only on a kickout, decide whether to switch a page to off-cbm or to range or doing nothing
    //    return value: 1=off-cbm; 2=range;
-   int  kickout_dirty   (ADDRESS target_addr);
+   unsigned int  kickout_dirty   (ADDRESS target_addr);
 private:
    Oracle<ADDRESS, FLAGS>*                oracle_wp;
    deque<ADDRESS>                         offcbm_pages;

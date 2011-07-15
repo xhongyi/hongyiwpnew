@@ -97,6 +97,7 @@ inline statistics_t& operator +=(statistics_t &a, const statistics_t &b) { // no
    a.rc_offcbm_write_hits += b.rc_offcbm_write_hits;
    a.rc_offcbm_write_miss += b.rc_offcbm_write_miss;
    a.rc_offcbm_wlb_miss += b.rc_offcbm_wlb_miss;
+   a.rc_offcbm_wlb_miss_size += b.rc_offcbm_wlb_miss_size;
    a.rc_offcbm_backing_store_accesses += b.rc_offcbm_backing_store_accesses;
    a.rc_offcbm_kickout_dirties += b.rc_offcbm_kickout_dirties;
    a.rc_offcbm_kickouts += b.rc_offcbm_kickouts;
@@ -201,6 +202,7 @@ inline statistics_t operator +(const statistics_t &a, const statistics_t &b) {
    result.rc_offcbm_write_hits = a.rc_offcbm_write_hits + b.rc_offcbm_write_hits;
    result.rc_offcbm_write_miss = a.rc_offcbm_write_miss + b.rc_offcbm_write_miss;
    result.rc_offcbm_wlb_miss = a.rc_offcbm_wlb_miss + b.rc_offcbm_wlb_miss;
+   result.rc_offcbm_wlb_miss_size = a.rc_offcbm_wlb_miss_size + b.rc_offcbm_wlb_miss_size;
    result.rc_offcbm_backing_store_accesses = a.rc_offcbm_backing_store_accesses + b.rc_offcbm_backing_store_accesses;
    result.rc_offcbm_kickout_dirties = a.rc_offcbm_kickout_dirties + b.rc_offcbm_kickout_dirties;
    result.rc_offcbm_kickouts = a.rc_offcbm_kickouts + b.rc_offcbm_kickouts;
@@ -407,6 +409,7 @@ statistics_t WatchPoint<ADDRESS, FLAGS>::update_active_stats(int32_t thread_id) 
 #ifdef RC_OFFCBM
          range_cache_offcbm_iter = range_cache_offcbm.find(thread_id);
          local_stats.rc_offcbm_wlb_miss += range_cache_offcbm_iter->second->wlb_miss;
+         local_stats.rc_offcbm_wlb_miss_size += range_cache_offcbm_iter->second->wlb_miss_size;
          local_stats.rc_offcbm_kickout_dirties += range_cache_offcbm_iter->second->kickout_dirty;
          local_stats.rc_offcbm_kickouts += range_cache_offcbm_iter->second->kickout;
          local_stats.rc_offcbm_complex_updates += range_cache_offcbm_iter->second->complex_updates;
@@ -560,28 +563,28 @@ bool  WatchPoint<ADDRESS, FLAGS>::general_fault(ADDRESS start, ADDRESS end, int3
       bool page_table_multi_fault = false;
 #endif
 #ifdef PAGE_TABLE2_SINGLE
-      int page_table2_fault = 0;
+      unsigned int page_table2_fault = 0;
 #endif
 #ifdef PAGE_TABLE2_MULTI
-      int page_table2_multi_fault = 0;
+      unsigned int page_table2_multi_fault = 0;
 #endif
 #ifdef PT2_BYTE_ACU_SINGLE
-      int pt2_byte_acu_fault = 0;
+      unsigned int pt2_byte_acu_fault = 0;
 #endif
 #ifdef PT2_BYTE_ACU_MULTI
-      int pt2_byte_acu_multi_fault = 0;
+      unsigned int pt2_byte_acu_multi_fault = 0;
 #endif
 #ifdef MEM_TRACKER
       unsigned int mem_tracker_read_mises = 0;
 #endif
 #ifdef RC_SINGLE
-      int range_cache_misses = 0;
+      unsigned int range_cache_misses = 0;
 #endif
 #ifdef RC_OCBM
-      int range_cache_ocbm_misses = 0;
+      unsigned int range_cache_ocbm_misses = 0;
 #endif
 #ifdef RC_OFFCBM
-      int range_cache_offcbm_misses = 0;
+      unsigned int range_cache_offcbm_misses = 0;
 #endif
       /*
        * emulating hardware
@@ -850,34 +853,34 @@ int WatchPoint<ADDRESS, FLAGS>::general_change(ADDRESS start, ADDRESS end, int32
     * handle watchpoints
     */
 #ifdef PAGE_TABLE
-   int change_count = 0;
+   unsigned int change_count = 0;
 #endif
 #ifdef PAGE_TABLE_MULTI
-   int change_count_multi = 0;
+   unsigned int change_count_multi = 0;
 #endif
 #ifdef PAGE_TABLE2_SINGLE
-   int change_count2 = 0;
+   unsigned int change_count2 = 0;
 #endif
 #ifdef PAGE_TABLE2_MULTI
-   int change_count2_multi = 0;
+   unsigned int change_count2_multi = 0;
 #endif
 #ifdef PT2_BYTE_ACU_SINGLE
-   int change_count2_byte_acu = 0;
+   unsigned int change_count2_byte_acu = 0;
 #endif
 #ifdef PT2_BYTE_ACU_MULTI
-   int change_count2_byte_acu_multi = 0;
+   unsigned int change_count2_byte_acu_multi = 0;
 #endif
 #ifdef MEM_TRACKER
    unsigned int mem_tracker_write_mises = 0;
 #endif
 #ifdef RC_SINGLE
-   int range_cache_write_misses = 0;
+   unsigned int range_cache_write_misses = 0;
 #endif
 #ifdef RC_OCBM
-   int range_cache_ocbm_write_misses = 0;
+   unsigned int range_cache_ocbm_write_misses = 0;
 #endif
 #ifdef RC_OFFCBM
-   int range_cache_offcbm_write_misses = 0;
+   unsigned int range_cache_offcbm_write_misses = 0;
 #endif
    oracle_wp_iter = oracle_wp.find(thread_id);
    if (oracle_wp_iter != oracle_wp.end()) {                                   // if thread_id found
@@ -1322,6 +1325,7 @@ statistics_t WatchPoint<ADDRESS, FLAGS>::clear_statistics() {
    empty.rc_offcbm_write_hits=0;
    empty.rc_offcbm_write_miss=0;
    empty.rc_offcbm_wlb_miss=0;
+   empty.rc_offcbm_wlb_miss_size=0;
    empty.rc_offcbm_backing_store_accesses=0;
    empty.rc_offcbm_kickout_dirties=0;
    empty.rc_offcbm_kickouts=0;
@@ -1476,6 +1480,7 @@ void WatchPoint<ADDRESS, FLAGS>::print_statistics(const statistics_t& to_print, 
    output << setw(45) << "Range Cache (OffCBM) write hit: " << to_print.rc_offcbm_write_hits << endl;
    output << setw(45) << "Range Cache (OffCBM) write miss: " << to_print.rc_offcbm_write_miss << endl;
    output << setw(45) << "Range Cache (OffCBM) wlb miss: " << to_print.rc_offcbm_wlb_miss << endl;
+   output << setw(45) << "Range Cache (OffCBM) 32bit blocks modified: " << to_print.rc_offcbm_wlb_miss_size << endl;
    output << setw(45) << "Range Cache (OffCBM) backing store access: " << to_print.rc_offcbm_backing_store_accesses << endl;
    output << setw(45) << "Range Cache (OffCBM) kickouts dirty: " << to_print.rc_offcbm_kickout_dirties << endl;
    output << setw(45) << "Range Cache (OffCBM) kickouts total: " << to_print.rc_offcbm_kickouts << endl;
