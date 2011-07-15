@@ -193,18 +193,10 @@ unsigned int RangeCache<ADDRESS, FLAGS>::wp_operation(ADDRESS start_addr, ADDRES
          rc_miss++;
       }
       rc_data.push_front(temp);
-      if (is_update) {
-         unsigned int new_miss_size = offcbm_wp->update_wp(start_addr, end_addr);  // refresh wlb
-         wlb_miss_size += new_miss_size;
-         if (new_miss_size)
-            wlb_miss++;
-      }
-      else {
-         unsigned int new_miss_size = offcbm_wp->set_wp(start_addr, end_addr);  // refresh wlb
-         wlb_miss_size += new_miss_size;
-         if (new_miss_size)
-            wlb_miss++;
-      }
+      unsigned int new_miss_size = offcbm_wp->wp_operation(start_addr, end_addr);  // refresh wlb
+      wlb_miss_size += new_miss_size;
+      if (new_miss_size)
+         wlb_miss++;
    }
    else {
       bool complex_update = false;

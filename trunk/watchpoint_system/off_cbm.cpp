@@ -22,13 +22,8 @@ unsigned int Offcbm<ADDRESS, FLAGS>::general_fault(ADDRESS start_addr, ADDRESS e
 }
 
 template<class ADDRESS, class FLAGS>
-unsigned int Offcbm<ADDRESS, FLAGS>::update_wp(ADDRESS start_addr, ADDRESS end_addr) {
-   return wlb.update_watchpoint(start_addr, end_addr);
-}
-
-template<class ADDRESS, class FLAGS>
-unsigned int Offcbm<ADDRESS, FLAGS>::set_wp(ADDRESS start_addr, ADDRESS end_addr) {
-   return wlb.set_watchpoint(start_addr, end_addr);
+unsigned int Offcbm<ADDRESS, FLAGS>::wp_operation(ADDRESS start_addr, ADDRESS end_addr) {
+   return wlb.wp_operation(start_addr, end_addr);
 }
 
 template<class ADDRESS, class FLAGS>
