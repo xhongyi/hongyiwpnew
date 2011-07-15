@@ -38,11 +38,13 @@ public:
    void watch_print     (ostream &output = cout);
    // only for range_cache with ocbm function
    void check_ocbm      (ADDRESS start_addr, ADDRESS end_addr);
+   // statistics:
    long long                              offcbm_switch, 
                                           range_switch, 
                                           kickout_dirty, 
                                           kickout, 
-                                          complex_updates;
+                                          complex_updates, 
+                                          wlb_miss;
 private:
    bool ocbm, off_cbm;
    ostream &trace_output;

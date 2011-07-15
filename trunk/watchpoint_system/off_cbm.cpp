@@ -59,8 +59,8 @@ int Offcbm<ADDRESS, FLAGS>::kickout_dirty(ADDRESS target_addr) {
          return 0;
       }
    }
-   if (oracle_wp->search_address(((tag+1)<<LOG_OFF_CBM_SIZE)-1)
-     - oracle_wp->search_address(tag<<LOG_OFF_CBM_SIZE)+1 > OFF_CBM_UPPER_THREASHOLD) {
+   if ( (oracle_wp->search_address(((tag+1)<<LOG_OFF_CBM_SIZE)-1)
+         - oracle_wp->search_address(tag<<LOG_OFF_CBM_SIZE) + 1) > OFF_CBM_UPPER_THREASHOLD) {
       offcbm_pages.push_front(tag);
       return 1;
    }

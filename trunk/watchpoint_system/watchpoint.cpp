@@ -96,6 +96,7 @@ inline statistics_t& operator +=(statistics_t &a, const statistics_t &b) { // no
    a.rc_offcbm_read_miss += b.rc_offcbm_read_miss;
    a.rc_offcbm_write_hits += b.rc_offcbm_write_hits;
    a.rc_offcbm_write_miss += b.rc_offcbm_write_miss;
+   a.rc_offcbm_wlb_miss += b.rc_offcbm_wlb_miss;
    a.rc_offcbm_backing_store_accesses += b.rc_offcbm_backing_store_accesses;
    a.rc_offcbm_kickout_dirties += b.rc_offcbm_kickout_dirties;
    a.rc_offcbm_kickouts += b.rc_offcbm_kickouts;
@@ -199,6 +200,7 @@ inline statistics_t operator +(const statistics_t &a, const statistics_t &b) {
    result.rc_offcbm_read_miss = a.rc_offcbm_read_miss + b.rc_offcbm_read_miss;
    result.rc_offcbm_write_hits = a.rc_offcbm_write_hits + b.rc_offcbm_write_hits;
    result.rc_offcbm_write_miss = a.rc_offcbm_write_miss + b.rc_offcbm_write_miss;
+   result.rc_offcbm_wlb_miss = a.rc_offcbm_wlb_miss + b.rc_offcbm_wlb_miss;
    result.rc_offcbm_backing_store_accesses = a.rc_offcbm_backing_store_accesses + b.rc_offcbm_backing_store_accesses;
    result.rc_offcbm_kickout_dirties = a.rc_offcbm_kickout_dirties + b.rc_offcbm_kickout_dirties;
    result.rc_offcbm_kickouts = a.rc_offcbm_kickouts + b.rc_offcbm_kickouts;
@@ -404,6 +406,7 @@ statistics_t WatchPoint<ADDRESS, FLAGS>::update_active_stats(int32_t thread_id) 
 #endif
 #ifdef RC_OFFCBM
          range_cache_offcbm_iter = range_cache_offcbm.find(thread_id);
+         local_stats.rc_offcbm_wlb_miss += range_cache_offcbm_iter->second->wlb_miss;
          local_stats.rc_offcbm_kickout_dirties += range_cache_offcbm_iter->second->kickout_dirty;
          local_stats.rc_offcbm_kickouts += range_cache_offcbm_iter->second->kickout;
          local_stats.rc_offcbm_complex_updates += range_cache_offcbm_iter->second->complex_updates;
@@ -1318,6 +1321,7 @@ statistics_t WatchPoint<ADDRESS, FLAGS>::clear_statistics() {
    empty.rc_offcbm_read_miss=0;
    empty.rc_offcbm_write_hits=0;
    empty.rc_offcbm_write_miss=0;
+   empty.rc_offcbm_wlb_miss=0;
    empty.rc_offcbm_backing_store_accesses=0;
    empty.rc_offcbm_kickout_dirties=0;
    empty.rc_offcbm_kickouts=0;
@@ -1471,6 +1475,7 @@ void WatchPoint<ADDRESS, FLAGS>::print_statistics(const statistics_t& to_print, 
    output << setw(45) << "Range Cache (OffCBM) read miss: " << to_print.rc_offcbm_read_miss << endl;
    output << setw(45) << "Range Cache (OffCBM) write hit: " << to_print.rc_offcbm_write_hits << endl;
    output << setw(45) << "Range Cache (OffCBM) write miss: " << to_print.rc_offcbm_write_miss << endl;
+   output << setw(45) << "Range Cache (OffCBM) wlb miss: " << to_print.rc_offcbm_wlb_miss << endl;
    output << setw(45) << "Range Cache (OffCBM) backing store access: " << to_print.rc_offcbm_backing_store_accesses << endl;
    output << setw(45) << "Range Cache (OffCBM) kickouts dirty: " << to_print.rc_offcbm_kickout_dirties << endl;
    output << setw(45) << "Range Cache (OffCBM) kickouts total: " << to_print.rc_offcbm_kickouts << endl;
