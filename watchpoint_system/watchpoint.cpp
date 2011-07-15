@@ -892,7 +892,9 @@ int WatchPoint<ADDRESS, FLAGS>::general_change(ADDRESS start, ADDRESS end, int32
 #endif
 #ifdef MEM_TRACKER
          if ((target_flags.find("x")!=string::npos))
-            mem_tracker_write_mises = mem_tracker[thread_id]->wp_operation(start, end);
+            mem_tracker_write_mises = mem_tracker[thread_id]->update_watchpoint(start, end);
+         else
+            mem_tracker_write_mises = mem_tracker[thread_id]->set_watchpoint(start, end);
 #endif
          if (add_flag) {
 #ifdef PAGE_TABLE
