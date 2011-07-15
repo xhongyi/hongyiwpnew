@@ -199,8 +199,12 @@ unsigned int RangeCache<ADDRESS, FLAGS>::wp_operation(ADDRESS start_addr, ADDRES
          if (new_miss_size)
             wlb_miss++;
       }
-      else
-         wlb_miss_size += offcbm_wp->set_wp(start_addr, end_addr);     // refresh wlb
+      else {
+         unsigned int new_miss_size = offcbm_wp->set_wp(start_addr, end_addr);  // refresh wlb
+         wlb_miss_size += new_miss_size;
+         if (new_miss_size)
+            wlb_miss++;
+      }
    }
    else {
       bool complex_update = false;
