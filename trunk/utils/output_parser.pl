@@ -22,6 +22,8 @@ my $mmp_mlpt_mem_reads;
 my $mmp_mlpt_mem_writes;
 my $range_misses;
 my $range_kickouts;
+my $range_ocbm_misses;
+my $range_ocbm_kickouts;
 
 if(scalar @ARGV != 1) {
     print "Incorrect calling method.\n";
@@ -83,6 +85,12 @@ while(<READFILE>)
     elsif(m/Range Cache \(single\) kickouts dirty/) {
         $range_kickouts += $split_fields[-1];
     }
+    elsif(m/Range Cache \(OCBM\) read miss/ || m/Range Cache \(OCBM\) write miss/) {
+        $range_ocbm_misses += $split_fields[-1];
+    }
+    elsif(m/Range Cache \(OCBM\) kickouts dirty/) {
+        $range_ocbm_kickouts += $split_fields[-1];
+    }
 }
 
 print "Number of instructions: " . $instruction_count . "\n";
@@ -99,3 +107,5 @@ print "MemTracker Total TL1 Misses: " . ($memtracker_tl1_misses + $memtracker_wr
 print "MemTracker Bitmap Writes: " . $memtracker_bitmap_writes . "\n";
 print "Range Cache misses: " . $range_misses . "\n";
 print "Range Cache kickouts: " . $range_kickouts . "\n";
+print "Range Cache + OCBM misses: " . $range_ocbm_misses . "\n";
+print "Range Cache + OCBM kickouts: " . $range_ocbm_kickouts . "\n";
