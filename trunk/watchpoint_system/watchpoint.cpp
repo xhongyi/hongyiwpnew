@@ -398,17 +398,17 @@ statistics_t WatchPoint<ADDRESS, FLAGS>::update_active_stats(int32_t thread_id) 
 #endif
 #ifdef RC_OCBM
          range_cache_ocbm_iter = range_cache_ocbm.find(thread_id);
-         statistics_iter->second.rc_ocbm_kickout_dirties += range_cache_ocbm_iter->second->kickout_dirty;
-         statistics_iter->second.rc_ocbm_kickouts += range_cache_ocbm_iter->second->kickout;
-         statistics_iter->second.rc_ocbm_complex_updates += range_cache_ocbm_iter->second->complex_updates;
+         local_stats.rc_ocbm_kickout_dirties += range_cache_ocbm_iter->second->kickout_dirty;
+         local_stats.rc_ocbm_kickouts += range_cache_ocbm_iter->second->kickout;
+         local_stats.rc_ocbm_complex_updates += range_cache_ocbm_iter->second->complex_updates;
 #endif
 #ifdef RC_OFFCBM
          range_cache_offcbm_iter = range_cache_offcbm.find(thread_id);
-         statistics_iter->second.rc_offcbm_kickout_dirties += range_cache_offcbm_iter->second->kickout_dirty;
-         statistics_iter->second.rc_offcbm_kickouts += range_cache_offcbm_iter->second->kickout;
-         statistics_iter->second.rc_offcbm_complex_updates += range_cache_offcbm_iter->second->complex_updates;
-         statistics_iter->second.rc_offcbm_offcbm_switch += range_cache_offcbm_iter->second->offcbm_switch;
-         statistics_iter->second.rc_offcbm_range_switch += range_cache_offcbm_iter->second->range_switch;
+         local_stats.rc_offcbm_kickout_dirties += range_cache_offcbm_iter->second->kickout_dirty;
+         local_stats.rc_offcbm_kickouts += range_cache_offcbm_iter->second->kickout;
+         local_stats.rc_offcbm_complex_updates += range_cache_offcbm_iter->second->complex_updates;
+         local_stats.rc_offcbm_offcbm_switch += range_cache_offcbm_iter->second->offcbm_switch;
+         local_stats.rc_offcbm_range_switch += range_cache_offcbm_iter->second->range_switch;
 #endif
       }
    }
