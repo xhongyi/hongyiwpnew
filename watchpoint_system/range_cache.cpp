@@ -18,6 +18,7 @@ RangeCache<ADDRESS, FLAGS>::RangeCache(Oracle<ADDRESS, FLAGS> *wp_ref, int tid, 
    complex_updates=0;
    offcbm_switch=0;
    range_switch=0;
+   wlb_miss=0;
 }
 
 template<class ADDRESS, class FLAGS>
@@ -35,6 +36,7 @@ RangeCache<ADDRESS, FLAGS>::RangeCache(ostream &output_stream, Oracle<ADDRESS, F
    complex_updates=0;
    offcbm_switch=0;
    range_switch=0;
+   wlb_miss=0;
 }
 
 template<class ADDRESS, class FLAGS>
@@ -49,6 +51,7 @@ RangeCache<ADDRESS, FLAGS>::RangeCache() :
    complex_updates=0;
    offcbm_switch=0;
    range_switch=0;
+   wlb_miss=0;
 }
 
 template<class ADDRESS, class FLAGS>
@@ -126,7 +129,7 @@ int RangeCache<ADDRESS, FLAGS>::general_fault(ADDRESS start_addr, ADDRESS end_ad
          rc_miss++;
       }
       rc_data.push_front(temp);
-      rc_miss += offcbm_wp->wp_operation(start_addr, end_addr);  // refresh wlb
+      wlb_miss += offcbm_wp->wp_operation(start_addr, end_addr);  // refresh wlb
    }
    else {   // no off-cbm case
       typename std::deque< watchpoint_t<ADDRESS, FLAGS> >::iterator rc_read_iter;
@@ -184,7 +187,7 @@ int RangeCache<ADDRESS, FLAGS>::wp_operation(ADDRESS start_addr, ADDRESS end_add
          rc_miss++;
       }
       rc_data.push_front(temp);
-      rc_miss += offcbm_wp->wp_operation(start_addr, end_addr);  // refresh wlb
+      wlb_miss += offcbm_wp->wp_operation(start_addr, end_addr);  // refresh wlb
    }
    else {
       bool complex_update = false;

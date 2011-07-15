@@ -20,10 +20,10 @@
 //#define PT2_BYTE_ACU_SINGLE
 // Turn on a byte accureate system shared between ALL THREADS
 //#define PT2_BYTE_ACU_MULTI
-#define MEM_TRACKER
+//#define MEM_TRACKER
 //#define RC_SINGLE
 //#define RC_OCBM
-//#define RC_OFFCBM
+#define RC_OFFCBM
 
 #ifdef PAGE_TABLE2_MULTI
 #define PAGE_TABLE_MULTI
@@ -207,6 +207,7 @@ struct statistics_t {
    long long rc_offcbm_read_miss;
    long long rc_offcbm_write_hits;
    long long rc_offcbm_write_miss;
+   long long rc_offcbm_wlb_miss;
    long long rc_offcbm_backing_store_accesses;
    long long rc_offcbm_kickout_dirties;
    long long rc_offcbm_kickouts;
