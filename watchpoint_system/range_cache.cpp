@@ -60,6 +60,7 @@ RangeCache<ADDRESS, FLAGS>::~RangeCache() {
 template<class ADDRESS, class FLAGS>
 void RangeCache<ADDRESS, FLAGS>::print_trace(int command, int thread_id, unsigned int starter, unsigned int ender)
 {
+#ifdef PRINT_RANGE_TRACE
    char command_char;
    if(command == (WA_WRITE|WA_READ))
        command_char = 'd';
@@ -69,7 +70,6 @@ void RangeCache<ADDRESS, FLAGS>::print_trace(int command, int thread_id, unsigne
        command_char = 'c';
    else
        command_char = 'a';
-#ifdef PRINT_RANGE_TRACE
    trace_output << command_char << setw(5) << thread_id << setw(8) << starter << setw(8) << ender << endl;
 #endif
 }
@@ -346,7 +346,26 @@ void RangeCache<ADDRESS, FLAGS>::cache_kickout() {
    else {
       kickout++;
       if (rc_data.back().flags & DIRTY) {
-         print_trace(rc_data.back().flags & (WA_READ|WA_WRITE), thread_id, rc_data.back().start_addr, rc_data.back().end_addr);
+         if(rc_data.back().flags & WA_OCBM) {
+             typename std::deque< watchpoint_t<ADDRESS, FLAGS> >::iterator find_iter;
+             int print_flags;
+             unsigned int print_start, print_end;
+             ADDRESS iter_addr = rc_data.back().start_addr;
+             find_iter = oracle_wp->search_address(iter_addr);
+             print_start = iter_addr;
+             print_flags = find_iter->flags & (WA_READ|WA_WRITE);
+             while(find_iter->end_addr < rc_data.back().end_addr) {
+                print_end = find_iter->end_addr;
+                print_trace(print_flags, thread_id, print_start, print_end);
+                find_iter++;
+                print_start = find_iter->start_addr;
+                print_flags = find_iter->flags & (WA_READ|WA_WRITE);
+             }
+             print_end = rc_data.back().end_addr;
+             print_trace(print_flags, thread_id, print_start, print_end);
+         }
+         else
+             print_trace(rc_data.back().flags & (WA_READ|WA_WRITE), thread_id, rc_data.back().start_addr, rc_data.back().end_addr);
          kickout_dirty++;
       }
       rc_data.pop_back();
