@@ -164,6 +164,7 @@ struct statistics_t {
    long long pt2_byte_acu_bitmap_faults;
    long long pt2_byte_acu_changes;
    long long pt2_byte_acu_plb_misses;
+   long long pt2_byte_acu_plb_wasnt_there;
    #endif
    #ifdef PT2_BYTE_ACU_MULTI
    long long pt2_byte_acu_multi_seg_reg_hits;
@@ -175,6 +176,7 @@ struct statistics_t {
    long long pt2_byte_acu_multi_bitmap_faults;
    long long pt2_byte_acu_multi_changes;
    long long pt2_byte_acu_multi_plb_misses;
+   long long pt2_byte_acu_multi_plb_wasnt_there;
    #endif
    #ifdef MEM_TRACKER
    long long mem_tracker_read_miss;

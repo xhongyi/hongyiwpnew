@@ -53,6 +53,7 @@ inline statistics_t& operator +=(statistics_t &a, const statistics_t &b) { // no
    a.pt2_byte_acu_bitmap_faults += b.pt2_byte_acu_bitmap_faults;
    a.pt2_byte_acu_changes += b.pt2_byte_acu_changes;
    a.pt2_byte_acu_plb_misses += b.pt2_byte_acu_plb_misses;
+   a.pt2_byte_acu_plb_wasnt_there += b.pt2_byte_acu_plb_wasnt_there;
    #endif
    #ifdef PT2_BYTE_ACU_MULTI
    a.pt2_byte_acu_multi_seg_reg_hits += b.pt2_byte_acu_multi_seg_reg_hits;
@@ -64,6 +65,7 @@ inline statistics_t& operator +=(statistics_t &a, const statistics_t &b) { // no
    a.pt2_byte_acu_multi_bitmap_faults += b.pt2_byte_acu_multi_bitmap_faults;
    a.pt2_byte_acu_multi_changes += b.pt2_byte_acu_multi_changes;
    a.pt2_byte_acu_multi_plb_misses += b.pt2_byte_acu_multi_plb_misses;
+   a.pt2_byte_acu_multi_plb_wasnt_there += b.pt2_byte_acu_multi_plb_wasnt_there;
    #endif
    #ifdef MEM_TRACKER
    a.mem_tracker_read_miss += b.mem_tracker_read_miss;
@@ -158,6 +160,7 @@ inline statistics_t operator +(const statistics_t &a, const statistics_t &b) {
    result.pt2_byte_acu_bitmap_faults = a.pt2_byte_acu_bitmap_faults + b.pt2_byte_acu_bitmap_faults;
    result.pt2_byte_acu_changes = a.pt2_byte_acu_changes + b.pt2_byte_acu_changes;
    result.pt2_byte_acu_plb_misses = a.pt2_byte_acu_plb_misses + b.pt2_byte_acu_plb_misses;
+   result.pt2_byte_acu_plb_wasnt_there = a.pt2_byte_acu_plb_wasnt_there + b.pt2_byte_acu_plb_wasnt_there;
    #endif
    #ifdef PT2_BYTE_ACU_MULTI
    result.pt2_byte_acu_multi_seg_reg_hits = a.pt2_byte_acu_multi_seg_reg_hits + b.pt2_byte_acu_multi_seg_reg_hits;
@@ -169,6 +172,7 @@ inline statistics_t operator +(const statistics_t &a, const statistics_t &b) {
    result.pt2_byte_acu_multi_bitmap_faults = a.pt2_byte_acu_multi_bitmap_faults + b.pt2_byte_acu_multi_bitmap_faults;
    result.pt2_byte_acu_multi_changes = a.pt2_byte_acu_multi_changes + b.pt2_byte_acu_multi_changes;
    result.pt2_byte_acu_multi_plb_misses = a.pt2_byte_acu_multi_plb_misses + b.pt2_byte_acu_multi_plb_misses;
+   result.pt2_byte_acu_multi_plb_wasnt_there = a.pt2_byte_acu_multi_plb_wasnt_there + b.pt2_byte_acu_multi_plb_wasnt_there;
    #endif
    #ifdef MEM_TRACKER
    result.mem_tracker_read_miss = a.mem_tracker_read_miss + b.mem_tracker_read_miss;
@@ -570,9 +574,11 @@ bool  WatchPoint<ADDRESS, FLAGS>::general_fault(ADDRESS start, ADDRESS end, int3
 #endif
 #ifdef PT2_BYTE_ACU_SINGLE
       unsigned int pt2_byte_acu_fault = 0;
+      long long temp_pt2_byte_acu_misses = 0;
 #endif
 #ifdef PT2_BYTE_ACU_MULTI
       unsigned int pt2_byte_acu_multi_fault = 0;
+      long long temp_pt2_byte_acu_multi_misses = 0;
 #endif
 #ifdef MEM_TRACKER
       unsigned int mem_tracker_read_mises = 0;
@@ -626,9 +632,11 @@ bool  WatchPoint<ADDRESS, FLAGS>::general_fault(ADDRESS start, ADDRESS end, int3
              print_trace('k', thread_id, start, end);
 #endif
 #ifdef PT2_BYTE_ACU_SINGLE
+         temp_pt2_byte_acu_misses = pt2_byte_acu[thread_id]->plb_misses;
          pt2_byte_acu_fault = pt2_byte_acu[thread_id]->general_fault(start, end, target_flags);
 #endif
 #ifdef PT2_BYTE_ACU_MULTI
+         temp_pt2_byte_acu_multi_misses = pt2_byte_acu_multi->plb_misses;
          pt2_byte_acu_multi_fault = pt2_byte_acu_multi->general_fault(start, end, target_flags);
 #endif
 #ifdef MEM_TRACKER
@@ -738,6 +746,8 @@ bool  WatchPoint<ADDRESS, FLAGS>::general_fault(ADDRESS start, ADDRESS end, int3
                statistics_iter->second.pt2_byte_acu_seg_reg_hits++;
                statistics_iter->second.pt2_byte_acu_seg_reg_faults++;
             }
+            if(temp_pt2_byte_acu_misses != pt2_byte_acu[thread_id]->plb_misses)
+               statistics_iter->second.pt2_byte_acu_plb_wasnt_there++;
 #endif
 #ifdef PT2_BYTE_ACU_MULTI
             if (pt2_byte_acu_multi_fault == BITMAP_WATCHED)
@@ -760,6 +770,8 @@ bool  WatchPoint<ADDRESS, FLAGS>::general_fault(ADDRESS start, ADDRESS end, int3
                statistics_iter->second.pt2_byte_acu_multi_seg_reg_hits++;
                statistics_iter->second.pt2_byte_acu_multi_seg_reg_faults++;
             }
+            if(temp_pt2_byte_acu_multi_misses != pt2_byte_acu_multi->plb_misses)
+                statistics_iter->second.pt2_byte_acu_multi_plb_wasnt_there++;
 #endif
 #ifdef MEM_TRACKER
          if (mem_tracker_read_mises) {
@@ -1278,6 +1290,7 @@ statistics_t WatchPoint<ADDRESS, FLAGS>::clear_statistics() {
    empty.pt2_byte_acu_bitmap_faults=0;
    empty.pt2_byte_acu_changes=0;
    empty.pt2_byte_acu_plb_misses=0;
+   empty.pt2_byte_acu_plb_wasnt_there=0;
    #endif
    #ifdef PT2_BYTE_ACU_MULTI
    empty.pt2_byte_acu_multi_seg_reg_hits=0;
@@ -1289,6 +1302,7 @@ statistics_t WatchPoint<ADDRESS, FLAGS>::clear_statistics() {
    empty.pt2_byte_acu_multi_bitmap_faults=0;
    empty.pt2_byte_acu_multi_changes=0;
    empty.pt2_byte_acu_multi_plb_misses=0;
+   empty.pt2_byte_acu_multi_plb_wasnt_there=0;
    #endif
    #ifdef MEM_TRACKER
    empty.mem_tracker_read_miss=0;
@@ -1431,7 +1445,8 @@ void WatchPoint<ADDRESS, FLAGS>::print_statistics(const statistics_t& to_print, 
    output << setw(45) << "2 level PT trie (single) bitmap fault: " << to_print.pt2_byte_acu_bitmap_faults << endl;
    output << setw(45) << "2 level PT trie (single) total fault: " << to_print.pt2_byte_acu_bitmap_faults+to_print.pt2_byte_acu_page_faults+to_print.pt2_byte_acu_superpage_faults+to_print.pt2_byte_acu_seg_reg_faults << endl;
    output << setw(45) << "2 level PT trie (single) bit changes: " << to_print.pt2_byte_acu_changes << endl;
-   output << setw(45) << "plb misses: " << to_print.pt2_byte_acu_plb_misses << endl;
+   output << setw(45) << "2 level PT trie (single) data loaded to plb: " << to_print.pt2_byte_acu_plb_misses << endl;
+   output << setw(45) << "2 level PT trie (single) plb misses: " << to_print.pt2_byte_acu_plb_wasnt_there << endl;
    #endif
    #ifdef PT2_BYTE_ACU_MULTI
    output << setw(45) << "2 level PT trie (multi) quick hit: " << to_print.pt2_byte_acu_multi_seg_reg_hits << endl;
@@ -1443,7 +1458,8 @@ void WatchPoint<ADDRESS, FLAGS>::print_statistics(const statistics_t& to_print, 
    output << setw(45) << "2 level PT trie (multi) bitmap fault: " << to_print.pt2_byte_acu_multi_bitmap_faults << endl;
    output << setw(45) << "2 level PT trie (multi) total fault: " << to_print.pt2_byte_acu_multi_bitmap_faults+to_print.pt2_byte_acu_multi_page_faults+to_print.pt2_byte_acu_multi_superpage_faults+to_print.pt2_byte_acu_multi_seg_reg_faults << endl;
    output << setw(45) << "2 level PT trie (multi) bit changes: " << to_print.pt2_byte_acu_multi_changes << endl;
-   output << setw(45) << "plb misses: " << to_print.pt2_byte_acu_multi_plb_misses << endl;
+   output << setw(45) << "2 level PT trie (multi) data loaded to plb: " << to_print.pt2_byte_acu_multi_plb_misses << endl;
+   output << setw(45) << "2 level PT trie (multi) plb misses: " << to_print.pt2_byte_acu_multi_plb_wasnt_there << endl;
    #endif
    #ifdef MEM_TRACKER
    output << setw(45) << "MemTracker read misses: " << to_print.mem_tracker_read_miss << endl;
