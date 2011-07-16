@@ -4,9 +4,9 @@ general fault:
    if (hit in l1) : update lru in l1, and also in l2 if found
    if (hit in l2) : push into l1, update lru
    if (hit in victim cache) : push into l1 and l2, remove in victim cache
-   if (miss) : check for availability in VM, if available => done
+   if (miss) : check for availability in VM, if available => bring in required cache line (to act like a real cache)
                                              if unavailable => fetch only watched cache lines, then mark as avaiable in VM.
-   if (l2 kickout) : push it in victim cache, mark the page as unavailable
+   if (l2 kickout) : push it in victim cache, mark the page as unavailable if necessary (i.e. check it before set it)
 wp_operation:
    if (hit) : update lru
    add_watchpoint : mark the page as unavailable

@@ -20,8 +20,8 @@
 //#define PT2_BYTE_ACU_SINGLE
 // Turn on a byte accureate system shared between ALL THREADS
 //#define PT2_BYTE_ACU_MULTI
-#define MEM_TRACKER
-//#define RC_SINGLE
+//#define MEM_TRACKER
+#define RC_SINGLE
 //#define RC_OCBM
 //#define RC_OFFCBM
 
