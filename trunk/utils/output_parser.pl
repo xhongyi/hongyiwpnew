@@ -15,23 +15,28 @@ my $multi_thread_vm_bitmap_changes;
 my $memtracker_tl1_misses;
 my $memtracker_write_misses;
 my $memtracker_bitmap_writes;
-my $mmp_sst_wlb_misses;
 my $mmp_sst_ranges_moved;
 my $mmp_mlpt_wlb_misses;
-my $mmp_mlpt_mem_reads;
 my $mmp_mlpt_mem_writes;
+my $mmp_mlpt_mem_reads;
 my $range_misses;
 my $range_kickouts;
 my $range_ocbm_misses;
 my $range_ocbm_kickouts;
+my $range_offcbm_misses;
+my $range_offcbm_kickouts;
+my $range_offcbm_wlb_misses;
+my $range_offcbm_to_bitmap;
+my $range_offcbm_from_bitmap;
+my $range_offcbm_words_changed;
 
 my $have_seen_vm;
 my $have_seen_mt_vm;
 my $have_seen_memtracker;
-my $have_seen_mmp_sst;
-my $have_seen_mmp_mlpt;
+my $have_seen_mmp;
 my $have_seen_rc;
 my $have_seen_rc_ocbm;
+my $have_seen_rc_offcbm;
 
 if(scalar @ARGV != 1) {
     print "Incorrect calling method.\n";
@@ -109,6 +114,38 @@ while(<READFILE>)
         $range_ocbm_kickouts += $split_fields[-1];
         $have_seen_rc_ocbm = 1;
     }
+    elsif(m/Range Cache \(OffCBM\) read miss/ || m/Range Cache\(OffCBM\) write miss/) {
+        $range_offcbm_misses += $split_fields[-1];
+        $have_seen_rc_offcbm = 1;
+    }
+    elsif(m/Range Cache \(OffCBM\) kickouts dirty/) {
+        $range_offcbm_kickouts += $split_fields[-1];
+    }
+    elsif(m/Range Cache \(OffCBM\) wlb miss/) {
+        $range_offcbm_wlb_misses += $split_fields[-1];
+    }
+    elsif(m/Range Cache \(OffCBM\) switches to offcbm/) {
+        $range_offcbm_to_bitmap += $split_fields[-1];
+    }
+    elsif(m/Range Cache \(OffCBM\) switches to ranges/) {
+        $range_offcbm_from_bitmap += $split_fields[-1];
+    }
+    elsif(m/Range Cache \(OffCBM\) 32bit/) {
+        $range_offcbm_words_changed += $split_fields[-1];
+    }
+    elsif(m/complexity to do SST insertions/) {
+        $mmp_sst_ranges_moved += $split_fields[-1];
+    }
+    elsif(m/2 level PT trie \(single\) plb/) {
+        $have_seen_mmp=1;
+        $mmp_mlpt_wlb_misses += $split_fields[-1];
+    }
+    elsif(m/2 level PT trie \(single\) bit/) {
+        $mmp_mlpt_mem_writes += $split_fields[-1];
+    }
+    elsif(m/2 level PT trie \(single\) data loaded/) {
+        $mmp_mlpt_mem_reads += $split_fields[-1];
+    }
 }
 
 print "Number of instructions: " . $instruction_count . "\n";
@@ -129,6 +166,12 @@ if($have_seen_memtracker==1) {
     print "MemTracker Total TL1 Misses: " . ($memtracker_tl1_misses + $memtracker_write_misses) . "\n";
     print "MemTracker Bitmap Writes: " . $memtracker_bitmap_writes . "\n";
 }
+if($have_seen_mmp) {
+    print "MMP-SST Ranges Moved: " . $mmp_sst_ranges_moved . "\n";
+    print "MMP WLB Misses: " . $mmp_mlpt_wlb_misses . "\n";
+    print "MMP MemReads: " . $mmp_mlpt_mem_reads . "\n";
+    print "MMP MemWrites: " . $mmp_mlpt_mem_writes . "\n";
+}
 if($have_seen_rc==1) {
     print "Range Cache misses: " . $range_misses . "\n";
     print "Range Cache kickouts: " . $range_kickouts . "\n";
@@ -136,4 +179,12 @@ if($have_seen_rc==1) {
 if($have_seen_rc_ocbm==1) {
     print "Range Cache + OCBM misses: " . $range_ocbm_misses . "\n";
     print "Range Cache + OCBM kickouts: " . $range_ocbm_kickouts . "\n";
+}
+if($have_seen_rc_offcbm==1) {
+    print "Range Cache + OffCBM misses: " . $range_offcbm_misses . "\n";
+    print "Range Cache + OffCBM kickouts: " . $range_offcbm_kickouts . "\n";
+    print "Range Cache + OffCBM WLB misses: " . $range_offcbm_wlb_miss . "\n";
+    print "Range Cache + OffCBM Switch To Bitmap: " . $range_offcbm_to_bitmap . "\n";
+    print "Range Cache + OffCBM Switch To Range: " . $range_offcbm_from_bitmap . "\n";
+    print "Range Cache + OffCBM Words Changed: " . $range_offcbm_words_changed . "\n";
 }
