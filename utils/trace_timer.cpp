@@ -5,6 +5,7 @@
 #include <assert.h>
 #include <time.h>
 #include <sys/time.h>
+#include <stdlib.h>
 
 #define NOT_WATCHED     0
 #define WRITE_WATCHED   1
