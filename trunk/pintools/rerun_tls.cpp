@@ -445,6 +445,7 @@ VOID DataInit() {
 #ifdef PRINT_TRACE
     TraceFile.open(KnobTraceFile.Value().c_str());
     wp = new WatchPoint<ADDRINT, UINT32>(TraceFile);
+    total_print_number = 0;
 #else
     wp = new WatchPoint<ADDRINT, UINT32>();
 #endif

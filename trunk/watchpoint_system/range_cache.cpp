@@ -67,16 +67,19 @@ template<class ADDRESS, class FLAGS>
 void RangeCache<ADDRESS, FLAGS>::print_trace(int command, int thread_id, unsigned int starter, unsigned int ender)
 {
 #ifdef PRINT_RANGE_TRACE
-   char command_char;
-   if(command == (WA_WRITE|WA_READ))
-       command_char = 'd';
-   else if (command == WA_WRITE)
-       command_char = 'b';
-   else if (command == WA_READ)
-       command_char = 'c';
-   else
-       command_char = 'a';
-   trace_output << command_char << setw(5) << thread_id << setw(8) << starter << setw(8) << ender << endl;
+   if(total_print_number < MAX_PRINT_NUM) {
+      char command_char;
+      if(command == (WA_WRITE|WA_READ))
+         command_char = 'd';
+      else if (command == WA_WRITE)
+         command_char = 'b';
+      else if (command == WA_READ)
+         command_char = 'c';
+      else
+         command_char = 'a';
+      total_print_num++;
+      trace_output << command_char << setw(5) << thread_id << setw(8) << starter << setw(8) << ender << endl;
+   }
 #endif
 }
 

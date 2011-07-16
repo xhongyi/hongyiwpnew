@@ -4369,6 +4369,7 @@ void FlagRtn(RTN rtn, void* v)
 
 VOID DataInit() {
 #ifdef PRINT_TRACE
+    total_print_number = 0;
     TraceFile.open(KnobTraceFile.Value().c_str());
 #endif
     wp.start_thread(0);

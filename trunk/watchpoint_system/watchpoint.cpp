@@ -221,7 +221,10 @@ template<class ADDRESS, class FLAGS>
 void WatchPoint<ADDRESS, FLAGS>::print_trace(char command, int thread_id, unsigned int starter, unsigned int ender)
 {
 #ifdef PRINT_TRACE
-   trace_output << command << setw(5) << thread_id << setw(8) << starter << setw(8) << ender << endl;
+   if(total_print_number < MAX_PRINT_NUM) {
+       total_print_number++;
+       trace_output << command << setw(5) << thread_id << setw(8) << starter << setw(8) << ender << endl;
+   }
 #endif
 }
 
