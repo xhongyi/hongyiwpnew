@@ -18,7 +18,7 @@ limitations under the License. **/
 #endif
 #include <cstring>
 
-#define RERUN
+//#define RERUN
 
 #ifndef RERUN
 #define UNSOUND_RACE_DETECTOR
