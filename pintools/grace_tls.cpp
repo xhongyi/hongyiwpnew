@@ -410,6 +410,7 @@ VOID Fini(INT32 code, VOID *v)
 
 VOID DataInit() {
 #ifdef PRINT_TRACE
+    total_print_number = 0;
     TraceFile.open(KnobTraceFile.Value().c_str());
     wp = new WatchPoint<ADDRINT, UINT32>(TraceFile);
 #else
