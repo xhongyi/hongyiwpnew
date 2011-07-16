@@ -21,14 +21,17 @@ my $mmp_mlpt_mem_writes;
 my $mmp_mlpt_mem_reads;
 my $range_misses;
 my $range_kickouts;
+my $range_complex;
 my $range_ocbm_misses;
 my $range_ocbm_kickouts;
+my $range_ocbm_complex;
 my $range_offcbm_misses;
 my $range_offcbm_kickouts;
 my $range_offcbm_wlb_misses;
 my $range_offcbm_to_bitmap;
 my $range_offcbm_from_bitmap;
 my $range_offcbm_words_changed;
+my $range_offcbm_complex;
 
 my $have_seen_vm;
 my $have_seen_mt_vm;
@@ -104,7 +107,9 @@ while(<READFILE>)
     }
     elsif(m/Range Cache \(single\) kickouts dirty/) {
         $range_kickouts += $split_fields[-1];
-        $have_seen_rc = 1;
+    }
+    elsif(m/ Range Cache \(single\) complex/) {
+        $range_complex += $split_fields[-1];
     }
     elsif(m/Range Cache \(OCBM\) read miss/ || m/Range Cache \(OCBM\) write miss/) {
         $range_ocbm_misses += $split_fields[-1];
@@ -112,11 +117,13 @@ while(<READFILE>)
     }
     elsif(m/Range Cache \(OCBM\) kickouts dirty/) {
         $range_ocbm_kickouts += $split_fields[-1];
-        $have_seen_rc_ocbm = 1;
+    }
+    elsif(m/Range Cache \(OCBM\) complex/) {
+        $range_ocbm_complex += $split_fields[-1];
     }
     elsif(m/Range Cache \(OffCBM\) read miss/ || m/Range Cache\(OffCBM\) write miss/) {
+        $have_seen_rc_offcbm=1;
         $range_offcbm_misses += $split_fields[-1];
-        $have_seen_rc_offcbm = 1;
     }
     elsif(m/Range Cache \(OffCBM\) kickouts dirty/) {
         $range_offcbm_kickouts += $split_fields[-1];
@@ -132,6 +139,9 @@ while(<READFILE>)
     }
     elsif(m/Range Cache \(OffCBM\) 32bit/) {
         $range_offcbm_words_changed += $split_fields[-1];
+    }
+    elsif(m/Range Cache \(OffCBM\) complex/) {
+        $range_offcbm_complex += $split_fields[-1];
     }
     elsif(m/complexity to do SST insertions/) {
         $mmp_sst_ranges_moved += $split_fields[-1];
@@ -175,10 +185,12 @@ if($have_seen_mmp) {
 if($have_seen_rc==1) {
     print "Range Cache misses: " . $range_misses . "\n";
     print "Range Cache kickouts: " . $range_kickouts . "\n";
+    print "Range Cache complex updates: " . $range_complex . "\n";
 }
 if($have_seen_rc_ocbm==1) {
     print "Range Cache + OCBM misses: " . $range_ocbm_misses . "\n";
     print "Range Cache + OCBM kickouts: " . $range_ocbm_kickouts . "\n";
+    print "Range Cache + OCBM complex updates: " . $range_ocbm_complex . "\n";
 }
 if($have_seen_rc_offcbm==1) {
     print "Range Cache + OffCBM misses: " . $range_offcbm_misses . "\n";
@@ -187,4 +199,5 @@ if($have_seen_rc_offcbm==1) {
     print "Range Cache + OffCBM Switch To Bitmap: " . $range_offcbm_to_bitmap . "\n";
     print "Range Cache + OffCBM Switch To Range: " . $range_offcbm_from_bitmap . "\n";
     print "Range Cache + OffCBM Words Changed: " . $range_offcbm_words_changed . "\n";
+    print "Range Cache + OffCBM complex updates: " . $range_offcbm_complex . "\n";
 }
