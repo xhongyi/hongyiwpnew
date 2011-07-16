@@ -14,6 +14,7 @@ my $multi_thread_vm_faults;
 my $multi_thread_vm_bitmap_changes;
 my $memtracker_tl1_misses;
 my $memtracker_write_misses;
+my $memtracker_bitmap_reads;
 my $memtracker_bitmap_writes;
 my $mmp_sst_ranges_moved;
 my $mmp_mlpt_wlb_misses;
@@ -96,9 +97,11 @@ while(<READFILE>)
     }
     elsif(m/MemTracker write/) {
         $memtracker_write_misses += $split_fields[-1];
-        $have_seen_memtracker = 1;
     }
-    elsif(m/total wp write size/) {
+    elsif(m/MemTracker total bitmap/) {
+        $memtracker_bitmap_reads += $split_fields[-1];
+    }
+    elsif(m/MemTracker 32/) {
         $memtracker_bitmap_writes += $split_fields[-1];
     }
     elsif(m/Range Cache \(single\) read miss/ || m/Range Cache \(single\) write miss/) {
@@ -174,9 +177,10 @@ if($have_seen_memtracker==1) {
     print "MemTracker TL1 Read Misses: " . $memtracker_tl1_misses . "\n";
     print "MemTracker TL1 Write Misses: " . $memtracker_write_misses . "\n";
     print "MemTracker Total TL1 Misses: " . ($memtracker_tl1_misses + $memtracker_write_misses) . "\n";
+    print "MemTracker Bitmap Reads: " . $memtracker_bitmap_reads . "\n";
     print "MemTracker Bitmap Writes: " . $memtracker_bitmap_writes . "\n";
 }
-if($have_seen_mmp) {
+if($have_seen_mmp==1) {
     print "MMP-SST Ranges Moved: " . $mmp_sst_ranges_moved . "\n";
     print "MMP WLB Misses: " . $mmp_mlpt_wlb_misses . "\n";
     print "MMP MemReads: " . $mmp_mlpt_mem_reads . "\n";

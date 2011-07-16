@@ -20,8 +20,8 @@
 //#define PT2_BYTE_ACU_SINGLE
 // Turn on a byte accureate system shared between ALL THREADS
 //#define PT2_BYTE_ACU_MULTI
-//#define MEM_TRACKER
-#define RC_SINGLE
+#define MEM_TRACKER
+//#define RC_SINGLE
 //#define RC_OCBM
 //#define RC_OFFCBM
 
@@ -42,14 +42,18 @@
 #endif
 
 #ifdef PAGE_TABLE
-#define PRINT_VM_TRACE // Do you want to print out a trace of backing store ops?
+//#define PRINT_VM_TRACE // Do you want to print out a trace of backing store ops?
+#endif
+
+#ifdef MEM_TRACKER
+#define PRINT_MEMTRACKER_TRACE
 #endif
 
 #if defined(RC_SINGLE) || defined(RC_OCBM) || defined(RC_OFFCBM)
-#define PRINT_RANGE_TRACE // Do you want to print out a trace of the backing store ops for the RC?
+//#define PRINT_RANGE_TRACE // Do you want to print out a trace of the backing store ops for the RC?
 #endif
 
-#if defined(PRINT_VM_TRACE) || defined (PRINT_RANGE_TRACE)
+#if defined(PRINT_VM_TRACE) || defined(PRINT_RANGE_TRACE) || defined(PRINT_MEMTRACKER_TRACE)
 #define PRINT_TRACE
 #endif
 

@@ -641,6 +641,10 @@ bool  WatchPoint<ADDRESS, FLAGS>::general_fault(ADDRESS start, ADDRESS end, int3
 #endif
 #ifdef MEM_TRACKER
          mem_tracker_read_mises = mem_tracker[thread_id]->general_fault(start, end);
+#ifdef PRINT_MEMTRACKER_TRACE
+         if(mem_tracker_read_mises)
+             print_trace('k', thread_id, start, end);
+#endif
 #endif
 #ifdef RC_SINGLE
          range_cache_misses = range_cache[thread_id]->watch_fault(start, end);
@@ -1065,7 +1069,7 @@ int WatchPoint<ADDRESS, FLAGS>::general_change(ADDRESS start, ADDRESS end, int32
 //set  11   (r/w)
 template<class ADDRESS, class FLAGS>
 int WatchPoint<ADDRESS, FLAGS>::set_watch(ADDRESS start, ADDRESS end, int32_t thread_id, bool ignore_statistics) {
-#ifdef PRINT_VM_TRACE
+#if defined(PRINT_VM_TRACE) || defined(PRINT_MEMTRACKER_TRACE)
    if(emulate_hardware)
       print_trace('d', thread_id, start, end);
 #endif
@@ -1075,7 +1079,7 @@ int WatchPoint<ADDRESS, FLAGS>::set_watch(ADDRESS start, ADDRESS end, int32_t th
 //set  10
 template<class ADDRESS, class FLAGS>
 int WatchPoint<ADDRESS, FLAGS>::set_read(ADDRESS start, ADDRESS end, int32_t thread_id, bool ignore_statistics) {
-#ifdef PRINT_VM_TRACE
+#if defined(PRINT_VM_TRACE) || defined(PRINT_MEMTRACKER_TRACE)
    if(emulate_hardware)
       print_trace('b', thread_id, start, end);
 #endif
@@ -1085,7 +1089,7 @@ int WatchPoint<ADDRESS, FLAGS>::set_read(ADDRESS start, ADDRESS end, int32_t thr
 //set  01
 template<class ADDRESS, class FLAGS>
 int WatchPoint<ADDRESS, FLAGS>::set_write(ADDRESS start, ADDRESS end, int32_t thread_id, bool ignore_statistics) {
-#ifdef PRINT_VM_TRACE
+#if defined(PRINT_VM_TRACE) || defined(PRINT_MEMTRACKER_TRACE)
    if(emulate_hardware)
       print_trace('c', thread_id, start, end);
 #endif
@@ -1095,7 +1099,7 @@ int WatchPoint<ADDRESS, FLAGS>::set_write(ADDRESS start, ADDRESS end, int32_t th
 //set  00
 template<class ADDRESS, class FLAGS>
 int WatchPoint<ADDRESS, FLAGS>::rm_watch(ADDRESS start, ADDRESS end, int32_t thread_id, bool ignore_statistics) {
-#ifdef PRINT_VM_TRACE
+#if defined(PRINT_VM_TRACE) || defined(PRINT_MEMTRACKER_TRACE)
    if(emulate_hardware)
       print_trace('a', thread_id, start, end);
 #endif
@@ -1105,7 +1109,7 @@ int WatchPoint<ADDRESS, FLAGS>::rm_watch(ADDRESS start, ADDRESS end, int32_t thr
 //update 1x
 template<class ADDRESS, class FLAGS>
 int WatchPoint<ADDRESS, FLAGS>::update_set_read(ADDRESS start, ADDRESS end, int32_t thread_id, bool ignore_statistics) {
-#ifdef PRINT_VM_TRACE
+#if defined(PRINT_VM_TRACE) || defined(PRINT_MEMTRACKER_TRACE)
    if(emulate_hardware)
       print_trace('e', thread_id, start, end);
 #endif
@@ -1115,7 +1119,7 @@ int WatchPoint<ADDRESS, FLAGS>::update_set_read(ADDRESS start, ADDRESS end, int3
 //update x1
 template<class ADDRESS, class FLAGS>
 int WatchPoint<ADDRESS, FLAGS>::update_set_write(ADDRESS start, ADDRESS end, int32_t thread_id, bool ignore_statistics) {
-#ifdef PRINT_VM_TRACE
+#if defined(PRINT_VM_TRACE) || defined(PRINT_MEMTRACKER_TRACE)
    if(emulate_hardware)
       print_trace('f', thread_id, start, end);
 #endif
@@ -1125,7 +1129,7 @@ int WatchPoint<ADDRESS, FLAGS>::update_set_write(ADDRESS start, ADDRESS end, int
 //update 0x
 template<class ADDRESS, class FLAGS>
 int WatchPoint<ADDRESS, FLAGS>::rm_read(ADDRESS start, ADDRESS end, int32_t thread_id, bool ignore_statistics) {
-#ifdef PRINT_VM_TRACE
+#if defined(PRINT_VM_TRACE) || defined(PRINT_MEMTRACKER_TRACE)
    if(emulate_hardware)
       print_trace('g', thread_id, start, end);
 #endif
@@ -1135,7 +1139,7 @@ int WatchPoint<ADDRESS, FLAGS>::rm_read(ADDRESS start, ADDRESS end, int32_t thre
 //update x0
 template<class ADDRESS, class FLAGS>
 int WatchPoint<ADDRESS, FLAGS>::rm_write(ADDRESS start, ADDRESS end, int32_t thread_id, bool ignore_statistics) {
-#ifdef PRINT_VM_TRACE
+#if defined(PRINT_VM_TRACE) || defined(PRINT_MEMTRACKER_TRACE)
    if(emulate_hardware)
       print_trace('h', thread_id, start, end);
 #endif
@@ -1465,7 +1469,7 @@ void WatchPoint<ADDRESS, FLAGS>::print_statistics(const statistics_t& to_print, 
    output << setw(45) << "MemTracker read misses: " << to_print.mem_tracker_read_miss << endl;
    output << setw(45) << "MemTracker write misses: " << to_print.mem_tracker_write_miss << endl;
    output << setw(45) << "MemTracker total bitmap reads: " << to_print.mem_tracker_mem_accesses << endl;
-   output << setw(45) << "mem tracker total 32bit blocks modified: " << to_print.mem_tracker_write_blocks << endl;
+   output << setw(45) << "MemTracker 32bit blocks modified: " << to_print.mem_tracker_write_blocks << endl;
    #endif
    #ifdef RC_SINGLE
    output << setw(45) << "Range Cache (single) read hit: " << to_print.rc_read_hits << endl;
