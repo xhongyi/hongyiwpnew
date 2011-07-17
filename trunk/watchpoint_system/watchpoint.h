@@ -15,13 +15,13 @@
 // Turn on a multi-level page table PER THREAD
 //#define PAGE_TABLE2_SINGLE
 // Turn on a multi-level page tabled shared between ALL THREADS
-#define PAGE_TABLE2_MULTI
+//#define PAGE_TABLE2_MULTI
 // Turn on a byte accurate system PER THREAD
 //#define PT2_BYTE_ACU_SINGLE
 // Turn on a byte accureate system shared between ALL THREADS
 //#define PT2_BYTE_ACU_MULTI
 //#define MEM_TRACKER
-//#define RC_SINGLE
+#define RC_SINGLE
 //#define RC_OCBM
 //#define RC_OFFCBM
 
@@ -50,7 +50,7 @@
 #endif
 
 #if defined(RC_SINGLE) || defined(RC_OCBM) || defined(RC_OFFCBM)
-//#define PRINT_RANGE_TRACE // Do you want to print out a trace of the backing store ops for the RC?
+#define PRINT_RANGE_TRACE // Do you want to print out a trace of the backing store ops for the RC?
 #endif
 
 #if defined(PRINT_VM_TRACE) || defined(PRINT_RANGE_TRACE) || defined(PRINT_MEMTRACKER_TRACE)
@@ -118,11 +118,6 @@
 
 #define ACTIVE_ONLY true
 #define INCLUDE_INACTIVE false
-
-#ifdef PRINT_TRACE
-unsigned long long total_print_number;
-#define MAX_PRINT_NUM 100000000
-#endif
 
 /*
  * Structure that contains all hardware emulation statistics for one thread
