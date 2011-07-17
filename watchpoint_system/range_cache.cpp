@@ -77,7 +77,7 @@ void RangeCache<ADDRESS, FLAGS>::print_trace(int command, int thread_id, unsigne
          command_char = 'c';
       else
          command_char = 'a';
-      total_print_num++;
+      total_print_number++;
       trace_output << command_char << setw(5) << thread_id << setw(8) << starter << setw(8) << ender << endl;
    }
 #endif

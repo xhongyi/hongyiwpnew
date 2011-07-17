@@ -19,6 +19,9 @@
 
 using namespace std;
 
+unsigned long long total_print_number;
+#define MAX_PRINT_NUM 100000000
+
 template<class ADDRESS, class FLAGS>
 class Oracle : public Virtual_wp<ADDRESS, FLAGS> {
 public:
