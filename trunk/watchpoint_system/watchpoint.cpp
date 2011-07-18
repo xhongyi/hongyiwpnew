@@ -1216,7 +1216,9 @@ template<class ADDRESS, class FLAGS>
 statistics_t WatchPoint<ADDRESS, FLAGS>::get_statistics(int32_t thread_id) {
    statistics_iter = statistics.find(thread_id);
    if (statistics_iter != statistics.end()) {                        // if found active
-      return statistics_iter->second;                                // return active statistics
+      statistics_t local_stats;
+      local_stats = update_active_stats(thread_id);
+      return local_stats;                                // return active statistics
    }
    else {
       statistics_inactive_iter = statistics_inactive.find(thread_id);
