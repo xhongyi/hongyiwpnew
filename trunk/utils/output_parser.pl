@@ -199,7 +199,7 @@ if($have_seen_rc_ocbm==1) {
 if($have_seen_rc_offcbm==1) {
     print "Range Cache + OffCBM misses: " . $range_offcbm_misses . "\n";
     print "Range Cache + OffCBM kickouts: " . $range_offcbm_kickouts . "\n";
-    print "Range Cache + OffCBM WLB misses: " . $range_offcbm_wlb_miss . "\n";
+    print "Range Cache + OffCBM WLB misses: " . $range_offcbm_wlb_misses . "\n";
     print "Range Cache + OffCBM Switch To Bitmap: " . $range_offcbm_to_bitmap . "\n";
     print "Range Cache + OffCBM Switch To Range: " . $range_offcbm_from_bitmap . "\n";
     print "Range Cache + OffCBM Words Changed: " . $range_offcbm_words_changed . "\n";
