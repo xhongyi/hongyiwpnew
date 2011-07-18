@@ -4349,7 +4349,7 @@ void settaintvar()
     aftermain = 1;
 }
 
-string maincall("initme");
+string maincall("main");
 
 void FlagRtn(RTN rtn, void* v) 
 {
