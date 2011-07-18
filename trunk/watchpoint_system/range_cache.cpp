@@ -115,30 +115,36 @@ unsigned int RangeCache<ADDRESS, FLAGS>::general_fault(ADDRESS start_addr, ADDRE
    // assert start_addr and end_addr is in the same page (same off-chip bitmap)
 #ifdef RC_OFFCBM
    if ((start_addr>>PAGE_OFFSET_LENGTH) != (end_addr>>PAGE_OFFSET_LENGTH)) {
-      cerr <<"off-chip bitmap error: asserting start and end in the same page. ";
-      assert(0);
+       end_addr = (((start_addr>>PAGE_OFFSET_LENGTH)+1)<<PAGE_OFFSET_LENGTH)-1;
+      /*cerr << "Off Chip Bitmap Error: Start and end addresses in the same page on a fault check. " << endl;
+      cerr << hex << "Start addr: " << start_addr << " End addr: " << end_addr << endl;
+      cerr << "Page offset length: " << PAGE_OFFSET_LENGTH << endl;
+      cerr << "Shifted start: " << (start_addr>>PAGE_OFFSET_LENGTH) << " Shifted end: " << (end_addr>>PAGE_OFFSET_LENGTH) << endl;
+      assert(0);*/
    }
 #endif
    if (off_cbm && offcbm_wp->search_address(start_addr)->flags == WA_OFFCBM) {
                                                       // if off_cbm on, check if this range should be a off_cbm first
       typename std::deque< watchpoint_t<ADDRESS, FLAGS> >::iterator rc_write_iter, oracle_iter;
+      unsigned int new_miss_size = 0;
       watchpoint_t<ADDRESS, FLAGS> temp;
       rc_write_iter = search_address(start_addr);     // check hit or miss in range cache
-      if (rc_write_iter != rc_data.end() && (rc_write_iter->flags & WA_OFFCBM)) {           // refresh lru
+      if (rc_write_iter != rc_data.end()) {
          temp = *rc_write_iter;
          rc_data.erase(rc_write_iter);
+         if (rc_write_iter->flags & WA_OFFCBM)           // refresh lru
+            new_miss_size = offcbm_wp->general_fault(start_addr, end_addr);
+         wlb_miss_size += new_miss_size;
+         if (new_miss_size)
+            wlb_miss++;
       }
       else {
-         temp = *(offcbm_wp->search_address(start_addr));
-         rm_range(temp.start_addr, temp.end_addr);
-         temp.flags |= DIRTY;
-         rc_miss++;
+          temp = *(offcbm_wp->search_address(start_addr));
+          rm_range(temp.start_addr, temp.end_addr);
+          temp.flags |= DIRTY;
+          rc_miss++;
       }
       rc_data.push_front(temp);
-      unsigned int new_miss_size = offcbm_wp->general_fault(start_addr, end_addr);  // refresh wlb
-      wlb_miss_size += new_miss_size;
-      if (new_miss_size)
-         wlb_miss++;
    }
    else {   // no off-cbm case
       typename std::deque< watchpoint_t<ADDRESS, FLAGS> >::iterator rc_read_iter;
@@ -178,8 +184,9 @@ unsigned int RangeCache<ADDRESS, FLAGS>::wp_operation(ADDRESS start_addr, ADDRES
    if (off_cbm && offcbm_wp->search_address(start_addr)->flags == WA_OFFCBM) {
       // assert start_addr and end_addr is in the same page (same off-chip bitmap)
       if ((start_addr>>PAGE_OFFSET_LENGTH) != (end_addr>>PAGE_OFFSET_LENGTH)) {
-         cerr <<"off-chip bitmap error: asserting start and end in the same page. ";
-         assert(0);
+          end_addr = (((start_addr>>PAGE_OFFSET_LENGTH)+1)<<PAGE_OFFSET_LENGTH)-1;
+         //cerr <<"off-chip bitmap error: asserting start and end in the same page. ";
+         //assert(0);
       }
                                                       // if off_cbm on, check if this range should be a off_cbm first
       typename std::deque< watchpoint_t<ADDRESS, FLAGS> >::iterator rc_write_iter, oracle_iter;
@@ -209,8 +216,9 @@ unsigned int RangeCache<ADDRESS, FLAGS>::wp_operation(ADDRESS start_addr, ADDRES
          // assert start_addr and end_addr is in the same page (same off-chip bitmap)
 #ifdef RC_OFFCBM
          if ((start_addr>>PAGE_OFFSET_LENGTH) != (end_addr>>PAGE_OFFSET_LENGTH)) {
-            cerr <<"off-chip bitmap error: asserting start and end in the same page. ";
-            assert(0);
+             end_addr = (((start_addr>>PAGE_OFFSET_LENGTH)+1)<<PAGE_OFFSET_LENGTH)-1;
+            //cerr <<"off-chip bitmap error: asserting start and end in the same page. ";
+            //assert(0);
          }
 #endif
          // support for counting complex updates
@@ -339,49 +347,66 @@ bool RangeCache<ADDRESS, FLAGS>::cache_overflow() {
 }
 
 template<class ADDRESS, class FLAGS>
+void RangeCache<ADDRESS, FLAGS>::print_bitmap() {
+   typename std::deque< watchpoint_t<ADDRESS, FLAGS> >::iterator find_iter;
+   FLAGS print_flags;
+   ADDRESS print_start, print_end;
+   ADDRESS iter_addr;
+
+   iter_addr = rc_data.back().start_addr;
+   find_iter = oracle_wp->search_address(iter_addr);
+   print_start = iter_addr;
+   print_flags = find_iter->flags & (WA_READ|WA_WRITE);
+   while(find_iter->end_addr < rc_data.back().end_addr) {
+      print_end = find_iter->end_addr;
+      print_trace(print_flags, thread_id, print_start, print_end);
+      find_iter++;
+      print_start = find_iter->start_addr;
+      print_flags = find_iter->flags & (WA_READ|WA_WRITE);
+   }
+   print_end = rc_data.back().end_addr;
+   print_trace(print_flags, thread_id, print_start, print_end);
+}
+
+template<class ADDRESS, class FLAGS>
 void RangeCache<ADDRESS, FLAGS>::cache_kickout() {
+   kickout++;
    if (off_cbm) {
-      kickout++;
       if (rc_data.back().flags & DIRTY) {
          kickout_dirty++;
          unsigned int check_switch = offcbm_wp->kickout_dirty(rc_data.back().start_addr);
          if (check_switch == 1) {      // switch to offcbm
             offcbm_switch++;
-            general_fault(rc_data.back().start_addr, rc_data.back().start_addr);
+            rc_data.pop_back();
+            return;
          }
          else if (check_switch == 2) { // switch to ranges
             range_switch++;
+            // Switching to ranges from a bitmap means the backing store now holds them all.
+            print_bitmap();
             rc_data.pop_back();
+            return;
+         }
+         // Else we're not switching.
+
+         if(rc_data.back().flags & WA_OCBM) {
+            // If we're an OCBM, we need to store out ALL of the internal stuff.
+            print_bitmap();
          }
          else
-            rc_data.pop_back();
+            print_trace(rc_data.back().flags & (WA_READ|WA_WRITE), thread_id, rc_data.back().start_addr, rc_data.back().end_addr);
       }
-      else
-         rc_data.pop_back();
+      // Pop off the back whether it's dirty or not.
+      rc_data.pop_back();
    }
    else {
-      kickout++;
       if (rc_data.back().flags & DIRTY) {
          if(rc_data.back().flags & WA_OCBM) {
-             typename std::deque< watchpoint_t<ADDRESS, FLAGS> >::iterator find_iter;
-             FLAGS print_flags;
-             ADDRESS print_start, print_end;
-             ADDRESS iter_addr = rc_data.back().start_addr;
-             find_iter = oracle_wp->search_address(iter_addr);
-             print_start = iter_addr;
-             print_flags = find_iter->flags & (WA_READ|WA_WRITE);
-             while(find_iter->end_addr < rc_data.back().end_addr) {
-                print_end = find_iter->end_addr;
-                print_trace(print_flags, thread_id, print_start, print_end);
-                find_iter++;
-                print_start = find_iter->start_addr;
-                print_flags = find_iter->flags & (WA_READ|WA_WRITE);
-             }
-             print_end = rc_data.back().end_addr;
-             print_trace(print_flags, thread_id, print_start, print_end);
+            // If we're an OCBM, we need to store out ALL of the internal stuff.
+            print_bitmap();
          }
          else
-             print_trace(rc_data.back().flags & (WA_READ|WA_WRITE), thread_id, rc_data.back().start_addr, rc_data.back().end_addr);
+            print_trace(rc_data.back().flags & (WA_READ|WA_WRITE), thread_id, rc_data.back().start_addr, rc_data.back().end_addr);
          kickout_dirty++;
       }
       rc_data.pop_back();

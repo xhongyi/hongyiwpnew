@@ -59,6 +59,7 @@ private:
       search_address    (ADDRESS target_addr);           // search for target addr in rc, return rc_data.end() if miss
    unsigned int rm_range(ADDRESS start_addr, ADDRESS end_addr);  // remove all entries within the range
    bool cache_overflow();
+   void print_bitmap();
    void cache_kickout();   // kickout one lru entry at a time
    void print_trace(int command, int thread_id, unsigned int starter, unsigned int ender);
 };
