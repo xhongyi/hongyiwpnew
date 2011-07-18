@@ -3,8 +3,8 @@
 
 #define LOG_OFF_CBM_SIZE         12UL
 #define OFF_CBM_SIZE             (1<<LOG_OFF_CBM_SIZE)   // = one page = 4KB
-#define OFF_CBM_UPPER_THREASHOLD 128
-#define OFF_CBM_LOWER_THREASHOLD 16
+#define OFF_CBM_UPPER_THREASHOLD 16
+#define OFF_CBM_LOWER_THREASHOLD 4
 
 #include <deque>
 #include "mem_tracker.h"
