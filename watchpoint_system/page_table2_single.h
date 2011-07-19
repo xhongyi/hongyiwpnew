@@ -16,6 +16,7 @@
 #define PAGETABLE_UNWATCHED   5
 
 #include <bitset>
+#include <cassert>
 #include "virtual_wp.h"
 #include "page_table1_single.h"
 using namespace std;

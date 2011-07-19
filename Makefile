@@ -29,25 +29,25 @@ TEST_RC=test/test_rc
 all: $(ALL_TEST) $(PINTOOLS)
 
 $(TEST_ADD): $(OBJS) $(TEST_ADD).cpp
-	$(CXX) $(CFLAGS) $(TEST_ADD).cpp $(OBJS) -o test_add
+	$(CXX) $(CFLAGS) $(TEST_ADD).cpp -o test_add
 
 $(TEST_RM): $(OBJS) $(TEST_RM).cpp
-	$(CXX) $(CFLAGS) $(OBJS) $(TEST_RM).cpp -o test_rm
+	$(CXX) $(CFLAGS) $(TEST_RM).cpp -o test_rm
 
 $(TEST_CACHE_ALGO): $(OBJS) $(TEST_CACHE_ALGO).cpp
-	$(CXX) $(CFLAGS) $(OBJS) $(TEST_CACHE_ALGO).cpp -o test_cache_algo
+	$(CXX) $(CFLAGS) $(TEST_CACHE_ALGO).cpp -o test_cache_algo
 
 $(TEST_PRINT): $(OBJS) $(TEST_PRINT).cpp
-	$(CXX) $(CFLAGS) $(OBJS) $(TEST_PRINT).cpp -o test_print
+	$(CXX) $(CFLAGS) $(TEST_PRINT).cpp -o test_print
 
 $(TEST_PT): $(OBJS) $(TEST_PT).cpp
-	$(CXX) $(CFLAGS) $(OBJS) $(TEST_PT).cpp -o test_pt
+	$(CXX) $(CFLAGS) $(TEST_PT).cpp -o test_pt
 
 $(TEST_WP): $(OBJS) $(TEST_WP).cpp
-	$(CXX) $(CFLAGS) $(OBJS) $(TEST_WP).cpp -o test_wp
+	$(CXX) $(CFLAGS) $(TEST_WP).cpp -o test_wp
 
 $(TEST_RC): $(OBJS) $(TEST_RC).cpp
-	$(CXX) $(CFLAGS) $(OBJS) $(TEST_RC).cpp -o test_rc
+	$(CXX) $(CFLAGS) $(TEST_RC).cpp -o test_rc
 
 #add tests here
 

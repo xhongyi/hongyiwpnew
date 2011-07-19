@@ -444,9 +444,9 @@ unsigned int RangeCache<ADDRESS, FLAGS>::wp_operation(ADDRESS start_addr, ADDRES
       wlb_miss_size += new_miss_size;
       if (new_miss_size)
          wlb_miss++;
-      if (ocbm)
-         check_ocbm(start_addr, end_addr);
    }
+   if (ocbm)
+      check_ocbm(start_addr, end_addr);
    while (cache_overflow())                           // kick out redundant cache entries
       cache_kickout();
    return rc_miss;
