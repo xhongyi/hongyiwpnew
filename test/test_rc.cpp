@@ -2,7 +2,7 @@
 
 int main(int argc, char *argv[]) {
    Oracle<unsigned int, unsigned int> oracle_wp;
-	RangeCache<unsigned int, unsigned int> rc_test(&oracle_wp, true, true);
+	RangeCache<unsigned int, unsigned int> rc_test(&oracle_wp, 0, true, true);
 	string instr;
 	unsigned int start, end;
 	string flag;
@@ -85,6 +85,10 @@ int main(int argc, char *argv[]) {
 	      cout <<setw(18)<<"kickouts dirty: "<<rc_test.kickout_dirty<<endl;
 	      cout <<setw(18)<<"kickouts total: "<<rc_test.kickout<<endl;
 	      cout <<setw(18)<<"complex updates: "<<rc_test.complex_updates<<endl;
+	      cout <<setw(18)<<"switch to offcbm: "<<rc_test.offcbm_switch<<endl;
+	      cout <<setw(18)<<"switchback to range: "<<rc_test.range_switch<<endl;
+	      cout <<setw(18)<<"wlb miss: "<<rc_test.wlb_miss<<endl;
+	      cout <<setw(18)<<"wlb miss size: "<<rc_test.wlb_miss_size<<endl;
 	   }
 	   else {
 	      cout <<endl<<"invalid instruction: "<<instr<<endl;
