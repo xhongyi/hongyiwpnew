@@ -208,11 +208,19 @@ unsigned int RangeCache<ADDRESS, FLAGS>::wp_operation(ADDRESS start_addr, ADDRES
          while (searching) {
             rc_write_iter = search_address(search_addr);             // search starts from the start_addr
             if (rc_write_iter != rc_data.end()) {                    // if cache hit
-               if (rc_write_iter->end_addr >= end_addr)
+               ADDRESS temp_end = -1;
+               if (rc_write_iter->end_addr >= end_addr) {
+                  temp_end = end_addr;
                   searching = false;
-               else
+               }
+               else {
+                  temp_end = rc_write_iter->end_addr;
                   search_addr = rc_write_iter->end_addr+1;
-               rc_data.erase(rc_write_iter);
+               }
+               if(rc_write_iter->flags & WA_OFFCBM) // If the range we found is an OCBM, we need to "remove" the whole thing
+                  rc_data.erase(rc_write_iter);
+               else                          // If it isn't, we just need to remove the parts between our update endpoints.
+                  rm_range(search_addr, temp_end);
             }
             else {
                offcbm_iter = offcbm_wp->search_address(search_addr);
