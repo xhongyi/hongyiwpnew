@@ -22,8 +22,8 @@
 //#define PT2_BYTE_ACU_MULTI
 //#define MEM_TRACKER
 #define RC_SINGLE
-//#define RC_OCBM
-//#define RC_OFFCBM
+#define RC_OCBM
+#define RC_OFFCBM
 
 #ifdef PAGE_TABLE2_MULTI
 #define PAGE_TABLE_MULTI

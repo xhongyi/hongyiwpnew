@@ -15,7 +15,7 @@ Offcbm<ADDRESS, FLAGS>::Offcbm() {
 template<class ADDRESS, class FLAGS>
 Offcbm<ADDRESS, FLAGS>::~Offcbm() {
 }
-
+// constraints of the following two functions: only input ranges that is in an off-chip bitmap
 template<class ADDRESS, class FLAGS>
 unsigned int Offcbm<ADDRESS, FLAGS>::general_fault(ADDRESS start_addr, ADDRESS end_addr) {
    return wlb.general_fault(start_addr, end_addr);
@@ -42,7 +42,20 @@ Offcbm<ADDRESS, FLAGS>::search_address(ADDRESS target_addr) {
          return ret_deq.begin();
       }
    }
-   return oracle_wp->search_address(target_addr);
+   typename deque<watchpoint_t<ADDRESS, FLAGS> >::iterator 
+      return_iter = oracle_wp->search_address(target_addr);
+   tag = ((return_iter->end_addr)>>LOG_OFF_CBM_SIZE);
+   for (i=offcbm_pages.begin();i!=offcbm_pages.end();i++) {
+      if (*i == tag) {
+         ret_deq.clear();
+         temp.start_addr = return_iter->start_addr;
+         temp.end_addr   = ((tag<<LOG_OFF_CBM_SIZE)-1);
+         temp.flags      = return_iter->flags;
+         ret_deq.push_front(temp);
+         return ret_deq.begin();
+      }
+   }
+   return return_iter;
 }
 
 template<class ADDRESS, class FLAGS>
@@ -83,6 +96,11 @@ void Offcbm<ADDRESS, FLAGS>::rm_offcbm(ADDRESS start_addr, ADDRESS end_addr) {
          }
       }
    }
+}
+
+template<class ADDRESS, class FLAGS>
+void Offcbm<ADDRESS, FLAGS>::rm_offcbm() {
+   offcbm_pages.clear();
 }
 
 #endif /*OFF_CBM_CPP_*/
