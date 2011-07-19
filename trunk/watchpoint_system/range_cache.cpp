@@ -123,18 +123,15 @@ unsigned int RangeCache<ADDRESS, FLAGS>::general_fault(ADDRESS start_addr, ADDRE
             // get new range from backing store
             rc_read_iter = offcbm_wp->search_address(search_addr);
             if (rc_read_iter->flags & WA_OFFCBM) {                // if it is turned into an off-chip bitmap
-               temp.start_addr = rc_read_iter->start_addr;
-               temp.end_addr = rc_read_iter->end_addr;
-               temp.flags = rc_read_iter->flags | DIRTY;          // mark all off-chip bitmap as dirty in the range cache
+               temp = *rc_read_iter;
+               temp.flags |= DIRTY;          // mark all off-chip bitmap as dirty in the range cache
                rm_for_offcbm_switch(temp.start_addr, temp.end_addr);
                rc_miss++;                                         // off-chip bitmap counted as only one range cache miss
                new_miss_size += offcbm_wp->general_fault(max(start_addr, temp.start_addr), 
                                                          min(end_addr  , temp.end_addr  )  );
             }
             else {
-               temp.start_addr = rc_read_iter->start_addr;
-               temp.end_addr = rc_read_iter->end_addr;
-               temp.flags = rc_read_iter->flags;
+               temp = *rc_read_iter;
                rc_miss += rm_range(temp.start_addr, temp.end_addr);
             }
             rc_data.push_front(temp);                    // push the new range to range cache on a miss
@@ -163,9 +160,7 @@ unsigned int RangeCache<ADDRESS, FLAGS>::general_fault(ADDRESS start_addr, ADDRE
          if (rc_read_iter == rc_data.end()) {                     // if cache miss
             // get new range from backing store
             rc_read_iter = oracle_wp->search_address(search_addr);
-            temp.start_addr = rc_read_iter->start_addr;
-            temp.end_addr = rc_read_iter->end_addr;
-            temp.flags = rc_read_iter->flags;
+            temp = *rc_read_iter;
             rc_miss += rm_range(temp.start_addr, temp.end_addr);
             rc_data.push_front(temp);                    // push the new range to range cache
             rc_read_iter = search_address(search_addr);
@@ -173,9 +168,7 @@ unsigned int RangeCache<ADDRESS, FLAGS>::general_fault(ADDRESS start_addr, ADDRE
          if (rc_read_iter->end_addr >= end_addr)                  // if all ranges are covered
             searching = false;
          // refresh start_addr
-         temp.start_addr = rc_read_iter->start_addr;
-         temp.end_addr = rc_read_iter->end_addr;
-         temp.flags = rc_read_iter->flags;
+         temp = *rc_read_iter;
          search_addr = temp.end_addr+1;
          // refresh lru
          rc_data.erase(rc_read_iter);                             // refresh this entry as most recently used
@@ -278,9 +271,8 @@ unsigned int RangeCache<ADDRESS, FLAGS>::wp_operation(ADDRESS start_addr, ADDRES
       // adding ranges
       if (perform_offcbm) {      // offcbm spotted in the range
          offcbm_iter = offcbm_wp->search_address(start_addr);     // merge start
-         temp.start_addr = offcbm_iter->start_addr;
-         temp.end_addr = offcbm_iter->end_addr;
-         temp.flags =  offcbm_iter->flags | DIRTY;
+         temp = *offcbm_iter;
+         temp.flags |= DIRTY;
          if (rc_miss)
             rm_range(temp.start_addr, temp.end_addr);
          else {
@@ -308,9 +300,8 @@ unsigned int RangeCache<ADDRESS, FLAGS>::wp_operation(ADDRESS start_addr, ADDRES
             ADDRESS search_addr = temp.end_addr+1;
             while (searching) {
                offcbm_iter = offcbm_wp->search_address(search_addr);
-               temp.start_addr = offcbm_iter->start_addr;
-               temp.end_addr = offcbm_iter->end_addr;
-               temp.flags =  offcbm_iter->flags | DIRTY;
+               temp = *offcbm_iter;
+               temp.flags |= DIRTY;
                if (temp.flags & WA_OFFCBM)      // check wlb misses when a miss turns out to be an offcbm
                   new_miss_size += offcbm_wp->wp_operation(max(start_addr, temp.start_addr), 
                                                            min(end_addr  , temp.end_addr  )  );
@@ -335,9 +326,8 @@ unsigned int RangeCache<ADDRESS, FLAGS>::wp_operation(ADDRESS start_addr, ADDRES
       }
       else {   // offcbm off or non offcbm case
          oracle_iter = oracle_wp->search_address(start_addr);     // merge start
-         temp.start_addr = oracle_iter->start_addr;
-         temp.end_addr = oracle_iter->end_addr;
-         temp.flags =  oracle_iter->flags | DIRTY;
+         temp = *oracle_iter;
+         temp.flags |= DIRTY;
          if (rc_miss)
             rm_range(temp.start_addr, temp.end_addr);
          else {
@@ -362,9 +352,8 @@ unsigned int RangeCache<ADDRESS, FLAGS>::wp_operation(ADDRESS start_addr, ADDRES
             ADDRESS search_addr = temp.end_addr+1;
             while (searching) {
                oracle_iter = oracle_wp->search_address(search_addr);
-               temp.start_addr = oracle_iter->start_addr;
-               temp.end_addr = oracle_iter->end_addr;
-               temp.flags =  oracle_iter->flags | DIRTY;
+               temp = *oracle_iter;
+               temp.flags |= DIRTY;
                if (temp.end_addr > end_addr) {            // merge end
                   searching = false;
                   if (rc_miss)
