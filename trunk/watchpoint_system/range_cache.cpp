@@ -394,7 +394,7 @@ unsigned int RangeCache<ADDRESS, FLAGS>::wp_operation(ADDRESS start_addr, ADDRES
                rc_data.push_front(temp);
                new_miss_size += offcbm_wp->wp_operation(max(start_addr, temp.start_addr), 
                                                         min(end_addr  , temp.end_addr  )  );
-               new_start = rc_write_iter->end_addr+1;
+               new_start = temp.end_addr+1;
             }
             rc_write_iter = search_address(end_addr);
             if ( (rc_write_iter!=rc_data.end()) && (rc_write_iter->flags & WA_OFFCBM) ) { // if end addr hit as an offcbm
@@ -403,7 +403,7 @@ unsigned int RangeCache<ADDRESS, FLAGS>::wp_operation(ADDRESS start_addr, ADDRES
                rc_data.push_front(temp);
                new_miss_size += offcbm_wp->wp_operation(max(start_addr, temp.start_addr), 
                                                         min(end_addr  , temp.end_addr  )  );
-               new_end = rc_write_iter->start_addr-1;
+               new_end = temp.start_addr-1;
             }
             if (new_end > new_start) {     // if there exists some range not covered by offcbm
                rm_range(new_start, new_end);
