@@ -27,6 +27,7 @@ public:
    unsigned int  wp_operation    (ADDRESS start_addr, ADDRESS end_addr);
    // for removing off-chip bitmap within a range
    void rm_offcbm       (ADDRESS start_addr, ADDRESS end_addr);
+   void rm_offcbm       ();
    // only on a kickout, decide whether to switch a page to off-cbm or to range or doing nothing
    //    return value: 1=off-cbm; 2=range;
    unsigned int  kickout_dirty   (ADDRESS target_addr);
