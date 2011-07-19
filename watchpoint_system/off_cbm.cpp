@@ -44,7 +44,18 @@ Offcbm<ADDRESS, FLAGS>::search_address(ADDRESS target_addr) {
    }
    typename deque<watchpoint_t<ADDRESS, FLAGS> >::iterator 
       return_iter = oracle_wp->search_address(target_addr);
-   tag = ((return_iter->end_addr)>>LOG_OFF_CBM_SIZE);
+   tag = ((return_iter->start_addr)>>LOG_OFF_CBM_SIZE);     // cut off start addr
+   for (i=offcbm_pages.begin();i!=offcbm_pages.end();i++) {
+      if (*i == tag) {
+         ret_deq.clear();
+         temp.start_addr = ((tag+1)<<LOG_OFF_CBM_SIZE);
+         temp.end_addr   = return_iter->end_addr;
+         temp.flags      = return_iter->flags;
+         ret_deq.push_front(temp);
+         return ret_deq.begin();
+      }
+   }
+   tag = ((return_iter->end_addr)>>LOG_OFF_CBM_SIZE);     // cut off end addr
    for (i=offcbm_pages.begin();i!=offcbm_pages.end();i++) {
       if (*i == tag) {
          ret_deq.clear();

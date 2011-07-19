@@ -139,7 +139,7 @@ unsigned int RangeCache<ADDRESS, FLAGS>::general_fault(ADDRESS start_addr, ADDRE
          }
          else if (rc_read_iter->flags & WA_OFFCBM)                // if hit as an off-chip bitmap, count wlb misses
             new_miss_size += offcbm_wp->general_fault(max(start_addr, rc_read_iter->start_addr), 
-                                                   min(end_addr  , rc_read_iter->end_addr  )  );
+                                                      min(end_addr  , rc_read_iter->end_addr  )  );
          if (rc_read_iter->end_addr >= end_addr)                  // if all ranges are covered
             searching = false;
          // refresh start_addr
@@ -405,7 +405,7 @@ unsigned int RangeCache<ADDRESS, FLAGS>::wp_operation(ADDRESS start_addr, ADDRES
                                                         min(end_addr  , temp.end_addr  )  );
                new_end = temp.start_addr-1;
             }
-            if (new_end > new_start) {     // if there exists some range not covered by offcbm
+            if (new_end >= new_start) {     // if there exists some range not covered by offcbm
                rm_range(new_start, new_end);
                oracle_iter = oracle_wp->search_address(new_start);
                temp.flags = oracle_iter->flags | DIRTY;
