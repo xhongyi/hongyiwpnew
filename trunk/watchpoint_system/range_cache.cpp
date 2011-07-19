@@ -123,15 +123,21 @@ unsigned int RangeCache<ADDRESS, FLAGS>::general_fault(ADDRESS start_addr, ADDRE
             // get new range from backing store
             rc_read_iter = offcbm_wp->search_address(search_addr);
             if (rc_read_iter->flags & WA_OFFCBM) {                // if it is turned into an off-chip bitmap
-               rc_read_iter->flags |= DIRTY;                      // mark all off-chip bitmap as dirty in the range cache
-               rm_for_offcbm_switch(rc_read_iter->start_addr, rc_read_iter->end_addr);
+               temp.start_addr = rc_read_iter->start_addr;
+               temp.end_addr = rc_read_iter->end_addr;
+               temp.flags = rc_read_iter->flags | DIRTY;          // mark all off-chip bitmap as dirty in the range cache
+               rm_for_offcbm_switch(temp.start_addr, temp.end_addr);
                rc_miss++;                                         // off-chip bitmap counted as only one range cache miss
-               new_miss_size += offcbm_wp->general_fault(max(start_addr, rc_read_iter->start_addr), 
-                                                      min(end_addr  , rc_read_iter->end_addr  )  );
+               new_miss_size += offcbm_wp->general_fault(max(start_addr, temp.start_addr), 
+                                                         min(end_addr  , temp.end_addr  )  );
             }
-            else
-               rc_miss += rm_range(rc_read_iter->start_addr, rc_read_iter->end_addr);
-            rc_data.push_front(*rc_read_iter);                    // push the new range to range cache on a miss
+            else {
+               temp.start_addr = rc_read_iter->start_addr;
+               temp.end_addr = rc_read_iter->end_addr;
+               temp.flags = rc_read_iter->flags;
+               rc_miss += rm_range(temp.start_addr, temp.end_addr);
+            }
+            rc_data.push_front(temp);                    // push the new range to range cache on a miss
             rc_read_iter = search_address(search_addr);
          }
          else if (rc_read_iter->flags & WA_OFFCBM)                // if hit as an off-chip bitmap, count wlb misses
@@ -157,14 +163,19 @@ unsigned int RangeCache<ADDRESS, FLAGS>::general_fault(ADDRESS start_addr, ADDRE
          if (rc_read_iter == rc_data.end()) {                     // if cache miss
             // get new range from backing store
             rc_read_iter = oracle_wp->search_address(search_addr);
-            rc_miss += rm_range(rc_read_iter->start_addr, rc_read_iter->end_addr);
-            rc_data.push_front(*rc_read_iter);                    // push the new range to range cache
+            temp.start_addr = rc_read_iter->start_addr;
+            temp.end_addr = rc_read_iter->end_addr;
+            temp.flags = rc_read_iter->flags;
+            rc_miss += rm_range(temp.start_addr, temp.end_addr);
+            rc_data.push_front(temp);                    // push the new range to range cache
             rc_read_iter = search_address(search_addr);
          }
          if (rc_read_iter->end_addr >= end_addr)                  // if all ranges are covered
             searching = false;
          // refresh start_addr
-         temp = *rc_read_iter;
+         temp.start_addr = rc_read_iter->start_addr;
+         temp.end_addr = rc_read_iter->end_addr;
+         temp.flags = rc_read_iter->flags;
          search_addr = temp.end_addr+1;
          // refresh lru
          rc_data.erase(rc_read_iter);                             // refresh this entry as most recently used
