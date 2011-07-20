@@ -426,16 +426,23 @@ VOID ThreadFini(THREADID threadid, const CONTEXT *ctxt, INT32 code, VOID *v)
 // This would check for read watchfault. And save it to mem(as read set) if there are any.
 VOID RecordMemRead(VOID * ip, ADDRINT addr, UINT32 size, THREADID threadid)
 {
+    ADDRINT start_addr = (addr>>6)<<6;
+    // End address is actually "addr+size-1". However, we want to start with its cache line.
+    ADDRINT end_addr = (ADDRINT)(addr+size-1)>>6;
+    // Now we want to pretend we're on the next line
+    end_addr = (end_addr+1)<<6;
+    // Aaaaand, we're actually on the last addr of the previous line
+    end_addr--;
     GetLock(&init_lock, threadid+1);
     // If more than one thread is running, we need to be using Grace.
     if (thread_num > 1) {
         // Check if this thread read-owns this location. This is a real check.
         // This entire thing must be globally locked, or we could enter a state where
         // another thread updates the oracle while we walk the internals.
-        if ( wp->read_fault(addr, (ADDRINT)(addr+size-1), threadid) ) {
+        if ( wp->read_fault(start_addr, end_addr, threadid) ) {
             // If so, remove the read watchpoint from this address and set it in the read set.
-            wp->rm_read(addr, (ADDRINT)(addr+size-1), threadid);
-            mem->update_set_read(addr, (ADDRINT)(addr+size-1), threadid, IGNORE_STATS);
+            wp->rm_read(start_addr, end_addr, threadid);
+            mem->update_set_read(start_addr, end_addr, threadid, IGNORE_STATS);
         }
     }
     ReleaseLock(&init_lock);
@@ -445,14 +452,21 @@ VOID RecordMemRead(VOID * ip, ADDRINT addr, UINT32 size, THREADID threadid)
 // This would check for write watchfault. And save it to mem(as read set) if there are any.
 VOID RecordMemWrite(VOID * ip, ADDRINT addr, UINT32 size, THREADID threadid)
 {
+    ADDRINT start_addr = (addr>>6)<<6;
+    // End address is actually "addr+size-1". However, we want to start with its cache line.
+    ADDRINT end_addr = (ADDRINT)(addr+size-1)>>6;
+    // Now we want to pretend we're on the next line
+    end_addr = (end_addr+1)<<6;
+    // Aaaaand, we're actually on the last addr of the previous line
+    end_addr--;
     GetLock(&init_lock, threadid+1);
     if (thread_num > 1) {
-        if ( wp->write_fault(addr, (ADDRINT)(addr+size-1), threadid) ) {
+        if ( wp->write_fault(start_addr, end_addr, threadid) ) {
             // Technically, you don't need to pay attention to any other reads now either,
             // because you now write-own this location. Any other access on the machine, even reads,
             // to this location will cause a write-sharing event.
-            wp->rm_watch(addr, (ADDRINT)(addr+size-1), threadid);
-            mem->update_set_write(addr, (ADDRINT)(addr+size-1), threadid, IGNORE_STATS);
+            wp->rm_watch(start_addr, end_addr, threadid);
+            mem->update_set_write(start_addr, end_addr, threadid, IGNORE_STATS);
         }
     }
     ReleaseLock(&init_lock);
