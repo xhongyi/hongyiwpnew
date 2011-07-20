@@ -173,6 +173,123 @@ VOID double_data(thread_mem_data_t* double_mem_ptr)
     double_mem_ptr->total_stats += double_me;
 }
 
+VOID KillOtherThread(OS_THREAD_ID thread_to_kill)
+{
+    thread_wp_data_t* this_thread;
+    OS_THREAD_ID this_parent_threadid;
+    thread_mem_data_t* child_mem_ptr;
+    thread_mem_data_t* parent_mem_ptr;
+    thread_mem_data_t* compare_mem_ptr;
+
+    this_thread = thread_map[thread_to_kill];
+    this_parent_threadid = this_thread->parent_threadid;
+
+    get_local_stats(this_thread->self_mem_ptr);
+
+    // This thread is done, so remove one of the parente thread's children.
+    thread_map[this_parent_threadid]->child_thread_num--;
+
+    if (thread_map[this_parent_threadid]->child_thread_num == 0) {
+        // If all the CURRENT children for the parent thread are now done, we need to run grace comparison against them.
+        deque<thread_mem_data_t*>::iterator child_iter;
+        deque<thread_mem_data_t*>::iterator compare_iter;
+
+        parent_mem_ptr = thread_map[this_parent_threadid]->self_mem_ptr;
+
+        for (child_iter = (thread_map[this_parent_threadid]->child_data).end() -1;
+                child_iter != (thread_map[this_parent_threadid]->child_data).begin();
+                child_iter--) {
+            bool did_conflict = false;
+            child_mem_ptr = *child_iter;
+            // The total number of trie/range misses sets etc the system
+            // sees is at least how many happened in each child thread.
+            add_data_to_total(child_mem_ptr);
+            for (compare_iter = (thread_map[this_parent_threadid]->child_data).begin();
+                    compare_iter != child_iter;
+                    compare_iter++) {
+                compare_mem_ptr = *compare_iter;
+                if (thread_commit_data_conflict(compare_mem_ptr, child_mem_ptr) ) {
+                    // There was a conflict between a thread and an earlier sibling thread.
+                    // Therefore, the second thread had to run twice.
+                    did_conflict = true;
+                    add_data_to_total(child_mem_ptr);
+                    double_data(child_mem_ptr);
+                    break;
+                }
+            }
+            if (!did_conflict && thread_commit_data_conflict(parent_mem_ptr, child_mem_ptr) ) {
+                // Didn't conflict with any other child thread, but conflicted with the parent.
+                add_data_to_total(child_mem_ptr);
+                double_data(child_mem_ptr);
+            }
+            parent_mem_ptr->total_stats += child_mem_ptr->total_stats;
+        }
+        child_mem_ptr = *child_iter; // Must also check thread at begin()
+        add_data_to_total(child_mem_ptr);
+        if (thread_commit_data_conflict(parent_mem_ptr, child_mem_ptr) ) {
+            add_data_to_total(child_mem_ptr);
+            double_data(child_mem_ptr);
+        }
+        parent_mem_ptr->total_stats += child_mem_ptr->total_stats;
+        // The parent will either be handled when IT dies, or will be handled by
+        // the else staement below if it's the root.
+    }
+
+    if (thread_map[this_parent_threadid]->child_thread_num == 0) {
+        // Thread information cleanup.
+        if (!this_thread->has_had_siblings && !this_thread->has_had_children) {
+            // If this guy had no siblings or children, no one will clean him up.
+            // He must do it himself.
+            delete this_thread->self_mem_ptr;
+            delete thread_map[thread_to_kill];
+            thread_map.erase(thread_to_kill);
+            thread_num--;
+        }
+        else {
+            // This thread has either siblings or children.  We're in here because the parent
+            // has no more live children, so we should first try to delete all siblings.
+            deque<OS_THREAD_ID>::iterator sibling_thread_id;
+            // Walking through the siblings will also catch us.
+            for(sibling_thread_id = (thread_map[this_parent_threadid]->children_thread_ids).begin();
+                    sibling_thread_id != (thread_map[this_parent_threadid]->children_thread_ids).end();
+                    sibling_thread_id++) {
+                thread_wp_data_t *sibling_thread = thread_map[*sibling_thread_id];
+                if (!thread_map[this_parent_threadid]->child_thread_num) {
+                    // If the sibling never had children it is absolutely OK to delete its data.
+                    // If the sibling HAD children but the number is at zero, then there is
+                    // no one left to delete it, so we must.
+                    if (!sibling_thread->has_had_children || !sibling_thread->child_thread_num){
+                        delete sibling_thread->self_mem_ptr;
+                        delete thread_map[*sibling_thread_id];
+                        thread_map.erase(*sibling_thread_id);
+                        thread_num--;
+                    }
+                    else {
+                        // If this sibling thread still has live children, then THEY
+                        // must delete it.
+                        // We'll leave it around for its last child to delete.
+                        sibling_thread->sibling_skipped_kill = true;
+                    }
+                }
+            }
+        }
+        (thread_map[this_parent_threadid]->child_data).clear();
+        (thread_map[this_parent_threadid]->children_thread_ids).clear();
+
+        if (thread_map[this_parent_threadid]->sibling_skipped_kill) {
+            // If one of our parents siblings skipped killing it because we (the child) existed
+            // We, the last child, must be the one to kill it.
+            // (This also includes the one parent one child case, where it skips killing itself in the sibling-list walk).
+            thread_wp_data_t *parent_thread = thread_map[this_parent_threadid];;
+            delete parent_thread->self_mem_ptr;
+            delete thread_map[this_parent_threadid];
+            thread_map.erase(this_parent_threadid);
+            thread_num--;
+        }
+    }
+
+}
+
 VOID ThreadFini(THREADID threadid, const CONTEXT *ctxt, INT32 code, VOID *v)
 {
     OS_THREAD_ID this_threadid;
@@ -241,6 +358,11 @@ VOID ThreadFini(THREADID threadid, const CONTEXT *ctxt, INT32 code, VOID *v)
     }
     else {
         // Can't have conflict if this is a root thread.
+        map<OS_THREAD_ID,thread_wp_data_t*>::iterator   new_iter;
+        for(new_iter = thread_map.begin(); new_iter != thread_map.end(); new_iter++) {
+            if (new_iter->first != this_threadid)
+                KillOtherThread(new_iter->first);
+        }
         add_data_to_total(this_thread->self_mem_ptr);
     }
 
