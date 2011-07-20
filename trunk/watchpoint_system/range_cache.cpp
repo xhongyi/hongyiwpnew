@@ -110,7 +110,7 @@ unsigned int RangeCache<ADDRESS, FLAGS>::rm_watchpoint(ADDRESS start_addr, ADDRE
 // we only need to know if it is a hit or miss in a range cache
 //    so it is regardless of the checked flags
 template<class ADDRESS, class FLAGS>
-unsigned int RangeCache<ADDRESS, FLAGS>::general_fault(ADDRESS start_addr, ADDRESS end_addr) {kickout_this_time = false;
+unsigned int RangeCache<ADDRESS, FLAGS>::general_fault(ADDRESS start_addr, ADDRESS end_addr) {
    unsigned int rc_miss = 0, new_miss_size = 0;
    typename std::deque< watchpoint_t<ADDRESS, FLAGS> >::iterator rc_read_iter;
    watchpoint_t<ADDRESS, FLAGS> temp;
@@ -183,7 +183,7 @@ unsigned int RangeCache<ADDRESS, FLAGS>::general_fault(ADDRESS start_addr, ADDRE
 // wp_operation is same for add or rm a watchpoint, 
 //    both simulated by removing all covered ranges and then getting new ranges from backing store
 template<class ADDRESS, class FLAGS>
-unsigned int RangeCache<ADDRESS, FLAGS>::wp_operation(ADDRESS start_addr, ADDRESS end_addr, bool is_update) {kickout_this_time = false;
+unsigned int RangeCache<ADDRESS, FLAGS>::wp_operation(ADDRESS start_addr, ADDRESS end_addr, bool is_update) {
    unsigned int rc_miss = 0, new_miss_size = 0;
    typename std::deque< watchpoint_t<ADDRESS, FLAGS> >::iterator rc_write_iter, oracle_iter, offcbm_iter;
    watchpoint_t<ADDRESS, FLAGS> temp;
@@ -513,7 +513,7 @@ void RangeCache<ADDRESS, FLAGS>::print_bitmap() {
 }
 
 template<class ADDRESS, class FLAGS>
-void RangeCache<ADDRESS, FLAGS>::cache_kickout() {kickout_this_time = true;
+void RangeCache<ADDRESS, FLAGS>::cache_kickout() {
    kickout++;
    if (off_cbm) {
       if (rc_data.back().flags & (DIRTY|WA_OFFCBM)) {
