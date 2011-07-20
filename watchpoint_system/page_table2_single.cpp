@@ -179,6 +179,7 @@ int PageTable2_single<ADDRESS, FLAGS>::rm_watchpoint(ADDRESS start_addr, ADDRESS
          if (!superpage_readonly[i]) {
             changes++;
             superpage_readonly.set(i);    // readonly = 1
+            superpage_watched.reset(i);
          }
       }
       else {
@@ -203,9 +204,15 @@ int PageTable2_single<ADDRESS, FLAGS>::rm_watchpoint(ADDRESS start_addr, ADDRESS
       if (!all_readonly) {
          changes = 1;
          all_readonly = true;
+         all_watched = false;
       }
       else
          changes = 0;
+   }
+   else if (all_watched || all_readonly) {
+      changes++;
+      all_watched = false;
+      all_readonly = false;
    }
    return changes;
 }

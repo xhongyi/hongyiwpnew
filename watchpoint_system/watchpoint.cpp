@@ -918,8 +918,10 @@ int WatchPoint<ADDRESS, FLAGS>::general_change(ADDRESS start, ADDRESS end, int32
 #endif
          if (add_flag) {
 #ifdef PAGE_TABLE
-            if (rm_flag)
-               change_count = page_table_wp[thread_id]->rm_watchpoint(start, end, rm_flag);
+            if (rm_flag) {
+               change_count += page_table_wp[thread_id]->add_watchpoint(start, end, add_flag);
+               change_count += page_table_wp[thread_id]->rm_watchpoint(start, end, rm_flag);
+            }
             else
                change_count = page_table_wp[thread_id]->add_watchpoint(start, end, add_flag);      // set page_table
 #endif
@@ -927,8 +929,10 @@ int WatchPoint<ADDRESS, FLAGS>::general_change(ADDRESS start, ADDRESS end, int32
             change_count_multi = page_table_multi->add_watchpoint(start, end);
 #endif
 #ifdef PAGE_TABLE2_SINGLE
-            if (rm_flag)
+            if (rm_flag) {
+               change_count2 = page_table2_wp[thread_id]->add_watchpoint(start, end, add_flag);
                change_count2 = page_table2_wp[thread_id]->rm_watchpoint(start, end, rm_flag);
+            }
             else
                change_count2 = page_table2_wp[thread_id]->add_watchpoint(start, end, add_flag);    // set page_table
 #endif
