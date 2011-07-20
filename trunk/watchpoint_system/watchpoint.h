@@ -9,11 +9,11 @@
 #define WATCHPOINT_H_
 
 // Turn on a page table PER THREAD
-//#define PAGE_TABLE_SINGLE
+#define PAGE_TABLE_SINGLE
 // Turn on a single page table shared between ALL THREADS
 //#define PAGE_TABLE_MULTI
 // Turn on a multi-level page table PER THREAD
-//#define PAGE_TABLE2_SINGLE
+#define PAGE_TABLE2_SINGLE
 // Turn on a multi-level page tabled shared between ALL THREADS
 //#define PAGE_TABLE2_MULTI
 // Turn on a byte accurate system PER THREAD
@@ -21,9 +21,9 @@
 // Turn on a byte accureate system shared between ALL THREADS
 //#define PT2_BYTE_ACU_MULTI
 //#define MEM_TRACKER
-#define RC_SINGLE
-#define RC_OCBM
-#define RC_OFFCBM
+//#define RC_SINGLE
+//#define RC_OCBM
+//#define RC_OFFCBM
 
 #ifdef PAGE_TABLE2_MULTI
 #define PAGE_TABLE_MULTI
@@ -141,12 +141,13 @@ struct statistics_t {
    long long change_count_multi;
    #endif
    #ifdef PAGE_TABLE2_SINGLE
-   long long superpage_miss_faults;    // total number of times that we get lowest level faults
-   long long superpage_miss;           // total number of times that we need to get to the bottom level
-   long long superpage_faults;         // total number of times that the superpage get faults
-   long long superpage_hits;           // total number of times that we get superpage hits
-   long long highest_faults;           // total number of times that we get faults immediately
-   long long highest_hits;             // total number of times that all memory are watched/unwatched
+   long long superpage_all_watched;
+   long long superpage_all_readonly;
+   long long superpage_watched;
+   long long superpage_readonly;
+   long long superpage_page_watched;
+   long long superpage_page_readonly;
+   long long superpage_available;
    long long change_count2;            // total number of page_table_watch_bit changes
    #endif
    #ifdef PAGE_TABLE2_MULTI

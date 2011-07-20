@@ -9,11 +9,12 @@
 #define PAGE_TABLE2_SINGLE_H_
 
 #define ALL_WATCHED           0
-#define ALL_UNWATCHED         1
+#define ALL_READONLY          1
 #define SUPERPAGE_WATCHED     2
-#define SUPERPAGE_UNWATCHED   3
+#define SUPERPAGE_READONLY    3
 #define PAGETABLE_WATCHED     4
-#define PAGETABLE_UNWATCHED   5
+#define PAGETABLE_READONLY    5
+#define AVAILABLE             6
 
 #include <bitset>
 #include <cassert>
@@ -34,15 +35,16 @@ public:
    PageTable2_single();
    ~PageTable2_single();
    
-   int   general_fault  (ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags = 0);
+   int   general_fault  (ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags);
    int   watch_fault    (ADDRESS start_addr, ADDRESS end_addr);
    int   read_fault     (ADDRESS start_addr, ADDRESS end_addr);
    int   write_fault    (ADDRESS start_addr, ADDRESS end_addr);
    
-   int   add_watchpoint (ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags = 0);
-   int   rm_watchpoint  (ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags = 0);
+   int   add_watchpoint (ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags);
+   int   rm_watchpoint  (ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags);
    
    bool  check_unity    (ADDRESS superpage_number, bool watched);
+   bool  check_unity    (bool watched);
    void  watch_print    (ostream &output = cout);
    // this is just an empty function
    typename deque<watchpoint_t<ADDRESS, FLAGS> >::iterator
@@ -59,17 +61,18 @@ private:
     * watched(10), unwatched(01) or missed(00)
     */
    bool all_watched;
-   bool all_unwatched;
+   bool all_readonly;
    /*
     * two bits for each superpage
     * watched(10), unwatched(01) or missed(00)
     */
    bitset<SUPERPAGE_NUM>  superpage_watched;
-   bitset<SUPERPAGE_NUM>  superpage_unwatched;
+   bitset<SUPERPAGE_NUM>  superpage_readonly;
    // but only one bit for 2nd_level_pagetable
    bitset<PAGE_NUMBER> pagetable_watched;
+   bitset<PAGE_NUMBER> pagetable_readonly;
    // private function called by add/rm_watchpoint, when some superpage is set to unknown. (use as a pagetable history)
-   int set_unknown(ADDRESS superpage_number);
+   int set_available(ADDRESS superpage_number);
 };
 
 #include "page_table2_single.cpp"

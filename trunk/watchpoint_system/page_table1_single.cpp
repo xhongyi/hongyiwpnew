@@ -58,7 +58,8 @@ void PageTable1_single<ADDRESS, FLAGS>::watch_print(ostream &output) {
 }
 
 template<class ADDRESS, class FLAGS>
-int PageTable1_single<ADDRESS, FLAGS>::general_fault(ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags, bool check_write) {
+int PageTable1_single<ADDRESS, FLAGS>::general_fault(ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags) {
+   bool check_write = (target_flags & WA_WRITE);
    // calculating the starting V.P.N. and the ending V.P.N.
    ADDRESS page_number_start = (start_addr>>PAGE_OFFSET_LENGTH);
    ADDRESS page_number_end = (end_addr>>PAGE_OFFSET_LENGTH)+1;
@@ -73,17 +74,17 @@ int PageTable1_single<ADDRESS, FLAGS>::general_fault(ADDRESS start_addr, ADDRESS
 
 template<class ADDRESS, class FLAGS>
 int PageTable1_single<ADDRESS, FLAGS>::watch_fault(ADDRESS start_addr, ADDRESS end_addr) {
-   return general_fault(start_addr, end_addr, true);
+   return general_fault(start_addr, end_addr, WA_READ|WA_WRITE);
 }
 
 template<class ADDRESS, class FLAGS>
 int PageTable1_single<ADDRESS, FLAGS>::read_fault(ADDRESS start_addr, ADDRESS end_addr) {
-   return general_fault(start_addr, end_addr, false);
+   return general_fault(start_addr, end_addr, WA_READ);
 }
 
 template<class ADDRESS, class FLAGS>
 int PageTable1_single<ADDRESS, FLAGS>::write_fault(ADDRESS start_addr, ADDRESS end_addr) {
-   return general_fault(start_addr, end_addr, true);
+   return general_fault(start_addr, end_addr, WA_WRITE);
 }
 
 // version 2: count all related pages  (faster)  (do not add them up---change WatchPoint.general_change() )
