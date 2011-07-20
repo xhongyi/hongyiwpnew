@@ -30,7 +30,7 @@ public:
    /*
     * this function tells all pages covered by this range is watched or not
     */
-   int     general_fault  (ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags = 0, bool check_write = true);
+   int     general_fault  (ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags);
    int     watch_fault    (ADDRESS start_addr, ADDRESS end_addr);
    int     read_fault     (ADDRESS start_addr, ADDRESS end_addr);
    int     write_fault    (ADDRESS start_addr, ADDRESS end_addr);
