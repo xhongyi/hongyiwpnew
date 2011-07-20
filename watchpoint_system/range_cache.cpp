@@ -110,7 +110,7 @@ unsigned int RangeCache<ADDRESS, FLAGS>::rm_watchpoint(ADDRESS start_addr, ADDRE
 // we only need to know if it is a hit or miss in a range cache
 //    so it is regardless of the checked flags
 template<class ADDRESS, class FLAGS>
-unsigned int RangeCache<ADDRESS, FLAGS>::general_fault(ADDRESS start_addr, ADDRESS end_addr) {
+unsigned int RangeCache<ADDRESS, FLAGS>::general_fault(ADDRESS start_addr, ADDRESS end_addr) {kickout_this_time = false;
    unsigned int rc_miss = 0, new_miss_size = 0;
    typename std::deque< watchpoint_t<ADDRESS, FLAGS> >::iterator rc_read_iter;
    watchpoint_t<ADDRESS, FLAGS> temp;
@@ -124,7 +124,6 @@ unsigned int RangeCache<ADDRESS, FLAGS>::general_fault(ADDRESS start_addr, ADDRE
             rc_read_iter = offcbm_wp->search_address(search_addr);
             if (rc_read_iter->flags & WA_OFFCBM) {                // if it is turned into an off-chip bitmap
                temp = *rc_read_iter;
-               temp.flags |= DIRTY;          // mark all off-chip bitmap as dirty in the range cache
                rm_for_offcbm_switch(temp.start_addr, temp.end_addr);
                rc_miss++;                                         // off-chip bitmap counted as only one range cache miss
                new_miss_size += offcbm_wp->general_fault(max(start_addr, temp.start_addr), 
@@ -184,7 +183,7 @@ unsigned int RangeCache<ADDRESS, FLAGS>::general_fault(ADDRESS start_addr, ADDRE
 // wp_operation is same for add or rm a watchpoint, 
 //    both simulated by removing all covered ranges and then getting new ranges from backing store
 template<class ADDRESS, class FLAGS>
-unsigned int RangeCache<ADDRESS, FLAGS>::wp_operation(ADDRESS start_addr, ADDRESS end_addr, bool is_update) {
+unsigned int RangeCache<ADDRESS, FLAGS>::wp_operation(ADDRESS start_addr, ADDRESS end_addr, bool is_update) {kickout_this_time = false;
    unsigned int rc_miss = 0, new_miss_size = 0;
    typename std::deque< watchpoint_t<ADDRESS, FLAGS> >::iterator rc_write_iter, oracle_iter, offcbm_iter;
    watchpoint_t<ADDRESS, FLAGS> temp;
@@ -425,9 +424,26 @@ unsigned int RangeCache<ADDRESS, FLAGS>::wp_operation(ADDRESS start_addr, ADDRES
             else {
                rm_range(new_start, new_end);
                oracle_iter = oracle_wp->search_address(start_addr);
-               temp.flags = oracle_iter->flags | DIRTY;
-               temp.start_addr = new_start;
-               temp.end_addr = new_end;
+               temp = *oracle_iter;
+               temp.flags |= DIRTY;
+               if (oracle_iter->start_addr < start_addr) {     // merge start
+                  rc_write_iter = search_address(start_addr-1);
+                  if (rc_write_iter!=rc_data.end() && ((rc_write_iter->flags & WA_OFFCBM) == 0) ) {
+                     temp.start_addr = rc_write_iter->start_addr;
+                     rc_data.erase(rc_write_iter);
+                  }
+                  else
+                     temp.start_addr = start_addr;
+               }
+               if (oracle_iter->end_addr > end_addr) {         // merge end
+                  rc_write_iter = search_address(end_addr+1);
+                  if (rc_write_iter!=rc_data.end() && ((rc_write_iter->flags & WA_OFFCBM) == 0) ) {
+                     temp.end_addr = rc_write_iter->end_addr;
+                     rc_data.erase(rc_write_iter);
+                  }
+                  else
+                     temp.end_addr = end_addr;
+               }
                rc_data.push_front(temp);
             }
          }
@@ -497,11 +513,12 @@ void RangeCache<ADDRESS, FLAGS>::print_bitmap() {
 }
 
 template<class ADDRESS, class FLAGS>
-void RangeCache<ADDRESS, FLAGS>::cache_kickout() {
+void RangeCache<ADDRESS, FLAGS>::cache_kickout() {kickout_this_time = true;
    kickout++;
    if (off_cbm) {
-      if (rc_data.back().flags & DIRTY) {
-         kickout_dirty++;
+      if (rc_data.back().flags & (DIRTY|WA_OFFCBM)) {
+         if (rc_data.back().flags & DIRTY)
+            kickout_dirty++;
          unsigned int check_switch = offcbm_wp->kickout_dirty(rc_data.back().start_addr);
          if (check_switch == 1) {      // switch to offcbm
             offcbm_switch++;
@@ -652,6 +669,8 @@ void RangeCache<ADDRESS, FLAGS>::watch_print(ostream &output) {
          if (rc_data[i].flags & WA_WRITE)
             output << "W";
       }
+      if (rc_data[i].flags & DIRTY)
+         output <<" D";
       output << endl;
    }
    output << endl;
