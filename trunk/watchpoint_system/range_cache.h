@@ -46,6 +46,7 @@ public:
                                           complex_updates, 
                                           wlb_miss, 
                                           wlb_miss_size;
+   bool kickout_this_time;
 private:
    bool ocbm, off_cbm;
    ostream &trace_output;
