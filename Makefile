@@ -63,7 +63,7 @@ $(PT_MULTI).o: $(PT_MULTI).cpp $(PT_MULTI).h
 $(PT2).o: $(PT2).cpp $(PT2).h
 	cd $(WP_FOLDER) & $(CXX) $(CFLAGS) -c $(PT2).cpp
 
-$(PT2_BYTE_ACU).o: $(PT2_BYTE_ACU).cpp $(PT2_BYTE_ACU).h
+$(PT2_BYTE_ACU).o: $(PT2_BYTE_ACU).cpp $(PT2_BYTE_ACU).h plb.h
 	cd $(WP_FOLDER) & $(CXX) $(CFLAGS) -c $(PT2_BYTE_ACU).cpp
 
 $(CACHE_ALGO).o: $(CACHE_ALGO).cpp $(CACHE_ALGO).h
