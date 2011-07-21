@@ -28,21 +28,35 @@ PT2_byte_acu_single<ADDRESS, FLAGS>::~PT2_byte_acu_single() {
 }
 
 template<class ADDRESS, class FLAGS>
+void PT2_byte_acu_single<ADDRESS, FLAGS>::plb_shootdown(ADDRESS start_addr, ADDRESS end_addr)
+{
+   plb.plb_shootdown(start_addr, end_addr);
+}
+
+template<class ADDRESS, class FLAGS>
 int PT2_byte_acu_single<ADDRESS, FLAGS>::general_fault(ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags) {
-   bool unwatched = true;
+   bool really_watched = false;
+   bool unwatched = false;
+   bool found_them_all = true;
+   int any_missed_plb = 0;
+   ADDRESS last_superpage = -1;
+   ADDRESS last_page = -1;
    // update plb
    PLB_entry<ADDRESS> temp;
    temp.tag = 0;
    temp.level = 'a';
-   if (!plb.check_and_update(temp))
-      plb_misses++;
    // checking the highest level hits
-   if ((target_flags & WA_READ) && seg_reg_read_watched)
+   if ((target_flags & WA_READ) && seg_reg_read_watched ||
+         ((target_flags & WA_WRITE) && seg_reg_write_watched)) {
+      if (!plb.check_and_update(temp))
+         plb_misses++;
       return ALL_WATCHED;
-   if ((target_flags & WA_WRITE) && seg_reg_write_watched)
-      return ALL_WATCHED;
-   if (!seg_reg_unknown)
+   }
+   if (!seg_reg_unknown) {
+      if (!plb.check_and_update(temp))
+         plb_misses++;
       return ALL_UNWATCHED;
+   }
    // checking superpage hits
    ADDRESS superpage_number_start = (start_addr>>SUPERPAGE_OFFSET_LENGTH);
    ADDRESS superpage_number_end   = (end_addr  >>SUPERPAGE_OFFSET_LENGTH);
@@ -51,41 +65,84 @@ int PT2_byte_acu_single<ADDRESS, FLAGS>::general_fault(ADDRESS start_addr, ADDRE
       PLB_entry<ADDRESS> temp;
       temp.tag = i;
       temp.level = 's';
-      if (!plb.check_and_update(temp))
-         plb_misses++;
       // check watched or not
-      if ((target_flags & WA_READ) && superpage_read_watched[i])
-         return SUPERPAGE_WATCHED;
-      if ((target_flags & WA_WRITE) && superpage_write_watched[i])
-         return SUPERPAGE_WATCHED;
+      if ((target_flags & WA_READ) && superpage_read_watched[i]  ||
+            ((target_flags & WA_WRITE) && superpage_write_watched[i]) ) {
+         if (!plb.check_and_update(temp)) {
+            any_missed_plb = 1;
+            plb_misses++;
+         }
+         really_watched = true;
+      }
       if (superpage_unknown[i])
-         unwatched = false;
+         found_them_all = false;
+      else {
+         if (!plb.check_and_update(temp)) {
+            any_missed_plb = 1;
+            plb_misses++;
+         }
+         unwatched = true;
+      }
    }
-   if (unwatched)
+   if (any_missed_plb)
+      plb_misses+=any_missed_plb; // We're adding "one more memory read" because we had to load in the base address for this table.
+   if (really_watched)
+      return SUPERPAGE_WATCHED;
+   if (unwatched && found_them_all)
       return SUPERPAGE_UNWATCHED;
+   found_them_all = true;
+   really_watched = false;
+   unwatched = false;
+   any_missed_plb = 0;
    // calculating the starting V.P.N. and the ending V.P.N.
    ADDRESS page_number_start = (start_addr>>PAGE_OFFSET_LENGTH);
    ADDRESS page_number_end   = (end_addr  >>PAGE_OFFSET_LENGTH);
-   unwatched = true;
    for (ADDRESS i=page_number_start;i<=page_number_end;i++) {           // for each page, 
       if (superpage_unknown[i>>SECOND_LEVEL_PAGE_NUM_LENGTH]) {
          // update plb
          PLB_entry<ADDRESS> temp;
          temp.tag = i;
          temp.level = 'p';
-         if (!plb.check_and_update(temp))
-            plb_misses++;
          // check watched or not
-         if ((target_flags & WA_READ) && pt_read_watched[i])
-            return PAGETABLE_WATCHED;
-         if ((target_flags & WA_WRITE) && pt_write_watched[i])
-            return PAGETABLE_WATCHED;
+         if (((target_flags & WA_READ) && pt_read_watched[i]) ||
+               ((target_flags & WA_WRITE) && pt_write_watched[i])) {
+            if (!plb.check_and_update(temp)) {
+               if (last_superpage != i >> SECOND_LEVEL_PAGE_NUM_LENGTH) {
+                  last_superpage = i >> SECOND_LEVEL_PAGE_NUM_LENGTH;
+                  any_missed_plb++;
+               }
+               any_missed_plb++;
+            }
+            really_watched = true;
+         }
          if (pt_unknown[i])
-            unwatched = false;
+            found_them_all = false;
+         else {
+            if (!plb.check_and_update(temp)) {
+               if (last_superpage != i >> SECOND_LEVEL_PAGE_NUM_LENGTH) {
+                  last_superpage = i >> SECOND_LEVEL_PAGE_NUM_LENGTH;
+                  any_missed_plb++;
+               }
+               any_missed_plb++;
+            }
+            unwatched = true;
+         }
       }
    }
-   if (unwatched)
+   if (any_missed_plb) {
+      plb_misses+=any_missed_plb; // We're adding a memory read for every level of the table we had to read.
+      plb_misses++; // Plus one for the top level.
+   }
+   if (really_watched)
+      return PAGETABLE_WATCHED;
+   if (unwatched && found_them_all)
       return PAGETABLE_UNWATCHED;
+   found_them_all = true;
+   really_watched = false;
+   unwatched = false;
+   any_missed_plb = 0;
+   last_superpage = (ADDRESS)-1;
+   
    ADDRESS plb_line_start = (start_addr>>PLB_LINE_OFFSET_LENGTH);
    ADDRESS plb_line_end   = (end_addr  >>PLB_LINE_OFFSET_LENGTH);
    for (ADDRESS i=plb_line_start;i<=plb_line_end;i++) {
@@ -94,9 +151,22 @@ int PT2_byte_acu_single<ADDRESS, FLAGS>::general_fault(ADDRESS start_addr, ADDRE
          PLB_entry<ADDRESS> temp;
          temp.tag = i;
          temp.level = 'b';
-         if (!plb.check_and_update(temp))
-            plb_misses++;
+         if (!plb.check_and_update(temp)) {
+            if (last_superpage != i >> SECOND_LEVEL_PAGE_NUM_LENGTH) {
+               last_superpage = i >> SECOND_LEVEL_PAGE_NUM_LENGTH;
+               any_missed_plb++;
+            }
+            if (last_page != i >> (PAGE_OFFSET_LENGTH-PLB_LINE_OFFSET_LENGTH)) {
+               last_page = i >> (PAGE_OFFSET_LENGTH-PLB_LINE_OFFSET_LENGTH);
+               any_missed_plb++;
+            }
+            any_missed_plb++;
+         }
       }
+   }
+   if (any_missed_plb) {
+      plb_misses+=any_missed_plb;
+      plb_misses++;
    }
    if (wp->general_fault(start_addr, end_addr, target_flags))
       return BITMAP_WATCHED;
@@ -531,7 +601,7 @@ int PT2_byte_acu_single<ADDRESS, FLAGS>::rm_watchpoint(ADDRESS start_addr, ADDRE
 template<class ADDRESS, class FLAGS>
 bool PT2_byte_acu_single<ADDRESS, FLAGS>::check_page_level_consistency(ADDRESS page_number) {
    ADDRESS start = (page_number<<PAGE_OFFSET_LENGTH);
-   ADDRESS end   = ((page_number+1)<<PAGE_OFFSET_LENGTH);
+   ADDRESS end   = ((page_number+1)<<PAGE_OFFSET_LENGTH)-1;
    typename deque<watchpoint_t<ADDRESS, FLAGS> >::iterator 
       search_iter = wp->search_address(start);
    if (search_iter->end_addr >= end)
@@ -543,7 +613,7 @@ bool PT2_byte_acu_single<ADDRESS, FLAGS>::check_page_level_consistency(ADDRESS p
 template<class ADDRESS, class FLAGS>
 bool PT2_byte_acu_single<ADDRESS, FLAGS>::check_page_level_consistency(ADDRESS page_number, FLAGS target_flag, bool watched) {
    ADDRESS start = (page_number<<PAGE_OFFSET_LENGTH);
-   ADDRESS end   = ((page_number+1)<<PAGE_OFFSET_LENGTH);
+   ADDRESS end   = ((page_number+1)<<PAGE_OFFSET_LENGTH)-1;
    bool search = true;
    typename deque<watchpoint_t<ADDRESS, FLAGS> >::iterator search_iter;
    while (search) {
@@ -561,7 +631,7 @@ bool PT2_byte_acu_single<ADDRESS, FLAGS>::check_page_level_consistency(ADDRESS p
 template<class ADDRESS, class FLAGS>
 bool PT2_byte_acu_single<ADDRESS, FLAGS>::check_superpage_level_consistency(ADDRESS superpage_number) {
    ADDRESS start = (superpage_number<<SUPERPAGE_OFFSET_LENGTH);
-   ADDRESS end   = ((superpage_number+1)<<SUPERPAGE_OFFSET_LENGTH);
+   ADDRESS end   = ((superpage_number+1)<<SUPERPAGE_OFFSET_LENGTH)-1;
    typename deque<watchpoint_t<ADDRESS, FLAGS> >::iterator 
       search_iter = wp->search_address(start);
    if (search_iter->end_addr >= end)
@@ -573,7 +643,7 @@ bool PT2_byte_acu_single<ADDRESS, FLAGS>::check_superpage_level_consistency(ADDR
 template<class ADDRESS, class FLAGS>
 bool PT2_byte_acu_single<ADDRESS, FLAGS>::check_superpage_level_consistency(ADDRESS superpage_number, FLAGS target_flag, bool watched) {
    ADDRESS page_number_start = (superpage_number<<SECOND_LEVEL_PAGE_NUM_LENGTH);
-   ADDRESS page_number_end = ((superpage_number+1)<<SECOND_LEVEL_PAGE_NUM_LENGTH);
+   ADDRESS page_number_end = ((superpage_number+1)<<SECOND_LEVEL_PAGE_NUM_LENGTH)-1;
    if (target_flag & WA_READ) {
       if (watched) {
          for (ADDRESS i=page_number_start;i!=page_number_end;i++) {
