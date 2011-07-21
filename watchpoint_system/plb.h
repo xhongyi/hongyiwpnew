@@ -5,7 +5,6 @@
 #define PLB_LINE_OFFSET_LENGTH   4
 
 #include <deque>
-#include "pt2_byte_acu_single.h"
 using namespace std;
 
 template<class ADDRESS>
@@ -20,6 +19,7 @@ public:
    PLB();
    ~PLB();
    // returns true on a hit; false on a miss
+   void plb_shootdown(ADDRESS start_addr, ADDRESS end_addr);
    bool check_and_update(PLB_entry<ADDRESS> check_entry);
 private:
    deque<PLB_entry<ADDRESS> > plb_data;

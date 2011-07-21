@@ -942,24 +942,24 @@ int WatchPoint<ADDRESS, FLAGS>::general_change(ADDRESS start, ADDRESS end, int32
 #endif
 #ifdef PT2_BYTE_ACU_SINGLE
             if (rm_flag) {
-               pt2_byte_acu[thread_id]->add_watchpoint(start, end, add_flag);
-               change_count2_byte_acu = pt2_byte_acu[thread_id]->rm_watchpoint(start, end, rm_flag);
-               pt2_byte_acu[thread_id]->general_fault(start, end, add_flag | rm_flag);
+               change_count2_byte_acu = pt2_byte_acu[thread_id]->add_watchpoint(start, end, add_flag);
+               change_count2_byte_acu += pt2_byte_acu[thread_id]->rm_watchpoint(start, end, rm_flag);
+               pt2_byte_acu[thread_id]->plb_shootdown(start, end);
             }
             else {
                change_count2_byte_acu = pt2_byte_acu[thread_id]->add_watchpoint(start, end, add_flag);
-               pt2_byte_acu[thread_id]->general_fault(start, end, add_flag);
+               pt2_byte_acu[thread_id]->plb_shootdown(start, end);
             }
 #endif
 #ifdef PT2_BYTE_ACU_MULTI
             if (rm_flag) {
                pt2_byte_acu_multi->add_watchpoint(start, end, add_flag);
                change_count2_byte_acu_multi = pt2_byte_acu_multi->add_watchpoint(start, end, rm_flag);
-               pt2_byte_acu_multi->general_fault(start, end, add_flag | rm_flag);
+               pt2_byte_acu_multi->plb_shootdown(start, end);
             }
             else {
                change_count2_byte_acu_multi = pt2_byte_acu_multi->add_watchpoint(start, end, add_flag);
-               pt2_byte_acu_multi->general_fault(start, end, add_flag);
+               pt2_byte_acu_multi->plb_shootdown(start,end);
             }
 #endif
 #ifdef RC_SINGLE
@@ -990,11 +990,11 @@ int WatchPoint<ADDRESS, FLAGS>::general_change(ADDRESS start, ADDRESS end, int32
 #endif
 #ifdef PT2_BYTE_ACU_SINGLE
             change_count2_byte_acu = pt2_byte_acu[thread_id]->rm_watchpoint(start, end, rm_flag);
-            pt2_byte_acu[thread_id]->general_fault(start, end, rm_flag);
+            pt2_byte_acu[thread_id]->plb_shootdown(start, end);
 #endif
 #ifdef PT2_BYTE_ACU_MULTI
             change_count2_byte_acu_multi = pt2_byte_acu_multi->rm_watchpoint(start, end, rm_flag);
-            pt2_byte_acu_multi->general_fault(start, end, rm_flag);
+            pt2_byte_acu_multi->plb_shootdown(start, end);
 #endif
 #ifdef RC_SINGLE
             range_cache_write_misses = range_cache[thread_id]->rm_watchpoint(start, end, (target_flags.find("x")!=string::npos));

@@ -17,9 +17,9 @@
 #define BITMAP_UNWATCHED   7
 
 #include <bitset>
-#include "plb.h"
 #include "virtual_wp.h"
 #include "page_table2_single.h"
+#include "plb.h"
 using namespace std;
 
 template<class ADDRESS, class FLAGS>
@@ -28,6 +28,8 @@ public:
    PT2_byte_acu_single(Virtual_wp<ADDRESS, FLAGS> *wp_ref);
    PT2_byte_acu_single();
    ~PT2_byte_acu_single();
+
+   void    plb_shootdown(ADDRESS start_addr, ADDRESS end_addr);
    /*
     * this function tells all pages covered by this range is watched or not
     */
