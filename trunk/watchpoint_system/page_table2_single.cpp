@@ -222,9 +222,9 @@ bool PageTable2_single<ADDRESS, FLAGS>::check_unity(ADDRESS superpage_number, bo
    ADDRESS start = (superpage_number<<SUPERPAGE_OFFSET_LENGTH);
    ADDRESS end = ((superpage_number+1)<<SUPERPAGE_OFFSET_LENGTH);
    for (ADDRESS i=start;i!=end;i+=PAGE_SIZE) {
-      if (!(pt1->write_fault(i, i)))            // pagetable is not marked as r/o or watched
+      if (!watched && !(pt1->watch_fault(i, i)))
          return false;
-      if (watched && !(pt1->read_fault(i, i)))  // pagetable is not marked as watched
+      if (watched && !(pt1->watch_fault(i, i)) && pt1->read_fault(i, i))
          return false;
    }
    return true;
@@ -233,9 +233,9 @@ bool PageTable2_single<ADDRESS, FLAGS>::check_unity(ADDRESS superpage_number, bo
 template<class ADDRESS, class FLAGS>
 bool PageTable2_single<ADDRESS, FLAGS>::check_unity(bool watched) {
    for (ADDRESS i=0;i<SUPERPAGE_NUM;i++) {
-      if (!superpage_watched[i])
+      if (watched && !superpage_watched[i])
          return false;
-      if (watched && !superpage_readonly[i])
+      if (!watched && !superpage_readonly[i] && !superpage_watched[i])
          return false;
    }
    return true;
