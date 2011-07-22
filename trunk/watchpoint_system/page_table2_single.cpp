@@ -173,6 +173,7 @@ int PageTable2_single<ADDRESS, FLAGS>::rm_watchpoint(ADDRESS start_addr, ADDRESS
          if (!superpage_watched[i]) {
             changes++;
             superpage_watched.set(i);     // watched = 1
+            superpage_readonly.set(i);
          }
       }
       else if (check_unity(i, false)) {   // if set to r/o
@@ -181,6 +182,7 @@ int PageTable2_single<ADDRESS, FLAGS>::rm_watchpoint(ADDRESS start_addr, ADDRESS
             superpage_readonly.set(i);    // readonly = 1
             superpage_watched.reset(i);
          }
+         changes += set_available(i);
       }
       else {
          if (superpage_watched[i] || superpage_readonly[i]) {
@@ -256,6 +258,7 @@ int PageTable2_single<ADDRESS, FLAGS>::set_available(ADDRESS superpage_number) {
             if (!pagetable_watched[i>>PAGE_OFFSET_LENGTH]) {
                changes++;
                pagetable_watched.set(i>>PAGE_OFFSET_LENGTH);   // watched = 1
+               pagetable_readonly.set(i>>PAGE_OFFSET_LENGTH);
             }
          }
          else {

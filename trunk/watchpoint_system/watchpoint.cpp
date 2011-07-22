@@ -737,8 +737,10 @@ bool  WatchPoint<ADDRESS, FLAGS>::general_fault(ADDRESS start, ADDRESS end, int3
                statistics_iter->second.page_table_multi_faults++;       // page_table_fault++
 #endif
 #ifdef PAGE_TABLE2_SINGLE
-            if (page_table2_fault == AVAILABLE)
+            if (page_table2_fault == AVAILABLE) {
                statistics_iter->second.superpage_available++;
+               assert(!oracle_fault);
+            }
             else if (page_table2_fault == PAGETABLE_WATCHED)
                statistics_iter->second.superpage_page_watched++;
             else if (page_table2_fault == PAGETABLE_READONLY)
