@@ -84,6 +84,7 @@ inline bool L2Cache<ADDRESS>::victim_overflow() {
 
 template<class ADDRESS>
 inline void L2Cache<ADDRESS>::victim_kickout() {
+   writeback_buffer=victim_cache.back();
    victim_cache.pop_back();
 }
 
@@ -98,7 +99,6 @@ inline void L2Cache<ADDRESS>::cache_kickout(unsigned int set) {
    cache_data[set].pop_back();
    temp.tag = ((temp.tag<<L2_SET_IDX_LEN) & set);
    victim_cache.push_front(temp);
-   writeback_buffer=temp;
 }
 
 #endif /* L2_CACHE_CPP_ */

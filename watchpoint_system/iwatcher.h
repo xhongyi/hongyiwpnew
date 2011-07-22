@@ -5,6 +5,7 @@
 #include <map>
 #include <algorithm>
 #include <stdint.h>
+#include <iostream>
 #include "l1_cache.h"
 #include "l2_cache.h"
 #include "page_table1_single.h"
@@ -13,7 +14,7 @@ using namespace std;
 template<class ADDRESS, class FLAGS>
 class IWatcher {
 public:
-   IWatcher();
+   IWatcher(ostream &output = cout);
    ~IWatcher();
    
    void start_thread     (int32_t thread_id, Oracle<ADDRESS, FLAGS> *wp_ref);
@@ -29,6 +30,7 @@ public:
    // statistics
    long long vm_changes;
    long long victim_kickouts;
+   long long large_sets;
 private:
    map<int32_t, Oracle<ADDRESS, FLAGS>* > wp;
    
@@ -36,8 +38,11 @@ private:
    L2Cache<ADDRESS>*                      l2_data;
    PageTable1_single<ADDRESS, FLAGS>*     vm_sys;
    
+   ostream                                &trace_output;
+   
    void load_page(int32_t thread_id, ADDRESS page_number);
-   void l2_kickout_handler();
+   void victim_kickout_handler();
+   void print_trace(char command, int thread_id, unsigned int starter, unsigned int ender);
 };
 
 #include "iwatcher.cpp"
