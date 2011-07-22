@@ -224,7 +224,7 @@ bool PageTable2_single<ADDRESS, FLAGS>::check_unity(ADDRESS superpage_number, bo
    for (ADDRESS i=start;i!=end;i+=PAGE_SIZE) {
       if (!watched && !(pt1->watch_fault(i, i)))
          return false;
-      if (watched && !(pt1->watch_fault(i, i)) && pt1->read_fault(i, i))
+      if (watched && !(pt1->read_fault(i, i)))
          return false;
    }
    return true;
