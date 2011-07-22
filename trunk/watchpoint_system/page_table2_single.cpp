@@ -261,8 +261,9 @@ int PageTable2_single<ADDRESS, FLAGS>::set_available(ADDRESS superpage_number) {
          else {
             if (!pagetable_readonly[i>>PAGE_OFFSET_LENGTH]) {  // if this page is r/o
                changes++;
-               pagetable_readonly.set(1>>PAGE_OFFSET_LENGTH);  // r/o = 1
+               pagetable_readonly.set(i>>PAGE_OFFSET_LENGTH);  // r/o = 1
             }
+            pagetable_watched.reset(i>>PAGE_OFFSET_LENGTH);
          }
       }
       else {                                                   // if available
