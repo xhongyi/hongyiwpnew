@@ -1056,6 +1056,24 @@ int WatchPoint<ADDRESS, FLAGS>::general_change(ADDRESS start, ADDRESS end, int32
             iwatcher->rm_watchpoint(thread_id, start, end, rm_flag);
 #endif
          }
+
+#ifdef PT2_BYTE_ACU_SINGLE
+         if (!ignore_statistics) {
+            statistics_iter = statistics.find(thread_id);
+            if(start != 0 && end != (ADDRESS)-1) {
+               unsigned int total_size = end-start+1;
+               int num_super_pages = total_size / SUPERPAGE_SIZE;
+               int num_pages = (total_size%SUPERPAGE_SIZE) / PAGE_SIZE;
+               if(num_super_pages > 0) // We changed a super page. this doesn't happen often, so let's walk the entire list to see if they're the same
+                  statistics_iter->second.pt2_byte_acu_plb_misses += 1024;
+               if(num_pages > 0) // We changed an upper-level page. Let's walk the whole thing to see if we can collapse into a super page.
+                  statistics_iter->second.pt2_byte_acu_plb_misses += 1024;
+               // Now, for the remaining bytes, we're going to touch a page (or two).
+               // If we check the whole page on every 100th access, and it takes 1024 checks, then we add about 10 cycles to every set.
+               statistics_iter->second.pt2_byte_acu_plb_misses += 10;
+            }
+         }
+#endif
       }
       /*
        * update statistics

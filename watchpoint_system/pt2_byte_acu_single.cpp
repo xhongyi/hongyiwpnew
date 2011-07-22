@@ -195,30 +195,45 @@ int PT2_byte_acu_single<ADDRESS, FLAGS>::add_watchpoint(ADDRESS start_addr, ADDR
    ADDRESS page_number_end = (end_addr>>PAGE_OFFSET_LENGTH);
    ADDRESS superpage_number_start = (start_addr>>SUPERPAGE_OFFSET_LENGTH);
    ADDRESS superpage_number_end = (end_addr>>SUPERPAGE_OFFSET_LENGTH);
-   unsigned int firstpage_bitmap_change = 0, 
+   bool changed_page_from_bitmap = false;
+   bool changed_page_to_bitmap = false;
+   bool changed_superpage_from_bitmap = false;
+   bool changed_superpage_to_bitmap = false;
+   int total_number_of_sets = 0;
+   /*unsigned int firstpage_bitmap_change = 0, 
                 lastpage_bitmap_change = 0, 
                 first_superpage_bitmap_change = 0, 
-                last_superpage_bitmap_change = 0;
+                last_superpage_bitmap_change = 0;*/
    if (page_number_start == page_number_end) {  // if in the same page
       // check if read watched
       if (target_flags & WA_READ) {
          if (check_page_level_consistency(page_number_start, WA_READ, true)) {
-            pt_read_watched[page_number_start] = true;
-            if (check_superpage_level_consistency(superpage_number_start, WA_READ, true)) {
-               superpage_read_watched[superpage_number_start] = true;
-               if (check_seg_reg_level_consistency(WA_READ, true))
-                  seg_reg_read_watched = true;
-               else {
-                  seg_reg_read_watched = false;
-                  seg_reg_unknown = true;
+            if (!pt_read_watched[page_number_start]) {
+               changed_page_from_bitmap = true;
+               pt_read_watched[page_number_start] = true;
+               if (check_superpage_level_consistency(superpage_number_start, WA_READ, true)) {
+                  if (!superpage_read_watched[superpage_number_start]) {
+                     changed_superpage_from_bitmap = true;
+                     superpage_read_watched[superpage_number_start] = true;
+                     if (check_seg_reg_level_consistency(WA_READ, true))
+                        seg_reg_read_watched = true;
+                     else {
+                        seg_reg_read_watched = false;
+                        seg_reg_unknown = true;
+                     }
+                  }
                }
-            }
-            else {
-               superpage_read_watched[superpage_number_start] = false;
-               superpage_unknown[superpage_number_start] = true;
+               else {
+                  if(superpage_read_watched[superpage_number_start])
+                     changed_superpage_to_bitmap = true;
+                  superpage_read_watched[superpage_number_start] = false;
+                  superpage_unknown[superpage_number_start] = true;
+               }
             }
          }
          else {
+            if(pt_read_watched[page_number_start])
+               changed_page_to_bitmap = true;
             pt_read_watched[page_number_start] = false;
             pt_unknown[page_number_start] = true;
          }
@@ -226,74 +241,138 @@ int PT2_byte_acu_single<ADDRESS, FLAGS>::add_watchpoint(ADDRESS start_addr, ADDR
       // check if write watched  (same code as above)
       if (target_flags & WA_WRITE) {
          if (check_page_level_consistency(page_number_start, WA_WRITE, true)) {
-            pt_write_watched[page_number_start] = true;
-            if (check_superpage_level_consistency(superpage_number_start, WA_WRITE, true)) {
-               superpage_write_watched[superpage_number_start] = true;
-               if (check_seg_reg_level_consistency(WA_WRITE, true))
-                  seg_reg_write_watched = true;
-               else {
-                  seg_reg_write_watched = false;
-                  seg_reg_unknown = true;
+            if (!pt_write_watched[page_number_start]) {
+               changed_page_from_bitmap = true;
+               pt_write_watched[page_number_start] = true;
+               if (check_superpage_level_consistency(superpage_number_start, WA_WRITE, true)) {
+                  if (!superpage_write_watched[superpage_number_start] ) {
+                     changed_superpage_from_bitmap = true;
+                     superpage_write_watched[superpage_number_start] = true;
+                     if (check_seg_reg_level_consistency(WA_WRITE, true))
+                        seg_reg_write_watched = true;
+                     else {
+                        seg_reg_write_watched = false;
+                        seg_reg_unknown = true;
+                     }
+                  }
+                  else {
+                     if(superpage_write_watched[superpage_number_start])
+                        changed_superpage_to_bitmap = true;
+                     superpage_write_watched[superpage_number_start] = false;
+                     superpage_unknown[superpage_number_start] = true;
+                  }
                }
-            }
-            else {
-               superpage_write_watched[superpage_number_start] = false;
-               superpage_unknown[superpage_number_start] = true;
             }
          }
          else {
+            if(pt_read_watched[page_number_start])
+               changed_page_to_bitmap = true;
             pt_write_watched[page_number_start] = false;
             pt_unknown[page_number_start] = true;
          }
       }
-      if (pt_unknown[page_number_start])
-         return end_addr - start_addr + 1;
+      if (changed_page_from_bitmap) {
+         if (changed_superpage_from_bitmap)
+            return end_addr - start_addr + 3;
+         else
+            return end_addr - start_addr + 2;
+      }
+      else if (changed_page_to_bitmap) {
+         if (changed_superpage_to_bitmap)
+            return end_addr - start_addr + 1024 + 1024;
+         else
+             return end_addr - start_addr + 1024;
+      }
       else
-         return 1;
+         return end_addr - start_addr + 1;
    }
    else {   // if not in the same page
       // setting start pagetables
       if (target_flags & WA_READ) {
-         if (check_page_level_consistency(page_number_start, WA_READ, true))
-            pt_read_watched[page_number_start] = true;
+         if (check_page_level_consistency(page_number_start, WA_READ, true)) {
+            if (!pt_read_watched[page_number_start]) {
+               changed_page_from_bitmap = true;
+               pt_read_watched[page_number_start] = true;
+            }
+         }
          else {
+            if (pt_read_watched[page_number_start]) {
+               changed_page_to_bitmap = true;
+            }
             pt_read_watched[page_number_start] = false;
             pt_unknown[page_number_start] = true;
          }
       }
       if (target_flags & WA_WRITE) {
-         if (check_page_level_consistency(page_number_start, WA_WRITE, true))
-            pt_write_watched[page_number_start] = true;
+         if (check_page_level_consistency(page_number_start, WA_WRITE, true)) {
+            if (!pt_write_watched[page_number_start]) {
+               changed_page_from_bitmap = true;
+               pt_write_watched[page_number_start] = true;
+            }
+         }
          else {
+            if (pt_write_watched[page_number_start]) {
+               changed_page_to_bitmap = true;
+            }
             pt_write_watched[page_number_start] = false;
             pt_unknown[page_number_start] = true;
          }
       }
-      if (pt_unknown[page_number_start])
+      /*if (pt_unknown[page_number_start])
          firstpage_bitmap_change = ((page_number_start+1)<<PAGE_OFFSET_LENGTH) - start_addr;
       else
-         firstpage_bitmap_change = 1;
+         firstpage_bitmap_change = 1;*/
+      
+      if(changed_page_to_bitmap)
+         total_number_of_sets += 1025;
+      else if (changed_page_from_bitmap)
+         total_number_of_sets += (((page_number_start+1)<<PAGE_OFFSET_LENGTH) - start_addr + 1);
+      else
+         total_number_of_sets += (((page_number_start)<<PAGE_OFFSET_LENGTH) - start_addr);
+      changed_page_from_bitmap = false;
+      changed_page_to_bitmap = false;
+
       // setting end pagetables
       if (target_flags & WA_READ) {
-         if (check_page_level_consistency(page_number_end, WA_READ, true))
-            pt_read_watched[page_number_end] = true;
+         if (check_page_level_consistency(page_number_end, WA_READ, true)) {
+            if (!pt_read_watched[page_number_end]) {
+               changed_page_from_bitmap = true;
+               pt_read_watched[page_number_end] = true;
+            }
+         }
          else {
+            if (pt_read_watched[page_number_end])
+               changed_page_to_bitmap = true;
             pt_read_watched[page_number_end] = false;
             pt_unknown[page_number_end] = true;
          }
       }
       if (target_flags & WA_WRITE) {
-         if (check_page_level_consistency(page_number_end, WA_WRITE, true))
-            pt_write_watched[page_number_end] = true;
+         if (check_page_level_consistency(page_number_end, WA_WRITE, true)) {
+            if (!pt_write_watched[page_number_end]) {
+               changed_page_from_bitmap = true;
+               pt_write_watched[page_number_end] = true;
+            }
+         }
          else {
+            if (pt_write_watched[page_number_end])
+               changed_page_to_bitmap = true;
             pt_write_watched[page_number_end] = false;
             pt_unknown[page_number_end] = true;
          }
       }
-      if (pt_unknown[page_number_end])
+      /*if (pt_unknown[page_number_end])
          lastpage_bitmap_change = end_addr - (page_number_end<<PAGE_OFFSET_LENGTH) + 1;
       else
-         lastpage_bitmap_change = 1;
+         lastpage_bitmap_change = 1;*/
+
+      if(changed_page_to_bitmap)
+         total_number_of_sets += 1025;
+      else if (changed_page_from_bitmap)
+         total_number_of_sets += end_addr - (page_number_end<<PAGE_OFFSET_LENGTH) + 1;
+      else
+         total_number_of_sets += end_addr - (page_number_end<<PAGE_OFFSET_LENGTH);
+
       // setting all pagetables in the middle
       if (target_flags & WA_READ) {
          for (ADDRESS i=page_number_start+1;i!=page_number_end;i++)
@@ -303,19 +382,43 @@ int PT2_byte_acu_single<ADDRESS, FLAGS>::add_watchpoint(ADDRESS start_addr, ADDR
          for (ADDRESS i=page_number_start+1;i!=page_number_end;i++)
             pt_write_watched[i] = true;
       }
+
+      if((page_number_start+1 < page_number_end)) {
+         if (superpage_number_start == superpage_number_end) {
+            total_number_of_sets += (page_number_end - page_number_start - 1);
+         }
+         else {
+            int number_of_pages_not_in_super = 0;
+            int temp_page_number_start = page_number_start >> SECOND_LEVEL_PAGE_NUM_LENGTH;
+            int temp_page_number_end = page_number_end >> SECOND_LEVEL_PAGE_NUM_LENGTH;
+            temp_page_number_start++;
+            temp_page_number_start = temp_page_number_start << SECOND_LEVEL_PAGE_NUM_LENGTH;
+            temp_page_number_end = temp_page_number_end << SECOND_LEVEL_PAGE_NUM_LENGTH;
+            temp_page_number_end++;
+            number_of_pages_not_in_super = temp_page_number_start - page_number_start;
+            number_of_pages_not_in_super += page_number_end - temp_page_number_end;
+            total_number_of_sets  += number_of_pages_not_in_super;
+         }
+      }
+
       if (superpage_number_start == superpage_number_end) { // if in the same superpage
          // check if read watched
          if (target_flags & WA_READ) {
             if (check_superpage_level_consistency(superpage_number_start, WA_READ, true)) {
-               superpage_read_watched[superpage_number_start] = true;
-               if (check_seg_reg_level_consistency(WA_READ, true))
-                  seg_reg_read_watched = true;
-               else {
-                  seg_reg_read_watched = false;
-                  seg_reg_unknown = true;
+               if(!superpage_read_watched[superpage_number_start]) {
+                  changed_superpage_from_bitmap = true;
+                  superpage_read_watched[superpage_number_start] = true;
+                  if (check_seg_reg_level_consistency(WA_READ, true))
+                     seg_reg_read_watched = true;
+                  else {
+                     seg_reg_read_watched = false;
+                     seg_reg_unknown = true;
+                  }
                }
             }
             else {
+               if(superpage_read_watched[superpage_number_start])
+                  changed_superpage_to_bitmap = true;
                superpage_read_watched[superpage_number_start] = false;
                superpage_unknown[superpage_number_start] = true;
             }
@@ -323,67 +426,119 @@ int PT2_byte_acu_single<ADDRESS, FLAGS>::add_watchpoint(ADDRESS start_addr, ADDR
          // check if write watched (the same code as above)
          if (target_flags & WA_WRITE) {
             if (check_superpage_level_consistency(superpage_number_start, WA_WRITE, true)) {
-               superpage_write_watched[superpage_number_start] = true;
-               if (check_seg_reg_level_consistency(WA_WRITE, true))
-                  seg_reg_write_watched = true;
-               else {
-                  seg_reg_write_watched = false;
-                  seg_reg_unknown = true;
+               if(!superpage_write_watched[superpage_number_start]) {
+                  changed_superpage_to_bitmap = true;
+                  superpage_write_watched[superpage_number_start] = true;
+                  if (check_seg_reg_level_consistency(WA_WRITE, true))
+                     seg_reg_write_watched = true;
+                  else {
+                     seg_reg_write_watched = false;
+                     seg_reg_unknown = true;
+                  }
                }
             }
             else {
+               if(superpage_read_watched[superpage_number_start])
+                  changed_superpage_to_bitmap = true;
                superpage_write_watched[superpage_number_start] = false;
                superpage_unknown[superpage_number_start] = true;
             }
          }
-         if (superpage_unknown[superpage_number_start])
-            return page_number_end - page_number_start - 1 + firstpage_bitmap_change + lastpage_bitmap_change;
+         if(changed_superpage_from_bitmap)
+            return total_number_of_sets + (page_number_end - page_number_start - 1) + 2;
+         else if(changed_superpage_to_bitmap)
+            return total_number_of_sets + 1024;
          else
-            return 1;
+            return total_number_of_sets + (page_number_end - page_number_start - 1);
       }
       else {   // if not in the same superpage
          // setting start superpage
+         changed_superpage_from_bitmap = false;
+         changed_superpage_to_bitmap = false;
          if (target_flags & WA_READ) {
-            if (check_superpage_level_consistency(superpage_number_start, WA_READ, true))
-               superpage_read_watched[superpage_number_start] = true;
+            if (check_superpage_level_consistency(superpage_number_start, WA_READ, true)) {
+               if (!superpage_read_watched[superpage_number_start]) {
+                  changed_superpage_from_bitmap = true;
+                  superpage_read_watched[superpage_number_start] = true;
+               }
+            }
             else {
+               if (superpage_read_watched[superpage_number_start]) {
+                  changed_superpage_to_bitmap = true;
+               }
                superpage_read_watched[superpage_number_start] = false;
                superpage_unknown[superpage_number_start] = true;
             }
          }
          if (target_flags & WA_WRITE) {
-            if (check_superpage_level_consistency(superpage_number_start, WA_WRITE, true))
-               superpage_write_watched[superpage_number_start] = true;
+            if (check_superpage_level_consistency(superpage_number_start, WA_WRITE, true)) {
+               if (!superpage_write_watched[superpage_number_start]) {
+                  changed_superpage_from_bitmap = true;
+                  superpage_write_watched[superpage_number_start] = true;
+               }
+            }
             else {
+               if (superpage_write_watched[superpage_number_start]) {
+                  changed_superpage_to_bitmap = true;
+               }
                superpage_write_watched[superpage_number_start] = false;
                superpage_unknown[superpage_number_start] = true;
             }
          }
-         if (superpage_unknown[superpage_number_start])
+         /*if (superpage_unknown[superpage_number_start])
             first_superpage_bitmap_change = ((superpage_number_start+1)<<SECOND_LEVEL_PAGE_NUM_LENGTH) - page_number_start;
          else
-            first_superpage_bitmap_change = 1;
+            first_superpage_bitmap_change = 1;*/
+
+         if(changed_superpage_to_bitmap)
+            total_number_of_sets += 1025;
+         else if (changed_superpage_from_bitmap)
+            total_number_of_sets += (((superpage_number_start+1)<<SECOND_LEVEL_PAGE_NUM_LENGTH) - page_number_start + 1);
+         else
+            total_number_of_sets += (((superpage_number_start+1)<<SECOND_LEVEL_PAGE_NUM_LENGTH) - page_number_start);
+         changed_superpage_to_bitmap = false;
+         changed_superpage_from_bitmap = false;
+
          // setting end superpage (the same code as above)
          if (target_flags & WA_READ) {
-            if (check_superpage_level_consistency(superpage_number_end, WA_READ, true))
-               superpage_read_watched[superpage_number_end] = true;
+            if (check_superpage_level_consistency(superpage_number_end, WA_READ, true)) {
+               if (!superpage_read_watched[superpage_number_end]) {
+                  changed_superpage_from_bitmap = true;
+                  superpage_read_watched[superpage_number_end] = true;
+               }
+            }
             else {
+               if (superpage_read_watched[superpage_number_end])
+                  changed_superpage_to_bitmap = true;
                superpage_read_watched[superpage_number_end] = false;
                superpage_unknown[superpage_number_end] = true;
             }
          }
          if (target_flags & WA_WRITE) {
-            if (check_superpage_level_consistency(superpage_number_end, WA_WRITE, true))
-               superpage_write_watched[superpage_number_end] = true;
+            if (check_superpage_level_consistency(superpage_number_end, WA_WRITE, true)) {
+               if (!superpage_write_watched[superpage_number_end]) {
+                  changed_superpage_from_bitmap = true;
+                  superpage_write_watched[superpage_number_end] = true;
+               }
+            }
             else {
+               if (superpage_read_watched[superpage_number_end])
+                  changed_superpage_to_bitmap = true;
                superpage_write_watched[superpage_number_end] = false;
                superpage_unknown[superpage_number_end] = true;
             }
          }
-         if (superpage_unknown[superpage_number_end])
-            first_superpage_bitmap_change = page_number_end - (superpage_number_end<<SECOND_LEVEL_PAGE_NUM_LENGTH) + 1;
+         /*if (superpage_unknown[superpage_number_end])
+            last_superpage_bitmap_change = page_number_end - (superpage_number_end<<SECOND_LEVEL_PAGE_NUM_LENGTH) + 1;
          else
-            first_superpage_bitmap_change = 1;
+            last_superpage_bitmap_change = 1;*/
+         if(changed_superpage_to_bitmap)
+            total_number_of_sets += 1025;
+         else if (changed_superpage_from_bitmap)
+            total_number_of_sets += page_number_end - (superpage_number_end<<SECOND_LEVEL_PAGE_NUM_LENGTH) + 1;
+         else
+            total_number_of_sets += page_number_end - (superpage_number_end<<SECOND_LEVEL_PAGE_NUM_LENGTH);
+
          // set all superpages in the middle
          if (target_flags & WA_READ) {
             for (ADDRESS i=superpage_number_start+1;i!=superpage_number_end;i++)
@@ -393,6 +548,10 @@ int PT2_byte_acu_single<ADDRESS, FLAGS>::add_watchpoint(ADDRESS start_addr, ADDR
             for (ADDRESS i=superpage_number_start+1;i!=superpage_number_end;i++)
                superpage_write_watched[i] = true;
          }
+
+         if(superpage_number_start+1 < superpage_number_end)
+            total_number_of_sets += (superpage_number_end - superpage_number_start -1);
+
          if (target_flags & WA_READ) {
             if (check_seg_reg_level_consistency(WA_READ, true))
                seg_reg_read_watched = true;
@@ -409,12 +568,14 @@ int PT2_byte_acu_single<ADDRESS, FLAGS>::add_watchpoint(ADDRESS start_addr, ADDR
                seg_reg_unknown = true;
             }
          }
-         if (seg_reg_unknown)
+         /*if (seg_reg_unknown)
             return firstpage_bitmap_change + lastpage_bitmap_change 
               + first_superpage_bitmap_change + last_superpage_bitmap_change 
               + superpage_number_end - superpage_number_start - 1;
          else
-            return 1;
+            return 1;*/
+         // We're skipping figure out the change-status of the seg register. Might miscount one store.. oh no!
+         return total_number_of_sets;
       }
    }
 }
@@ -426,6 +587,14 @@ int PT2_byte_acu_single<ADDRESS, FLAGS>::rm_watchpoint(ADDRESS start_addr, ADDRE
    ADDRESS page_number = (start_addr>>PAGE_OFFSET_LENGTH);
    ADDRESS superpage_number = (start_addr>>SUPERPAGE_OFFSET_LENGTH);
    ADDRESS i=start_addr;
+   ADDRESS low_page_mark, high_page_mark;
+   ADDRESS low_superpage_mark, high_superpage_mark;
+
+   low_page_mark = ((start_addr>>PAGE_OFFSET_LENGTH)+1)<<PAGE_OFFSET_LENGTH;
+   high_page_mark = ((end_addr>>PAGE_OFFSET_LENGTH)<<PAGE_OFFSET_LENGTH)-1;
+   low_superpage_mark = ((start_addr>>SUPERPAGE_OFFSET_LENGTH)+1)<<SUPERPAGE_OFFSET_LENGTH;
+   high_superpage_mark = ((end_addr>>SUPERPAGE_OFFSET_LENGTH)<<SUPERPAGE_OFFSET_LENGTH)-1;
+   bool full_remove = (target_flags == WA_READ|WA_WRITE);
    do {
       if ( ((target_flags & WA_READ ) && !wp->general_fault(i, i, WA_READ )) 
         || ((target_flags & WA_WRITE) && !wp->general_fault(i, i, WA_WRITE)) )
@@ -457,8 +626,9 @@ int PT2_byte_acu_single<ADDRESS, FLAGS>::rm_watchpoint(ADDRESS start_addr, ADDRE
                   consistent = false;
                }
             }
-            if (consistent)
+            if (full_remove && consistent && i > low_page_mark && i < high_page_mark) {
                superpage_change++;
+            }
             else
                superpage_change += page_change;
          }
@@ -492,7 +662,7 @@ int PT2_byte_acu_single<ADDRESS, FLAGS>::rm_watchpoint(ADDRESS start_addr, ADDRE
                   consistent = false;
                }
             }
-            if (consistent)
+            if (full_remove && consistent && i > low_superpage_mark && i < high_superpage_mark)
                total_change++;
             else
                total_change += superpage_change;
@@ -595,6 +765,7 @@ int PT2_byte_acu_single<ADDRESS, FLAGS>::rm_watchpoint(ADDRESS start_addr, ADDRE
       else
          total_change += 1;
    }
+   //fprintf(stderr, "%d\n", total_change);
    return total_change;
 }
 // page level: check if the whole page is consistent or unknown
