@@ -1,42 +1,43 @@
 #ifndef IWATCHER_H_
 #define IWATCHER_H_
 
-#define L1_SET_IDX_LEN     4
-#define L1_BLOCK_OFFSET    4
-#define L1_ASSOCIATIVITY   4
-
-#define L2_SET_IDX_LEN     4
-#define L2_BLOCK_OFFSET    4
-#define L2_ASSOCIATIVITY   4
-
-#define VICTIM_CACHE_SIZE  4
-
+#include <cassert>
+#include <map>
+#include <algorithm>
+#include <stdint.h>
 #include "l1_cache.h"
 #include "l2_cache.h"
 #include "page_table1_single.h"
+using namespace std;
 
 template<class ADDRESS, class FLAGS>
-class IWatcher : public Virtual_wp<ADDRESS, FLAGS> {
+class IWatcher {
 public:
-   IWatcher(Oracle<ADDRESS, FLAGS> *wp_ref);
+   IWatcher();
    ~IWatcher();
    
-   int  general_fault    (ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags);
-   int  watch_fault      (ADDRESS start_addr, ADDRESS end_addr);
-   int  read_fault       (ADDRESS start_addr, ADDRESS end_addr);
-   int  write_fault      (ADDRESS start_addr, ADDRESS end_addr);
+   void start_thread     (int32_t thread_id, Oracle<ADDRESS, FLAGS> *wp_ref);
+   void end_thread       (int32_t thread_id);
    
-   int  add_watchpoint   (ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags);
-   int  rm_watchpoint    (ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags);
+   int  general_fault    (int32_t thread_id, ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags);
+   
+   int  add_watchpoint   (int32_t thread_id, ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags);
+   int  rm_watchpoint    (int32_t thread_id, ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags);
    
    typename deque<watchpoint_t<ADDRESS, FLAGS> >::iterator
-      search_address             (ADDRESS target_addr);
+      search_address             (int32_t thread_id, ADDRESS target_addr);
+   // statistics
+   long long vm_changes;
+   long long victim_kickouts;
 private:
-   Oracle<ADDRESS, FLAGS>              *wp;
+   map<int32_t, Oracle<ADDRESS, FLAGS>* > wp;
    
-   L1Cache<ADDRESS>                    l1_data;
-   L2Cache<ADDRESS>                    l2_data;
-   PageTable1_single<ADDRESS, FLAGS>   vm_system;
+   map<int32_t, L1Cache<ADDRESS>* >       l1_data;
+   L2Cache<ADDRESS>*                      l2_data;
+   PageTable1_single<ADDRESS, FLAGS>*     vm_sys;
+   
+   void load_page(int32_t thread_id, ADDRESS page_number);
+   void l2_kickout_handler();
 };
 
 #include "iwatcher.cpp"

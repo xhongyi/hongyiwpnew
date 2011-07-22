@@ -117,33 +117,50 @@ int PageTable1_single<ADDRESS, FLAGS>::add_watchpoint(ADDRESS start_addr, ADDRES
 // rm_watchpoint
 template<class ADDRESS, class FLAGS>
 int PageTable1_single<ADDRESS, FLAGS>::rm_watchpoint(ADDRESS start_addr, ADDRESS end_addr, FLAGS target_flags) {
-   int changes = 0;
-   // calculating the starting V.P.N. and the ending V.P.N.
-   ADDRESS page_number_start = (start_addr>>PAGE_OFFSET_LENGTH);
-   ADDRESS page_number_end = (end_addr>>PAGE_OFFSET_LENGTH)+1;
-   for (ADDRESS i=page_number_start;i!=page_number_end;i++) {                             // for each page, 
-      bool made_a_change = false;
-      if (target_flags & WA_READ) {                                                       // If we're removing a read WP, try to set read-only.
-         if (!wp->read_fault(i<<PAGE_OFFSET_LENGTH, ((i+1)<<PAGE_OFFSET_LENGTH)-1 ) ) {   // if it should not throw a fault
-            if ( (read_only_bitmap[i>>BIT_MAP_OFFSET_LENGTH] & (1<<(i&0x7))) != 0 )
-               made_a_change = true;
-            read_only_bitmap[i>>BIT_MAP_OFFSET_LENGTH] &= ~(1<<(i&0x7));                  // set the page unwatched (overwrite)
-         }
-      }
-      if (target_flags & WA_WRITE) {                                                      // If we're removing a write WP, try to set completely avail.
-         if (!wp->watch_fault(i<<PAGE_OFFSET_LENGTH, ((i+1)<<PAGE_OFFSET_LENGTH)-1 ) ) {
-            if ( ((read_only_bitmap[i>>BIT_MAP_OFFSET_LENGTH] & (1<<(i&0x7))) != 0) ||
-                  ((bit_map[i>>BIT_MAP_OFFSET_LENGTH] & (1<<(i&0x7))) != 0))
-               made_a_change = true;
-            read_only_bitmap[i>>BIT_MAP_OFFSET_LENGTH] &= ~(1<<(i&0x7));                  // set the page unwatched (overwrite)
+   if (wp == NULL) {
+      int changes = 0;
+      // calculating the starting V.P.N. and the ending V.P.N.
+      ADDRESS page_number_start = (start_addr>>PAGE_OFFSET_LENGTH);
+      ADDRESS page_number_end = (end_addr>>PAGE_OFFSET_LENGTH)+1;
+      for (ADDRESS i=page_number_start;i!=page_number_end;i++) {
+         if ( ((read_only_bitmap[i>>BIT_MAP_OFFSET_LENGTH] & (1<<(i&0x7))) != 0) ||
+               ((bit_map[i>>BIT_MAP_OFFSET_LENGTH] & (1<<(i&0x7))) != 0)) {
+            changes++;
+            read_only_bitmap[i>>BIT_MAP_OFFSET_LENGTH] &= ~(1<<(i&0x7));
             bit_map[i>>BIT_MAP_OFFSET_LENGTH] &= ~(1<<(i&0x7));
          }
       }
-
-      if (made_a_change)
-         changes++;
+      return changes;
    }
-   return changes;
+   else {
+      int changes = 0;
+      // calculating the starting V.P.N. and the ending V.P.N.
+      ADDRESS page_number_start = (start_addr>>PAGE_OFFSET_LENGTH);
+      ADDRESS page_number_end = (end_addr>>PAGE_OFFSET_LENGTH)+1;
+      for (ADDRESS i=page_number_start;i!=page_number_end;i++) {                             // for each page, 
+         bool made_a_change = false;
+         if (target_flags & WA_READ) {                                                       // If we're removing a read WP, try to set read-only.
+            if (!wp->read_fault(i<<PAGE_OFFSET_LENGTH, ((i+1)<<PAGE_OFFSET_LENGTH)-1 ) ) {   // if it should not throw a fault
+               if ( (read_only_bitmap[i>>BIT_MAP_OFFSET_LENGTH] & (1<<(i&0x7))) != 0 )
+                  made_a_change = true;
+               read_only_bitmap[i>>BIT_MAP_OFFSET_LENGTH] &= ~(1<<(i&0x7));                  // set the page unwatched (overwrite)
+            }
+         }
+         if (target_flags & WA_WRITE) {                                                      // If we're removing a write WP, try to set completely avail.
+            if (!wp->watch_fault(i<<PAGE_OFFSET_LENGTH, ((i+1)<<PAGE_OFFSET_LENGTH)-1 ) ) {
+               if ( ((read_only_bitmap[i>>BIT_MAP_OFFSET_LENGTH] & (1<<(i&0x7))) != 0) ||
+                     ((bit_map[i>>BIT_MAP_OFFSET_LENGTH] & (1<<(i&0x7))) != 0))
+                  made_a_change = true;
+               read_only_bitmap[i>>BIT_MAP_OFFSET_LENGTH] &= ~(1<<(i&0x7));                  // set the page unwatched (overwrite)
+               bit_map[i>>BIT_MAP_OFFSET_LENGTH] &= ~(1<<(i&0x7));
+            }
+         }
+
+         if (made_a_change)
+            changes++;
+      }
+      return changes;
+   }
 }
 
 #endif

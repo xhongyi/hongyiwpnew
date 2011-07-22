@@ -1,6 +1,14 @@
 #ifndef L2_CACHE_H_
 #define L2_CACHE_H_
 
+#define L2_SET_IDX_LEN     4
+#define L2_SET_NUM         (1<<L2_SET_IDX_LEN)
+#define L2_BLOCK_OFFSET    4
+#define L2_BLOCK_SIZE      (1<<L2_BLOCK_OFFSET)
+#define L2_ASSOCIATIVITY   4
+
+#define VICTIM_CACHE_SIZE  4
+
 #include <deque>
 #include <stdint.h>
 using namespace std;
@@ -16,17 +24,18 @@ class L2Cache {
 public:
    L2Cache();
    ~L2Cache();
-   void set_size(unsigned int L2_SET_IDX_LEN_in, unsigned int L2_BLOCK_OFFSET_in, unsigned int L2_ASSOCIATIVITY_in, unsigned int VICTIM_CACHE_SIZE_in);
    // cache controller functions
    
    // basic cache operation functions
    bool check_and_update(int32_t thread_id, ADDRESS target_index);
    void update_if_exist(int32_t thread_id, ADDRESS target_index);
+   bool victim_check_and_rm(int32_t thread_id, ADDRESS target_index);
+   bool victim_overflow();
+   void victim_kickout();
    // statistics
+   L2CacheEntry<ADDRESS> writeback_buffer;
 private:
-   unsigned int L2_SET_IDX_LEN, L2_BLOCK_OFFSET, L2_ASSOCIATIVITY;
-   unsigned int L2_SET_NUM, L2_BLOCK_SIZE, VICTIM_CACHE_SIZE;
-   deque<L2CacheEntry<ADDRESS> > cache_data[L2_SET_NUM];
+   deque<L2CacheEntry<ADDRESS> >* cache_data;
    deque<L2CacheEntry<ADDRESS> > victim_cache;
    // basic cache operation functions
    bool cache_overflow(unsigned int set);

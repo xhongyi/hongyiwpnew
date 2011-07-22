@@ -1,6 +1,12 @@
 #ifndef L1_CACHE_H_
 #define L1_CACHE_H_
 
+#define L1_SET_IDX_LEN     4
+#define L1_SET_NUM         (1<<L1_SET_IDX_LEN)
+#define L1_BLOCK_OFFSET    4
+#define L1_BLOCK_SIZE      (1<<L1_BLOCK_OFFSET)
+#define L1_ASSOCIATIVITY   4
+
 #include <deque>
 using namespace std;
 
@@ -9,7 +15,6 @@ class L1Cache {
 public:
    L1Cache();
    ~L1Cache();
-   void set_size(unsigned int L1_SET_IDX_LEN_in, unsigned int L1_BLOCK_OFFSET_in, unsigned int L1_ASSOCIATIVITY_in);
    // cache controller functions
    
    // basic cache operation functions
@@ -17,9 +22,7 @@ public:
    void update_if_exist(ADDRESS target_index);
    // statistics
 private:
-   unsigned int L1_SET_IDX_LEN, L1_BLOCK_OFFSET, L1_ASSOCIATIVITY;
-   unsigned int L1_SET_NUM, L1_BLOCK_SIZE;
-   deque<ADDRESS> cache_data[L1_SET_NUM];
+   deque<ADDRESS>* cache_data;
    // basic cache operation functions
    bool cache_overflow(unsigned int set);
    void cache_kickout(unsigned int set);
