@@ -50,11 +50,15 @@
 #define PRINT_MEMTRACKER_TRACE
 #endif
 
+#ifdef IWATCHER
+#define PRINT_iWATCHER_TRACE
+#endif
+
 #if defined(RC_SINGLE) || defined(RC_OCBM) || defined(RC_OFFCBM)
 #define PRINT_RANGE_TRACE // Do you want to print out a trace of the backing store ops for the RC?
 #endif
 
-#if defined(PRINT_VM_TRACE) || defined(PRINT_RANGE_TRACE) || defined(PRINT_MEMTRACKER_TRACE)
+#if defined(PRINT_VM_TRACE) || defined(PRINT_RANGE_TRACE) || defined(PRINT_MEMTRACKER_TRACE) || defined(PRINT_iWATCHER_TRACE)
 #define PRINT_TRACE
 #endif
 
@@ -233,6 +237,7 @@ struct statistics_t {
    long long iwatcher_filter_miss_size;
    long long iwatcher_vm_changes;
    long long iwatcher_victim_kickouts;
+   long long iwatcher_large_sets;
    #endif
 };
 

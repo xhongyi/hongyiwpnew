@@ -113,6 +113,7 @@ inline statistics_t& operator +=(statistics_t &a, const statistics_t &b) { // no
    a.iwatcher_filter_miss_size += b.iwatcher_filter_miss_size;
    a.iwatcher_vm_changes += b.iwatcher_vm_changes;
    a.iwatcher_victim_kickouts += b.iwatcher_victim_kickouts;
+   a.iwatcher_large_sets += b.iwatcher_large_sets;
    #endif
    return a;
 }
@@ -226,6 +227,7 @@ inline statistics_t operator +(const statistics_t &a, const statistics_t &b) {
    result.iwatcher_filter_miss_size = a.iwatcher_filter_miss_size + b.iwatcher_filter_miss_size;
    result.iwatcher_vm_changes = a.iwatcher_vm_changes + b.iwatcher_vm_changes;
    result.iwatcher_victim_kickouts = a.iwatcher_victim_kickouts + b.iwatcher_victim_kickouts;
+   result.iwatcher_large_sets = a.iwatcher_large_sets + b.iwatcher_large_sets;
    #endif
    return result;
 }
@@ -262,7 +264,7 @@ WatchPoint<ADDRESS, FLAGS>::WatchPoint() :
    pt2_byte_acu_multi = new PT2_byte_acu_single<ADDRESS, FLAGS>(oracle_multi);
 #endif
 #ifdef IWATCHER
-   iwatcher = new IWatcher<ADDRESS, FLAGS>();
+   iwatcher = new IWatcher<ADDRESS, FLAGS>(trace_output);
 #endif
 }
 
@@ -288,7 +290,7 @@ WatchPoint<ADDRESS, FLAGS>::WatchPoint(bool do_emulate_hardware) :
       pt2_byte_acu_multi = new PT2_byte_acu_single<ADDRESS, FLAGS>(oracle_multi);
 #endif
 #ifdef IWATCHER
-   iwatcher = new IWatcher<ADDRESS, FLAGS>();
+      iwatcher = new IWatcher<ADDRESS, FLAGS>(trace_output);
 #endif
    }
 }
@@ -318,7 +320,7 @@ WatchPoint<ADDRESS, FLAGS>::WatchPoint(ostream &trace_file) :
     pt2_byte_acu_multi = new PT2_byte_acu_single<ADDRESS, FLAGS>(oracle_multi);
 #endif
 #ifdef IWATCHER
-   iwatcher = new IWatcher<ADDRESS, FLAGS>;
+   iwatcher = new IWatcher<ADDRESS, FLAGS>(trace_output);
 #endif
 }
 
@@ -454,6 +456,7 @@ statistics_t WatchPoint<ADDRESS, FLAGS>::update_active_stats(int32_t thread_id) 
 #ifdef IWATCHER
          local_stats.iwatcher_vm_changes += iwatcher->vm_changes;
          local_stats.iwatcher_victim_kickouts += iwatcher->victim_kickouts;
+         local_stats.iwatcher_large_sets += iwatcher->large_sets;
 #endif
       }
    }
@@ -1147,7 +1150,7 @@ int WatchPoint<ADDRESS, FLAGS>::general_change(ADDRESS start, ADDRESS end, int32
 //set  11   (r/w)
 template<class ADDRESS, class FLAGS>
 int WatchPoint<ADDRESS, FLAGS>::set_watch(ADDRESS start, ADDRESS end, int32_t thread_id, bool ignore_statistics) {
-#if defined(PRINT_VM_TRACE) || defined(PRINT_MEMTRACKER_TRACE)
+#if defined(PRINT_VM_TRACE) || defined(PRINT_MEMTRACKER_TRACE) || defined(PRINT_iWATCHER_TRACE)
    if(emulate_hardware)
       print_trace('d', thread_id, start, end);
 #endif
@@ -1157,7 +1160,7 @@ int WatchPoint<ADDRESS, FLAGS>::set_watch(ADDRESS start, ADDRESS end, int32_t th
 //set  10
 template<class ADDRESS, class FLAGS>
 int WatchPoint<ADDRESS, FLAGS>::set_read(ADDRESS start, ADDRESS end, int32_t thread_id, bool ignore_statistics) {
-#if defined(PRINT_VM_TRACE) || defined(PRINT_MEMTRACKER_TRACE)
+#if defined(PRINT_VM_TRACE) || defined(PRINT_MEMTRACKER_TRACE) || defined(PRINT_iWATCHER_TRACE)
    if(emulate_hardware)
       print_trace('b', thread_id, start, end);
 #endif
@@ -1167,7 +1170,7 @@ int WatchPoint<ADDRESS, FLAGS>::set_read(ADDRESS start, ADDRESS end, int32_t thr
 //set  01
 template<class ADDRESS, class FLAGS>
 int WatchPoint<ADDRESS, FLAGS>::set_write(ADDRESS start, ADDRESS end, int32_t thread_id, bool ignore_statistics) {
-#if defined(PRINT_VM_TRACE) || defined(PRINT_MEMTRACKER_TRACE)
+#if defined(PRINT_VM_TRACE) || defined(PRINT_MEMTRACKER_TRACE) || defined(PRINT_iWATCHER_TRACE)
    if(emulate_hardware)
       print_trace('c', thread_id, start, end);
 #endif
@@ -1177,7 +1180,7 @@ int WatchPoint<ADDRESS, FLAGS>::set_write(ADDRESS start, ADDRESS end, int32_t th
 //set  00
 template<class ADDRESS, class FLAGS>
 int WatchPoint<ADDRESS, FLAGS>::rm_watch(ADDRESS start, ADDRESS end, int32_t thread_id, bool ignore_statistics) {
-#if defined(PRINT_VM_TRACE) || defined(PRINT_MEMTRACKER_TRACE)
+#if defined(PRINT_VM_TRACE) || defined(PRINT_MEMTRACKER_TRACE) || defined(PRINT_iWATCHER_TRACE)
    if(emulate_hardware)
       print_trace('a', thread_id, start, end);
 #endif
@@ -1187,7 +1190,7 @@ int WatchPoint<ADDRESS, FLAGS>::rm_watch(ADDRESS start, ADDRESS end, int32_t thr
 //update 1x
 template<class ADDRESS, class FLAGS>
 int WatchPoint<ADDRESS, FLAGS>::update_set_read(ADDRESS start, ADDRESS end, int32_t thread_id, bool ignore_statistics) {
-#if defined(PRINT_VM_TRACE) || defined(PRINT_MEMTRACKER_TRACE)
+#if defined(PRINT_VM_TRACE) || defined(PRINT_MEMTRACKER_TRACE) || defined(PRINT_iWATCHER_TRACE)
    if(emulate_hardware)
       print_trace('e', thread_id, start, end);
 #endif
@@ -1197,7 +1200,7 @@ int WatchPoint<ADDRESS, FLAGS>::update_set_read(ADDRESS start, ADDRESS end, int3
 //update x1
 template<class ADDRESS, class FLAGS>
 int WatchPoint<ADDRESS, FLAGS>::update_set_write(ADDRESS start, ADDRESS end, int32_t thread_id, bool ignore_statistics) {
-#if defined(PRINT_VM_TRACE) || defined(PRINT_MEMTRACKER_TRACE)
+#if defined(PRINT_VM_TRACE) || defined(PRINT_MEMTRACKER_TRACE) || defined(PRINT_iWATCHER_TRACE)
    if(emulate_hardware)
       print_trace('f', thread_id, start, end);
 #endif
@@ -1207,7 +1210,7 @@ int WatchPoint<ADDRESS, FLAGS>::update_set_write(ADDRESS start, ADDRESS end, int
 //update 0x
 template<class ADDRESS, class FLAGS>
 int WatchPoint<ADDRESS, FLAGS>::rm_read(ADDRESS start, ADDRESS end, int32_t thread_id, bool ignore_statistics) {
-#if defined(PRINT_VM_TRACE) || defined(PRINT_MEMTRACKER_TRACE)
+#if defined(PRINT_VM_TRACE) || defined(PRINT_MEMTRACKER_TRACE) || defined(PRINT_iWATCHER_TRACE)
    if(emulate_hardware)
       print_trace('g', thread_id, start, end);
 #endif
@@ -1217,7 +1220,7 @@ int WatchPoint<ADDRESS, FLAGS>::rm_read(ADDRESS start, ADDRESS end, int32_t thre
 //update x0
 template<class ADDRESS, class FLAGS>
 int WatchPoint<ADDRESS, FLAGS>::rm_write(ADDRESS start, ADDRESS end, int32_t thread_id, bool ignore_statistics) {
-#if defined(PRINT_VM_TRACE) || defined(PRINT_MEMTRACKER_TRACE)
+#if defined(PRINT_VM_TRACE) || defined(PRINT_MEMTRACKER_TRACE) || defined(PRINT_iWATCHER_TRACE)
    if(emulate_hardware)
       print_trace('h', thread_id, start, end);
 #endif
@@ -1434,6 +1437,7 @@ statistics_t WatchPoint<ADDRESS, FLAGS>::clear_statistics() {
    empty.iwatcher_filter_miss_size=0;
    empty.iwatcher_vm_changes=0;
    empty.iwatcher_victim_kickouts=0;
+   empty.iwatcher_large_sets=0;
    #endif
    return empty;
 }
@@ -1598,6 +1602,7 @@ void WatchPoint<ADDRESS, FLAGS>::print_statistics(const statistics_t& to_print, 
    output << setw(45) << "IWatcher filter misses in l1 cache lines: " << to_print.iwatcher_filter_miss_size << endl;
    output << setw(45) << "IWatcher virtual memory changes: " << to_print.iwatcher_vm_changes << endl;
    output << setw(45) << "IWatcher victim cache kickouts: " << to_print.iwatcher_victim_kickouts << endl;
+   output << setw(45) << "IWatcher victim large sets: " << to_print.iwatcher_large_sets << endl;
    #endif
    output << endl;
    return;
