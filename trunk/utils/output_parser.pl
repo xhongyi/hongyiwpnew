@@ -75,19 +75,39 @@ while(<READFILE>)
     elsif(m/Watchpoint 'set/ || m/Watchpoint 'update/) {
         $watchpoint_sets_and_removes += $split_fields[-1];
     }
-    elsif(m/Page table \(multi\) faults/) {
+    elsif(m/2 level PT \(multi\) faults/) {
         $vm_faults += $split_fields[-1];
         $have_seen_vm = 1;
     }
-    elsif(m/Page table \(multi\) bitmap/) {
+    elsif(m/2 level PT \(multi\) bit changes/) {
         $vm_bitmap_changes += $split_fields[-1];
         $have_seen_vm = 1;
     }
-    elsif(m/Page table \(single\) faults/) {
+    elsif(m/2 level PT \(single\) all_watched/) {
         $multi_thread_vm_faults += $split_fields[-1];
         $have_seen_mt_vm = 1;
     }
-    elsif(m/Page table \(single\) bitmap/) {
+    elsif(m/2 level PT \(single\) all_readonly/) {
+	$multi_thread_vm_faults += $split_fields[-1];
+	$have_seen_mt_vm = 1;
+    }
+    elsif(m/2 level PT \(single\) superpage_watched/) {
+	$multi_thread_vm_faults += $split_fields[-1];
+	$have_seen_mt_vm = 1;
+    }
+    elsif(m/2 level PT \(single\) superpage_readonly/) {
+	$multi_thread_vm_faults += $split_fields[-1];
+	$have_seen_mt_vm = 1;
+    }
+    elsif(m/2 level PT \(single\) page_watched/) {
+	$multi_thread_vm_faults += $split_fields[-1];
+	$have_seen_mt_vm = 1;
+    }
+    elsif(m/2 level PT \(single\) page_readonly/) {
+	$multi_thread_vm_faults += $split_fields[-1];
+	$have_seen_mt_vm = 1;
+    }
+    elsif(m/2 level PT \(single\) bit changes/) {
         $multi_thread_vm_bitmap_changes += $split_fields[-1];
         $have_seen_mt_vm = 1;
     }
@@ -170,7 +190,7 @@ if($have_seen_vm==1) {
     print "VM Bitmap changes: " . $vm_bitmap_changes . "\n";
 }
 if($have_seen_mt_vm==1) {
-    print "Per-Thread VM Faults: " . ($multi_thread_vm_faults-$shared_mem_ops) . "\n";
+    print "Per-Thread VM False Faults: " . ($multi_thread_vm_faults-$shared_mem_ops) . "\n";
     print "Per-Thread VM Bitmap changes: " . $multi_thread_vm_bitmap_changes . "\n";
 }
 if($have_seen_memtracker==1) {
