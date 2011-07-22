@@ -9,11 +9,11 @@
 #define WATCHPOINT_H_
 
 // Turn on a page table PER THREAD
-#define PAGE_TABLE_SINGLE
+//#define PAGE_TABLE_SINGLE
 // Turn on a single page table shared between ALL THREADS
 //#define PAGE_TABLE_MULTI
 // Turn on a multi-level page table PER THREAD
-#define PAGE_TABLE2_SINGLE
+//#define PAGE_TABLE2_SINGLE
 // Turn on a multi-level page tabled shared between ALL THREADS
 //#define PAGE_TABLE2_MULTI
 // Turn on a byte accurate system PER THREAD
@@ -24,6 +24,7 @@
 //#define RC_SINGLE
 //#define RC_OCBM
 //#define RC_OFFCBM
+#define IWATCHER
 
 #ifdef PAGE_TABLE2_MULTI
 #define PAGE_TABLE_MULTI
@@ -111,6 +112,10 @@
 
 #ifdef RC_OFFCBM
 #include "range_cache.h"
+#endif
+
+#ifdef IWATCHER
+#include "iwatcher.h"
 #endif
 
 #define IGNORE_STATS true
@@ -222,6 +227,12 @@ struct statistics_t {
    long long rc_offcbm_complex_updates;
    long long rc_offcbm_offcbm_switch;
    long long rc_offcbm_range_switch;
+   #endif
+   #ifdef IWATCHER
+   long long iwatcher_filter_miss;
+   long long iwatcher_filter_miss_size;
+   long long iwatcher_vm_changes;
+   long long iwatcher_victim_kickouts;
    #endif
 };
 
@@ -336,6 +347,9 @@ private:
    #endif
    #ifdef RC_OFFCBM
    map<int32_t, RangeCache<ADDRESS, FLAGS>* >               range_cache_offcbm;
+   #endif
+   #ifdef IWATCHER
+   IWatcher<ADDRESS, FLAGS>*                                iwatcher;
    #endif
 
    bool                                                     emulate_hardware;

@@ -108,6 +108,12 @@ inline statistics_t& operator +=(statistics_t &a, const statistics_t &b) { // no
    a.rc_offcbm_offcbm_switch += b.rc_offcbm_offcbm_switch;
    a.rc_offcbm_range_switch += b.rc_offcbm_range_switch;
    #endif
+   #ifdef IWATCHER
+   a.iwatcher_filter_miss += b.iwatcher_filter_miss;
+   a.iwatcher_filter_miss_size += b.iwatcher_filter_miss_size;
+   a.iwatcher_vm_changes += b.iwatcher_vm_changes;
+   a.iwatcher_victim_kickouts += b.iwatcher_victim_kickouts;
+   #endif
    return a;
 }
 
@@ -216,6 +222,11 @@ inline statistics_t operator +(const statistics_t &a, const statistics_t &b) {
    result.rc_offcbm_offcbm_switch = a.rc_offcbm_offcbm_switch + b.rc_offcbm_offcbm_switch;
    result.rc_offcbm_range_switch = a.rc_offcbm_range_switch + b.rc_offcbm_range_switch;
    #endif
+   #ifdef IWATCHER
+   result.iwatcher_filter_miss_size = a.iwatcher_filter_miss_size + b.iwatcher_filter_miss_size;
+   result.iwatcher_vm_changes = a.iwatcher_vm_changes + b.iwatcher_vm_changes;
+   result.iwatcher_victim_kickouts = a.iwatcher_victim_kickouts + b.iwatcher_victim_kickouts;
+   #endif
    return result;
 }
 
@@ -250,6 +261,9 @@ WatchPoint<ADDRESS, FLAGS>::WatchPoint() :
 #ifdef PT2_BYTE_ACU_MULTI
    pt2_byte_acu_multi = new PT2_byte_acu_single<ADDRESS, FLAGS>(oracle_multi);
 #endif
+#ifdef IWATCHER
+   iwatcher = new IWatcher<ADDRESS, FLAGS>();
+#endif
 }
 
 /*
@@ -272,6 +286,9 @@ WatchPoint<ADDRESS, FLAGS>::WatchPoint(bool do_emulate_hardware) :
 #endif
 #ifdef PT2_BYTE_ACU_MULTI
       pt2_byte_acu_multi = new PT2_byte_acu_single<ADDRESS, FLAGS>(oracle_multi);
+#endif
+#ifdef IWATCHER
+   iwatcher = new IWatcher<ADDRESS, FLAGS>();
 #endif
    }
 }
@@ -300,6 +317,9 @@ WatchPoint<ADDRESS, FLAGS>::WatchPoint(ostream &trace_file) :
 #ifdef PT2_BYTE_ACU_MULTI
     pt2_byte_acu_multi = new PT2_byte_acu_single<ADDRESS, FLAGS>(oracle_multi);
 #endif
+#ifdef IWATCHER
+   iwatcher = new IWatcher<ADDRESS, FLAGS>;
+#endif
 }
 
 /*
@@ -319,6 +339,9 @@ WatchPoint<ADDRESS, FLAGS>::~WatchPoint() {
 #endif
 #ifdef PT2_BYTE_ACU_MULTI
       delete pt2_byte_acu_multi;
+#endif
+#ifdef IWATCHER
+      delete iwatcher;
 #endif
    }
 }
@@ -381,6 +404,9 @@ int WatchPoint<ADDRESS, FLAGS>::start_thread(int32_t thread_id) {
 #ifdef RC_OFFCBM
          range_cache_offcbm[thread_id] = new RangeCache<ADDRESS, FLAGS>(trace_output, oracle_wp.find(thread_id)->second, thread_id, true, true);
 #endif
+#ifdef IWATCHER
+         iwatcher->start_thread(thread_id, oracle_wp[thread_id]);
+#endif
       }
       return 0;                                                         // normal start: return 0
    }
@@ -424,6 +450,10 @@ statistics_t WatchPoint<ADDRESS, FLAGS>::update_active_stats(int32_t thread_id) 
          local_stats.rc_offcbm_complex_updates += range_cache_offcbm_iter->second->complex_updates;
          local_stats.rc_offcbm_offcbm_switch += range_cache_offcbm_iter->second->offcbm_switch;
          local_stats.rc_offcbm_range_switch += range_cache_offcbm_iter->second->range_switch;
+#endif
+#ifdef IWATCHER
+         local_stats.iwatcher_vm_changes += iwatcher->vm_changes;
+         local_stats.iwatcher_victim_kickouts += iwatcher->victim_kickouts;
 #endif
       }
    }
@@ -489,6 +519,9 @@ int WatchPoint<ADDRESS, FLAGS>::end_thread(int32_t thread_id) {
          range_cache_offcbm_iter = range_cache_offcbm.find(thread_id);
          delete range_cache_offcbm_iter->second;
          range_cache_offcbm.erase(range_cache_offcbm_iter);
+#endif
+#ifdef IWATCHER
+         iwatcher->end_thread(thread_id);
 #endif
       }
       statistics_inactive[thread_id] = local_stats;                     // move its statistics to inactive
@@ -597,6 +630,9 @@ bool  WatchPoint<ADDRESS, FLAGS>::general_fault(ADDRESS start, ADDRESS end, int3
 #ifdef RC_OFFCBM
       unsigned int range_cache_offcbm_misses = 0;
 #endif
+#ifdef IWATCHER
+      unsigned int iwatcher_filter_misses = 0;
+#endif
       /*
        * emulating hardware
        */
@@ -675,6 +711,9 @@ bool  WatchPoint<ADDRESS, FLAGS>::general_fault(ADDRESS start, ADDRESS end, int3
 #ifdef PRINT_RANGE_TRACE
          if(print_me_rc)
              print_trace('k', thread_id, start, end);
+#endif
+#ifdef IWATCHER
+         iwatcher_filter_misses = iwatcher->general_fault(thread_id, start, end, target_flags);
 #endif
       }
       /*
@@ -807,6 +846,11 @@ bool  WatchPoint<ADDRESS, FLAGS>::general_fault(ADDRESS start, ADDRESS end, int3
             }
             else 
                statistics_iter->second.rc_offcbm_read_hits++;
+#endif
+#ifdef IWATCHER
+            if (iwatcher_filter_misses)
+               statistics_iter->second.iwatcher_filter_miss++;
+               statistics_iter->second.iwatcher_filter_miss_size += iwatcher_filter_misses;
 #endif
          }
       }
@@ -971,6 +1015,9 @@ int WatchPoint<ADDRESS, FLAGS>::general_change(ADDRESS start, ADDRESS end, int32
 #ifdef RC_OFFCBM
             range_cache_offcbm_write_misses = range_cache_offcbm[thread_id]->add_watchpoint(start, end, (target_flags.find("x")!=string::npos));
 #endif
+#ifdef IWATCHER
+            iwatcher->add_watchpoint(thread_id, start, end, add_flag);
+#endif
          }
          else if (rm_flag) {                                                     // For pagetables only: if (add_flag) => no need to consider rm_flag
                                                                                  //    (because they do not consider flag type)
@@ -1004,6 +1051,9 @@ int WatchPoint<ADDRESS, FLAGS>::general_change(ADDRESS start, ADDRESS end, int32
 #endif
 #ifdef RC_OFFCBM
             range_cache_offcbm_write_misses = range_cache_offcbm[thread_id]->rm_watchpoint(start, end, (target_flags.find("x")!=string::npos));
+#endif
+#ifdef IWATCHER
+            iwatcher->rm_watchpoint(thread_id, start, end, rm_flag);
 #endif
          }
       }
@@ -1361,6 +1411,12 @@ statistics_t WatchPoint<ADDRESS, FLAGS>::clear_statistics() {
    empty.rc_offcbm_offcbm_switch=0;
    empty.rc_offcbm_range_switch=0;
    #endif
+   #ifdef IWATCHER
+   empty.iwatcher_filter_miss=0;
+   empty.iwatcher_filter_miss_size=0;
+   empty.iwatcher_vm_changes=0;
+   empty.iwatcher_victim_kickouts=0;
+   #endif
    return empty;
 }
 
@@ -1518,6 +1574,12 @@ void WatchPoint<ADDRESS, FLAGS>::print_statistics(const statistics_t& to_print, 
    output << setw(45) << "Range Cache (OffCBM) complex update: " << to_print.rc_offcbm_complex_updates << endl;
    output << setw(45) << "Range Cache (OffCBM) switches to offcbm: " << to_print.rc_offcbm_offcbm_switch << endl;
    output << setw(45) << "Range Cache (OffCBM) switches to ranges: " << to_print.rc_offcbm_range_switch << endl;
+   #endif
+   #ifdef IWATCHER
+   output << setw(45) << "IWatcher filter misses: " << to_print.iwatcher_filter_miss << endl;
+   output << setw(45) << "IWatcher filter misses in l1 cache lines: " << to_print.iwatcher_filter_miss_size << endl;
+   output << setw(45) << "IWatcher virtual memory changes: " << to_print.iwatcher_vm_changes << endl;
+   output << setw(45) << "IWatcher victim cache kickouts: " << to_print.iwatcher_victim_kickouts << endl;
    #endif
    output << endl;
    return;
