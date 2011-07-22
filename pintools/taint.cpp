@@ -657,7 +657,7 @@ void cp_taint_reg2mem_2byte(UINT32 addr, REG reg)
     }
 
     if(global_regs[reg])
-        wp.set_read(addr, addr+1, 0);
+        wp.set_watch(addr, addr+1, 0);
     else {
         if (wp.write_fault(addr, addr+1, 0))
             wp.rm_watch(addr, addr+1, 0);
@@ -688,7 +688,7 @@ void cp_taint_reg2mem_4byte(UINT32 addr, REG reg)
     }
 
     if(global_regs[reg])
-        wp.set_read(addr, addr+3, 0);
+        wp.set_watch(addr, addr+3, 0);
     else {
         if (wp.write_fault(addr, addr+3, 0))
             wp.rm_watch(addr, addr+3, 0);
@@ -722,7 +722,7 @@ void cp_taint_reg2mem_8byte(UINT32 addr, REG reg)
     }
 
     if(global_regs[reg])
-        wp.set_read(addr, addr+7, 0);
+        wp.set_watch(addr, addr+7, 0);
     else {
         if (wp.write_fault(addr, addr+7, 0))
             wp.rm_watch(addr, addr+7, 0);
@@ -770,7 +770,7 @@ void cp_taint_reg2mem_10byte(UINT32 addr, REG reg)
     }
 
     if(global_regs[reg])
-        wp.set_read(addr, addr+9, 0);
+        wp.set_watch(addr, addr+9, 0);
     else {
         if (wp.write_fault(addr, addr+9, 0))
             wp.rm_watch(addr, addr+9, 0);
@@ -830,7 +830,7 @@ void cp_taint_reg2mem_16byte(UINT32 addr, REG reg)
     }
 
     if(global_regs[reg])
-        wp.set_read(addr, addr+15, 0);
+        wp.set_watch(addr, addr+15, 0);
     else {
         if (wp.write_fault(addr, addr+15, 0))
             wp.rm_watch(addr, addr+15, 0);
@@ -896,7 +896,7 @@ void cp_taint_reg2mem_generic(u_int reg, u_int addr, u_int numbytes)
     reallyslow++;
     regval = global_regs[reg];
     if(regval)
-        wp.set_read(addr, addr+numbytes-1, 0);
+        wp.set_watch(addr, addr+numbytes-1, 0);
     else {
         if (wp.write_fault(addr, addr+numbytes-1, 0))
             wp.rm_watch(addr, addr+numbytes-1, 0);
@@ -944,7 +944,7 @@ void cp_taint_mem2mem_1byte(UINT32 srcaddr, UINT32 destaddr)
     wp.read_fault(srcaddr, srcaddr, 0);
     if(result) {
 	destpge[offset2] = ONE_BYTE_TAINTED;
-    wp.set_read(destaddr, destaddr, 0);
+    wp.set_watch(destaddr, destaddr, 0);
     } else {
 	destpge[offset2] = 0;
     if(wp.write_fault(destaddr, destaddr, 0))
@@ -973,7 +973,7 @@ void cp_taint_mem2mem_2byte(UINT32 srcaddr, UINT32 destaddr)
     page2 += offset2;
     desttaint = (UINT16*) page2;
     if(*srctaint)
-        wp.set_read(destaddr, destaddr+1, 0);
+        wp.set_watch(destaddr, destaddr+1, 0);
     else
         if(wp.write_fault(destaddr, destaddr+1, 0))
             wp.rm_watch(destaddr, destaddr+1, 0);
@@ -1003,7 +1003,7 @@ void cp_taint_mem2mem_4byte(UINT32 srcaddr, UINT32 destaddr)
     page2 += offset2;
     desttaint = (UINT32*) page2;
     if(*srctaint)
-        wp.set_read(destaddr, destaddr+3, 0);
+        wp.set_watch(destaddr, destaddr+3, 0);
     else
         if(wp.write_fault(destaddr, destaddr+3, 0))
             wp.rm_watch(destaddr, destaddr+3, 0);
@@ -1072,10 +1072,10 @@ void cp_taint_mem2mem_generic(u_int srcaddr, u_int destaddr, u_int numbytes)
 	page2 += loc;
     for(unsigned int i = 0; i < len; i++) {
         if (*(p+i))
-            wp.set_read((ADDRINT)(page2+i), (ADDRINT)(page2+i), 0);
+            wp.set_watch((ADDRINT)(page2+i), (ADDRINT)(page2+i), 0);
         else
             if(wp.write_fault((ADDRINT)(page2+i), (ADDRINT)(page2+i), 0))
-                wp.rm_read((ADDRINT)(page2+i), (ADDRINT)(page2+i), 0);
+                wp.rm_watch((ADDRINT)(page2+i), (ADDRINT)(page2+i), 0);
     }
 	memcpy(page2, p, len);
 	p += len;
