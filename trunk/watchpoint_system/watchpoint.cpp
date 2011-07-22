@@ -1090,6 +1090,12 @@ int WatchPoint<ADDRESS, FLAGS>::general_change(ADDRESS start, ADDRESS end, int32
          long long temp = statistics_iter->second.write_size;
          statistics_iter->second.write_size += ((long long)end-(long long)start+1);
          // If we roll over with a long long, we're in trouble.
+         if(temp > statistics_iter->second.write_size) {
+             fprintf(stderr, "Assertion coming.  Somehow write_size went down on an add.\n");
+             fprintf(stderr, "start address: %d  end address: %d\n", start, end);
+             fprintf(stderr, "temp: %llu\n", temp);
+             fprintf(stderr, "write_size: %llu\n", statistics_iter->second.write_size);
+         }
          assert(statistics_iter->second.write_size > temp);
          statistics_iter->second.sum_size += oracle_wp_iter->second->get_size();
 #ifdef PAGE_TABLE_SINGLE
