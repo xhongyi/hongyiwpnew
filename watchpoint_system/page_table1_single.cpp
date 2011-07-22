@@ -142,7 +142,12 @@ int PageTable1_single<ADDRESS, FLAGS>::rm_watchpoint(ADDRESS start_addr, ADDRESS
          bool made_a_change = false;
          if (target_flags & WA_READ) {                                                       // If we're removing a read WP, try to set read-only.
             if (!wp->read_fault(i<<PAGE_OFFSET_LENGTH, ((i+1)<<PAGE_OFFSET_LENGTH)-1 ) ) {   // if it should not throw a fault
-               if ( (read_only_bitmap[i>>BIT_MAP_OFFSET_LENGTH] & (1<<(i&0x7))) != 0 )
+               if (!wp->watch_fault(i<<PAGE_OFFSET_LENGTH, ((i+1)<<PAGE_OFFSET_LENGTH)-1 ) ) {
+                  if ( (read_only_bitmap[i>>BIT_MAP_OFFSET_LENGTH] & (1<<(i&0x7))) != 0 )
+                     made_a_change = true;
+                  read_only_bitmap[i>>BIT_MAP_OFFSET_LENGTH] &= ~(1<<(i&0x7));
+               }
+               if ( (bit_map[i>>BIT_MAP_OFFSET_LENGTH] & (1<<(i&0x7))) != 0 )
                   made_a_change = true;
                bit_map[i>>BIT_MAP_OFFSET_LENGTH] &= ~(1<<(i&0x7));                  // set the page unwatched (overwrite)
             }
