@@ -106,6 +106,7 @@ int PageTable1_single<ADDRESS, FLAGS>::add_watchpoint(ADDRESS start_addr, ADDRES
          if ( (bit_map[i>>BIT_MAP_OFFSET_LENGTH] & (1<<(i&0x7))) == 0 )
             made_a_change = true;
          bit_map[i>>BIT_MAP_OFFSET_LENGTH] |= (1<<(i&0x7));          // set the page watched. (overwrite)
+         read_only_bitmap[i>>BIT_MAP_OFFSET_LENGTH] |= (1<<(i&0x7));
       }
 
       if (made_a_change)
@@ -143,7 +144,7 @@ int PageTable1_single<ADDRESS, FLAGS>::rm_watchpoint(ADDRESS start_addr, ADDRESS
             if (!wp->read_fault(i<<PAGE_OFFSET_LENGTH, ((i+1)<<PAGE_OFFSET_LENGTH)-1 ) ) {   // if it should not throw a fault
                if ( (read_only_bitmap[i>>BIT_MAP_OFFSET_LENGTH] & (1<<(i&0x7))) != 0 )
                   made_a_change = true;
-               read_only_bitmap[i>>BIT_MAP_OFFSET_LENGTH] &= ~(1<<(i&0x7));                  // set the page unwatched (overwrite)
+               bit_map[i>>BIT_MAP_OFFSET_LENGTH] &= ~(1<<(i&0x7));                  // set the page unwatched (overwrite)
             }
          }
          if (target_flags & WA_WRITE) {                                                      // If we're removing a write WP, try to set completely avail.
