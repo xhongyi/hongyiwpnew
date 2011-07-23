@@ -8,13 +8,13 @@
 #ifndef PAGE_TABLE2_SINGLE_H_
 #define PAGE_TABLE2_SINGLE_H_
 
-#define ALL_WATCHED           0
+#define AVAILABLE             0
 #define ALL_READONLY          1
 #define SUPERPAGE_WATCHED     2
 #define SUPERPAGE_READONLY    3
 #define PAGETABLE_WATCHED     4
 #define PAGETABLE_READONLY    5
-#define AVAILABLE             6
+#define ALL_WATCHED           6
 
 #include <bitset>
 #include <cassert>
