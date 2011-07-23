@@ -320,7 +320,8 @@ void clear_addr_generic(UINT32 addr, UINT32 written)
     char* page = (char*) pages[pageindex];
     fprintf(logfd, "executing generic fcn!\n");
     slowpath++;
-    wp.rm_watch(addr, addr+written-1, 0);
+    if(wp.write_fault(addr, addr+written-1,0))
+        wp.rm_watch(addr, addr+written-1, 0);
     page += offset;
     memset(page, 0, written);
 }
@@ -330,7 +331,8 @@ void clear_addr_1byte(UINT32 addr)
     UINT32 pageindex = (addr >> PAGE_SHIFT);
     UINT32 offset = addr & PAGE_MASK;
     char* page = (char*) pages[pageindex];    
-    wp.rm_watch(addr, addr, 0);
+    if(wp.write_fault(addr, addr, 0))
+        wp.rm_watch(addr, addr, 0);
     page[offset] = 0;
 }
 
@@ -340,7 +342,8 @@ void clear_addr_2byte(UINT32 addr)
     UINT32 offset = addr & PAGE_MASK;
     char* page = (char*) pages[pageindex];   
     UINT16* location;
-    wp.rm_watch(addr, addr+1, 0);
+    if(wp.write_fault(addr, addr+1, 0))
+        wp.rm_watch(addr, addr+1, 0);
 
     page += offset;
     location = (UINT16*) page;
@@ -354,7 +357,8 @@ void clear_addr_4byte(UINT32 addr)
     UINT32 offset = addr & PAGE_MASK;
     char* page = (char*) pages[pageindex];   
     UINT32* location;
-    wp.rm_watch(addr, addr+3, 0);
+    if(wp.write_fault(addr, addr+3, 0))
+        wp.rm_watch(addr, addr+3, 0);
     
     page += offset;
     location = (UINT32*) page;
@@ -374,7 +378,8 @@ void clear_addr_8byte(UINT32 addr)
     page = (char*) pages[pageindex];   
     page += offset;
     location = (UINT32*) page;
-    wp.rm_watch(addr, addr+7, 0);
+    if(wp.write_fault(addr, addr+7, 0))
+        wp.rm_watch(addr, addr+7, 0);
 
     addr += 4;
 
@@ -399,7 +404,8 @@ void clear_addr_16byte(UINT32 addr)
     page = (char*) pages[pageindex];   
     page += offset;
     location = (UINT32*) page;
-    wp.rm_watch(addr, addr+15, 0);
+    if(wp.write_fault(addr, addr+15, 0))
+        wp.rm_watch(addr, addr+15, 0);
 
     addr += 4;
 
