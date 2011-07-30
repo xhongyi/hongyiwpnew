@@ -33,7 +33,9 @@ struct pin_command {
     short opcode;
 };
 
-map<unsigned int, map<unsigned int, unsigned int> > thread_to_rc;
+int max_thread;
+
+map<unsigned int, unsigned int> *thread_to_rc;
 
 vector<pin_command> pin_commands;
 
@@ -263,7 +265,7 @@ void update_range(map<unsigned int, unsigned int> &range_cache, unsigned int sta
 
 void inline start_thread(int thread_id)
 {
-    thread_to_rc[thread_id][0] = NOT_WATCHED;
+    max_thread = thread_id;
 }
 
 void read_input_from_file(char *filename)
@@ -427,7 +429,16 @@ int main(int argc, char*argv[])
         cerr << "Please give the file name to parse as a parameter." << endl;
         exit(-1);
     }
+
+    max_thread = 0;
+
     read_input_from_file(argv[1]);
+
+    // This will properly hold all the threads we need.
+    thread_to_rc = new map<unsigned int, unsigned int>[(max_thread+1)];
+    // Set the first watchpoint.
+    for(int i = 0; i <= max_thread; i++)
+        thread_to_rc[i][0] = NOT_WATCHED;
 
     // Walk it once to warm everything up.
     walk_input_file();
