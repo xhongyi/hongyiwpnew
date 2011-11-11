@@ -23,8 +23,8 @@
 //#define MEM_TRACKER
 //#define RC_SINGLE
 //#define RC_OCBM
-//#define RC_OFFCBM
-#define IWATCHER
+#define RC_OFFCBM
+//#define IWATCHER
 
 #ifdef PAGE_TABLE2_MULTI
 #define PAGE_TABLE_MULTI

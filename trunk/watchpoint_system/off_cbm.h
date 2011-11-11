@@ -6,6 +6,7 @@
 #define OFF_CBM_UPPER_THREASHOLD 16
 #define OFF_CBM_LOWER_THREASHOLD 4
 
+#include <iostream>
 #include <deque>
 #include "mem_tracker.h"
 using namespace std;
@@ -13,7 +14,7 @@ using namespace std;
 template<class ADDRESS, class FLAGS>
 class Offcbm{
 public:
-   Offcbm(Oracle<ADDRESS, FLAGS> *wp_ref);
+   Offcbm(Oracle<ADDRESS, FLAGS> *wp_ref, ostream &output_stream, int create_thread_id);
    Offcbm();
    ~Offcbm();
    // for updating the wlb
@@ -36,6 +37,8 @@ private:
    deque<ADDRESS>                         offcbm_pages;
    MemTracker<ADDRESS>                    wlb;
    deque< watchpoint_t<ADDRESS, FLAGS> >  ret_deq;
+   int                                    thread_id;
+   ostream                                &trace_output;
 };
 
 #include "off_cbm.cpp"
