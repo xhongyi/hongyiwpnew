@@ -28,7 +28,11 @@ using namespace std;
 //      7 - Update x0
 //      8 - Check address range.
 //      9 - Also check the addr range
-//      10 - print this thread
+//      10 - Create a bitmap
+//      11 - Remove a bitmap
+//      12 - Set bits in a bitmap
+//      13 - Check bits in a bitmap
+//      24 - print this thread
 struct pin_command {
     unsigned int start_addr;
     unsigned int end_addr;
@@ -37,6 +41,7 @@ struct pin_command {
 };
 
 map<unsigned int, unsigned int> thread_to_rc[65536];
+map<unsigned int, int*> thread_to_bitmap[65536];
 
 #ifdef FINALIZE_DEBUG
 // Bitmap of pointers. We will use these as bitmaps to compare against the ranges.
@@ -386,6 +391,57 @@ void update_range(map<unsigned int, unsigned int> &range_cache, unsigned int sta
     }
 }
 
+void create_bitmap(int thread_id, unsigned int start_addr)
+{
+    // Each bitmap covers a page of memory.
+    unsigned int page_num = start_addr >> 12;
+    // Two WP bits per real byte means that it takes 1K of memory to hold
+    // watchpoints for 4K of data.
+    (thread_to_bitmap[thread_id])[page_num] = (int*) malloc(1024);
+}
+
+void erase_bitmap(int thread_id, unsigned int start_addr)
+{
+    // Each bitmap covers a page of memory.
+    unsigned int page_num = start_addr >> 12;
+    free((thread_to_bitmap[thread_id])[page_num]);
+}
+
+void set_bitmap_bits(int thread_id, unsigned int start_addr, unsigned int end_addr)
+{
+    // Each bitmap covers a page of memory.
+    unsigned int page_num = start_addr >> 12;
+    int* bitmap_ptr;
+    unsigned int start_int, end_int;
+
+    bitmap_ptr = (thread_to_bitmap[thread_id])[page_num];
+
+    start_int = (start_addr & 0xfff) >> 4;
+    end_int = (end_addr & 0xfff) >> 4;
+    for(;start_int <= end_int; start_int++)
+    {
+        bitmap_ptr[start_int] = 0xff;
+    }
+}
+
+bool check_bitmap_bits(int thread_id, unsigned int start_addr, unsigned int end_addr)
+{
+    unsigned int page_num = start_addr >> 12;
+    int* bitmap_ptr;
+    unsigned int start_int, end_int;
+
+    bitmap_ptr = (thread_to_bitmap[thread_id])[page_num];
+
+    start_int = (start_addr & 0xfff) >> 4;
+    end_int = (end_addr & 0xfff) >> 4;
+    for(; start_int <= end_int; start_int++)
+    {
+        if(bitmap_ptr[start_int] == 0xfe)
+            return true;
+    }
+    return false;
+}
+
 void inline start_thread(int thread_id)
 {
     thread_to_rc[thread_id][0] = NOT_WATCHED;
@@ -463,8 +519,20 @@ void read_input_from_file(char *filename)
                 case 'k' :
                     command_from_pin.opcode = 9;
                     break;
-                case 'z':
+                case 'l' :
                     command_from_pin.opcode = 10;
+                    break;
+                case 'm' :
+                    command_from_pin.opcode = 11;
+                    break;
+                case 'n' :
+                    command_from_pin.opcode = 12;
+                    break;
+                case 'o' :
+                    command_from_pin.opcode = 13;
+                    break;
+                case 'z':
+                    command_from_pin.opcode = 24;
                     break;
                 default:
                     cerr << "Unknown command in the file." << endl;
@@ -621,6 +689,18 @@ void run_input_file()
                 check_range(thread_to_rc[thread_id], start_addr, end_addr, READ_WATCHED);
                 break;
             case 10:
+                create_bitmap(thread_id, start_addr);
+                break;
+            case 11:
+                erase_bitmap(thread_id, start_addr);
+                break;
+            case 12:
+                set_bitmap_bits(thread_id, start_addr, end_addr);
+                break;
+            case 13:
+                check_bitmap_bits(thread_id, start_addr, end_addr);
+                break;
+            case 24:
                 print_thing(thread_to_rc[thread_id]);
                 break;
             default:

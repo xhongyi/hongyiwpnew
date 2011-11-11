@@ -12,7 +12,7 @@ RangeCache<ADDRESS, FLAGS>::RangeCache(Oracle<ADDRESS, FLAGS> *wp_ref, int tid, 
    off_cbm = offcbm_in;
    oracle_wp = wp_ref;
    if (off_cbm)
-      offcbm_wp = new Offcbm<ADDRESS, FLAGS>(oracle_wp);
+      offcbm_wp = new Offcbm<ADDRESS, FLAGS>(oracle_wp, cout, tid);
    kickout_dirty=0;
    kickout=0;
    complex_updates=0;
@@ -31,7 +31,7 @@ RangeCache<ADDRESS, FLAGS>::RangeCache(ostream &output_stream, Oracle<ADDRESS, F
    off_cbm = offcbm_in;
    oracle_wp = wp_ref;
    if (off_cbm)
-      offcbm_wp = new Offcbm<ADDRESS, FLAGS>(oracle_wp);
+      offcbm_wp = new Offcbm<ADDRESS, FLAGS>(oracle_wp, output_stream, tid);
    kickout_dirty=0;
    kickout=0;
    complex_updates=0;
@@ -121,7 +121,7 @@ unsigned int RangeCache<ADDRESS, FLAGS>::general_fault(ADDRESS start_addr, ADDRE
          rc_read_iter = search_address(search_addr);              // search starts from the start_addr
          if (rc_read_iter == rc_data.end()) {                     // if range cache miss
             // get new range from backing store
-            rc_read_iter = offcbm_wp->search_address(search_addr);
+            rc_read_iter = offcbm_wp->search_address(search_addr);// This handles the oracle lookup if not bitmapped
             if (rc_read_iter->flags & WA_OFFCBM) {                // if it is turned into an off-chip bitmap
                temp = *rc_read_iter;
                rm_for_offcbm_switch(temp.start_addr, temp.end_addr);
@@ -385,12 +385,14 @@ unsigned int RangeCache<ADDRESS, FLAGS>::wp_operation(ADDRESS start_addr, ADDRES
             rc_data.push_front(temp);
          }
          else if ((start_addr>>PAGE_OFFSET_LENGTH) != (end_addr>>PAGE_OFFSET_LENGTH)) {   // if setting different pages
+            // Remove the pages in between the start and end from the offcbm, since they won't be bitmapped no matter what.
             offcbm_wp->rm_offcbm(start_addr, end_addr);
             rc_write_iter = search_address(start_addr);
             if ( (rc_write_iter!=rc_data.end()) && (rc_write_iter->flags & WA_OFFCBM) ) { // if start addr hit as an offcbm
                temp = *rc_write_iter;
                rc_data.erase(rc_write_iter);
                rc_data.push_front(temp);
+               // Evict from the WLB. Write the bits for this page out to the bitmap.
                new_miss_size += offcbm_wp->wp_operation(max(start_addr, temp.start_addr), 
                                                         min(end_addr  , temp.end_addr  )  );
                new_start = temp.end_addr+1;
@@ -400,6 +402,7 @@ unsigned int RangeCache<ADDRESS, FLAGS>::wp_operation(ADDRESS start_addr, ADDRES
                temp = *rc_write_iter;
                rc_data.erase(rc_write_iter);
                rc_data.push_front(temp);
+               // Evict from the WLB. Write the bits for this page out to the bitmap.
                new_miss_size += offcbm_wp->wp_operation(max(start_addr, temp.start_addr), 
                                                         min(end_addr  , temp.end_addr  )  );
                new_end = temp.start_addr-1;
@@ -419,6 +422,7 @@ unsigned int RangeCache<ADDRESS, FLAGS>::wp_operation(ADDRESS start_addr, ADDRES
                temp = *rc_write_iter;
                rc_data.erase(rc_write_iter);
                rc_data.push_front(temp);
+               // Evict from the WLB. Write the bits for this page out to the bitmap.
                new_miss_size += offcbm_wp->wp_operation(start_addr, end_addr);
             }
             else {
@@ -521,7 +525,10 @@ void RangeCache<ADDRESS, FLAGS>::cache_kickout() {
             kickout_dirty++;
          unsigned int check_switch = offcbm_wp->kickout_dirty(rc_data.back().start_addr);
          if (check_switch == 1) {      // switch to offcbm
+            ADDRESS temp = rc_data.back().start_addr;
             offcbm_switch++;
+            temp = temp >> LOG_OFF_CBM_SIZE;
+            rm_for_offcbm_switch((temp << LOG_OFF_CBM_SIZE), (((temp+1) << LOG_OFF_CBM_SIZE)-1));
             rc_data.pop_back();
             return;
          }
@@ -532,14 +539,16 @@ void RangeCache<ADDRESS, FLAGS>::cache_kickout() {
             rc_data.pop_back();
             return;
          }
+         
          // Else we're not switching.
-
-         if(rc_data.back().flags & WA_OCBM) {
-            // If we're an OCBM, we need to store out ALL of the internal stuff.
-            print_bitmap();
+         if(rc_data.back().flags & DIRTY) {
+            if(rc_data.back().flags & WA_OCBM) {
+               // If we're an OCBM, we need to store out ALL of the internal stuff.
+               print_bitmap();
+            }
+            else
+               print_trace(rc_data.back().flags & (WA_READ|WA_WRITE), thread_id, rc_data.back().start_addr, rc_data.back().end_addr);
          }
-         else
-            print_trace(rc_data.back().flags & (WA_READ|WA_WRITE), thread_id, rc_data.back().start_addr, rc_data.back().end_addr);
       }
       // Pop off the back whether it's dirty or not.
       rc_data.pop_back();

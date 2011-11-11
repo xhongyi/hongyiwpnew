@@ -14,12 +14,14 @@
 #define MEM_BUS_SIZE             8UL
 #define NUM_MEMORY_CYCLES        (CACHE_LINE_SIZE>>2)/MEM_BUS_SIZE
 
+#include <iostream>
 #include <deque>
 using namespace std;
 
 template<class ADDRESS>
 class MemTracker {
 public:
+   MemTracker(ostream &output_stream, int create_thread_id);
    MemTracker();
    ~MemTracker();
    // returns the number of misses in WLB
@@ -30,9 +32,12 @@ private:
    // returns true if it is a hit
    bool check_and_update (ADDRESS target_index);
    void update_if_exist  (ADDRESS target_index);
+   void evict_if_exist (ADDRESS target_index);
    // for keeping the size of the WLB
    bool cache_overflow (ADDRESS set);
    void cache_kickout  (ADDRESS set);
+   ostream &trace_output;
+   int thread_id;
 };
 
 #include "mem_tracker.cpp"

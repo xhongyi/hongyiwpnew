@@ -4,12 +4,17 @@
 #include "off_cbm.h"
 
 template<class ADDRESS, class FLAGS>
-Offcbm<ADDRESS, FLAGS>::Offcbm(Oracle<ADDRESS, FLAGS> *wp_ref) {
+Offcbm<ADDRESS, FLAGS>::Offcbm(Oracle<ADDRESS, FLAGS> *wp_ref, ostream &output_stream, int create_thread_id) 
+    : wlb(output_stream, create_thread_id), trace_output(output_stream)
+{
    oracle_wp = wp_ref;
+   thread_id = create_thread_id;
 }
 
 template<class ADDRESS, class FLAGS>
-Offcbm<ADDRESS, FLAGS>::Offcbm() {
+Offcbm<ADDRESS, FLAGS>::Offcbm()
+    : trace_output(cout)
+{
 }
 
 template<class ADDRESS, class FLAGS>
@@ -77,6 +82,9 @@ unsigned int Offcbm<ADDRESS, FLAGS>::kickout_dirty(ADDRESS target_addr) {
       if (*i == tag) {
          if (oracle_wp->search_address(((tag+1)<<LOG_OFF_CBM_SIZE)-1)
            - oracle_wp->search_address(tag<<LOG_OFF_CBM_SIZE)+1 < OFF_CBM_LOWER_THREASHOLD) {
+#ifdef PRINT_RANGE_TRACE
+            trace_output << 'm' << setw(5) << thread_id << setw(8) << (tag<<LOG_OFF_CBM_SIZE) << setw(8) << (((tag+ 1) << LOG_OFF_CBM_SIZE) - 1) << endl;
+#endif
             offcbm_pages.erase(i);
             return 2;
          }
@@ -85,6 +93,9 @@ unsigned int Offcbm<ADDRESS, FLAGS>::kickout_dirty(ADDRESS target_addr) {
    }
    if ( (oracle_wp->search_address(((tag+1)<<LOG_OFF_CBM_SIZE)-1)
          - oracle_wp->search_address(tag<<LOG_OFF_CBM_SIZE) + 1) > OFF_CBM_UPPER_THREASHOLD) {
+#ifdef PRINT_RANGE_TRACE
+      trace_output << 'l' << setw(5) << thread_id << setw(8) << (tag<<LOG_OFF_CBM_SIZE) << setw(8) << (((tag+ 1) << LOG_OFF_CBM_SIZE) - 1) << endl;
+#endif
       offcbm_pages.push_front(tag);
       return 1;
    }
@@ -100,6 +111,9 @@ void Offcbm<ADDRESS, FLAGS>::rm_offcbm(ADDRESS start_addr, ADDRESS end_addr) {
       while (i != offcbm_pages.end()) {
          for (i=offcbm_pages.begin();i!=offcbm_pages.end();i++) {
             if (*i < end_idx && *i > start_idx) {                 // does not remove start and end page offcbm
+#ifdef PRINT_RANGE_TRACE
+               trace_output << 'm' << setw(5) << thread_id << setw(8) << ((*i)<<LOG_OFF_CBM_SIZE) << setw(8) << ((((*i) + 1) << LOG_OFF_CBM_SIZE) - 1) << endl;
+#endif
                offcbm_pages.erase(i);
                i=offcbm_pages.begin();
                break;
@@ -111,6 +125,15 @@ void Offcbm<ADDRESS, FLAGS>::rm_offcbm(ADDRESS start_addr, ADDRESS end_addr) {
 
 template<class ADDRESS, class FLAGS>
 void Offcbm<ADDRESS, FLAGS>::rm_offcbm() {
+#ifdef PRINT_RANGE_TRACE
+   typename deque<ADDRESS>::iterator i = offcbm_pages.begin();
+   for (i = offcbm_pages.begin(); i != offcbm_pages.end(); i++) {
+      if(total_print_number < MAX_PRINT_NUM) {
+         total_print_number++;
+         trace_output << 'm' << setw(5) << thread_id << setw(8) << ((*i)<<LOG_OFF_CBM_SIZE) << setw(8) << ((((*i) + 1) << LOG_OFF_CBM_SIZE) - 1) << endl;
+      }
+   }
+#endif
    offcbm_pages.clear();
 }
 
