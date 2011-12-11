@@ -529,7 +529,6 @@ void RangeCache<ADDRESS, FLAGS>::cache_kickout() {
             offcbm_switch++;
             temp = temp >> LOG_OFF_CBM_SIZE;
             rm_for_offcbm_switch((temp << LOG_OFF_CBM_SIZE), (((temp+1) << LOG_OFF_CBM_SIZE)-1));
-            rc_data.pop_back();
             return;
          }
          else if (check_switch == 2) { // switch to ranges
