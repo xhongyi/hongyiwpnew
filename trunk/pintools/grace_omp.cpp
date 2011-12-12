@@ -561,6 +561,12 @@ VOID DataInit() {
     instruction_total = 0;
 }
 
+BOOL InterruptQuit(THREADID tid, INT32 sig, CONTEXT *ctxt, BOOL hndlr, const EXCEPTION_INFO *excpt, VOID *useless) {
+    Fini(0, 0);
+    exit(0);
+    return true;
+}
+
 /* ===================================================================== */
 /* Print Help Message                                                    */
 /* ===================================================================== */
@@ -596,6 +602,7 @@ int main(int argc, char * argv[])
     // Register ThreadStart to be called when a thread starts.
     PIN_AddThreadStartFunction(ThreadStart, 0);
     PIN_AddThreadFiniFunction(ThreadFini, 0);
+    PIN_InterceptSignal(2, InterruptQuit, NULL);
 
     TRACE_AddInstrumentFunction(Trace, 0);
 
