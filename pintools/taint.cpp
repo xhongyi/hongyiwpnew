@@ -4382,6 +4382,12 @@ VOID DataInit() {
     number_of_instructions=0;
 }
 
+BOOL InterruptQuit(THREADID tid, INT32 sig, CONTEXT *ctxt, BOOL hndlr, const EXCEPTION_INFO *excpt, VOID *useless) {
+    Fini(0, 0);
+    exit(0);
+    return true;
+}
+
 int main(int argc, char* argv[])
 {
     int i;
@@ -4429,6 +4435,7 @@ int main(int argc, char* argv[])
     // Register Instruction to be called to instrument instructions
     INS_AddInstrumentFunction(Instruction, 0);
     TRACE_AddInstrumentFunction(Trace, 0);
+    PIN_InterceptSignal(2, InterruptQuit, NULL);
     //Start program
     PIN_StartProgram();
 }
