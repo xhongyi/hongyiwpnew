@@ -46,7 +46,7 @@ int PT2_byte_acu_single<ADDRESS, FLAGS>::general_fault(ADDRESS start_addr, ADDRE
    temp.tag = 0;
    temp.level = 'a';
    // checking the highest level hits
-   if ((target_flags & WA_READ) && seg_reg_read_watched ||
+   if (((target_flags & WA_READ) && seg_reg_read_watched) ||
          ((target_flags & WA_WRITE) && seg_reg_write_watched)) {
       if (!plb.check_and_update(temp))
          plb_misses++;
@@ -66,7 +66,7 @@ int PT2_byte_acu_single<ADDRESS, FLAGS>::general_fault(ADDRESS start_addr, ADDRE
       temp.tag = i;
       temp.level = 's';
       // check watched or not
-      if ((target_flags & WA_READ) && superpage_read_watched[i]  ||
+      if (((target_flags & WA_READ) && superpage_read_watched[i])  ||
             ((target_flags & WA_WRITE) && superpage_write_watched[i]) ) {
          if (!plb.check_and_update(temp)) {
             any_missed_plb = 1;
@@ -594,7 +594,7 @@ int PT2_byte_acu_single<ADDRESS, FLAGS>::rm_watchpoint(ADDRESS start_addr, ADDRE
    high_page_mark = ((end_addr>>PAGE_OFFSET_LENGTH)<<PAGE_OFFSET_LENGTH)-1;
    low_superpage_mark = ((start_addr>>SUPERPAGE_OFFSET_LENGTH)+1)<<SUPERPAGE_OFFSET_LENGTH;
    high_superpage_mark = ((end_addr>>SUPERPAGE_OFFSET_LENGTH)<<SUPERPAGE_OFFSET_LENGTH)-1;
-   bool full_remove = (target_flags == WA_READ|WA_WRITE);
+   bool full_remove = (target_flags == (WA_READ|WA_WRITE));
    do {
       if ( ((target_flags & WA_READ ) && !wp->general_fault(i, i, WA_READ )) 
         || ((target_flags & WA_WRITE) && !wp->general_fault(i, i, WA_WRITE)) )
